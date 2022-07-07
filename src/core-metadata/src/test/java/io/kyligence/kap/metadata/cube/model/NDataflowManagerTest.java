@@ -113,6 +113,19 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDataflowStatus() {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic").copy();
+        RealizationStatusEnum lastStatus = df.getStatus();
+        Assert.assertNull(df.getLastStatus());
+        df.setStatus(RealizationStatusEnum.BROKEN);
+        Assert.assertEquals(lastStatus, df.getLastStatus());
+        df.setStatus(RealizationStatusEnum.BROKEN);
+        Assert.assertEquals(lastStatus, df.getLastStatus());
+    }
+
+    @Test
     public void testImmutableCachedObj() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);

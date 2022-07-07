@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.service;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -51,6 +53,11 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
 import io.kyligence.kap.tool.constant.DiagTypeEnum;
@@ -166,7 +173,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "diagMap", exportPathMap);
         val result = systemService.getDiagPackagePath("test2");
         Assert.assertTrue(result.endsWith("diag.zip"));
-}
+    }
 
     @Test
     public void testGetQueryExtractorStatus() {
@@ -235,6 +242,38 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             fail("reload should be successful but not");
         }
+    }
+
+    @Test
+    public void testGetReadOnlyConfig() {
+        final String project = "default", modelName = "nmodel_basic";
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject("default", update_project -> {
+            LinkedHashMap<String, String> overrideKylinProps = update_project.getOverrideKylinProps();
+            overrideKylinProps.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "10");
+        });
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataModel model = NDataModelManager.getInstance(getTestConfig(), project)
+                .getDataModelDescByAlias(modelName);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(model.getId());
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            LinkedHashMap<String, String> overrideProps = indexPlan.getOverrideProps();
+            overrideProps.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "100");
+            overrideProps.put("kylin.index.rule-scheduler-data", "11");
+            copyForWrite.setOverrideProps(overrideProps);
+        });
+
+        Map<String, String> systemConfig = systemService.getReadOnlyConfig("", "");
+        Map<String, String> projectConfig = systemService.getReadOnlyConfig(project, "");
+        Map<String, String> modelConfig = systemService.getReadOnlyConfig(project, modelName);
+        Assert.assertEquals("UT", systemConfig.get("kylin.env"));
+        Assert.assertEquals("10", projectConfig.get("kylin.engine.spark-conf.spark.sql.shuffle.partitions"));
+        Assert.assertEquals("100", modelConfig.get("kylin.engine.spark-conf.spark.sql.shuffle.partitions"));
+        Assert.assertEquals(null, modelConfig.get("kylin.index.rule-scheduler-data"));
+        assertKylinExeption(() -> systemService.getReadOnlyConfig("", modelName),
+                "Please fill in the project parameters.");
+        assertKylinExeption(() -> systemService.getReadOnlyConfig("noexistProject", modelName),
+                "Please confirm and try again later.");
     }
 
 }

@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -62,8 +64,6 @@ import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
-
-import java.nio.charset.StandardCharsets;
 
 public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
@@ -121,18 +121,6 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setTables(tables);
         tableLoadRequest.setDatabases(dbs);
         return tableLoadRequest;
-    }
-
-    @Test
-    public void testGetLatestData() throws Exception {
-        Assert.assertNotNull(tableService);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/data_range/latest_data") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", "default") //
-                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(sampleController).getLatestData("default", "DEFAULT.TEST_KYLIN_FACT");
     }
 
     @Test

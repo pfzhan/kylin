@@ -38,8 +38,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,7 +47,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
@@ -97,7 +94,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -116,7 +112,6 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
@@ -582,13 +577,6 @@ public class TableServiceTest extends CSVSourceTestCase {
         // Add partition_key and data_loading_range
         DateRangeRequest request = mockDateRangeRequest();
         tableService.setPartitionKey(tableName, "default", "CAL_DT", "yyyy-MM-dd");
-        tableService.setDataRange("default", request);
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
-        Assert.assertNotNull(dataLoadingRange);
-        Assert.assertEquals(1294364500000L, dataLoadingRange.getCoveredRange().getStart());
-        Assert.assertEquals(1294450900000L, dataLoadingRange.getCoveredRange().getEnd());
 
         // unload table
         tableService.unloadTable("default", tableName, false);
@@ -600,8 +588,6 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.loadTableToProject(extractTableMeta.get(0).getFirst(), extractTableMeta.get(0).getSecond(),
                 "default");
         Assert.assertEquals(originSize, nTableMetadataManager.listAllTables().size());
-        dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
-        Assert.assertNull(dataLoadingRange);
         cleanPushdownEnv();
     }
 
@@ -654,13 +640,41 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetPartitionKeyAndSetDataRange() throws Exception {
         setupPushdownEnv();
         testGetBatchLoadTablesBefore();
-        testSetPartitionKeyAndSetDataRangeWithoutException();
+        testSetPartitionKeyWithoutException();
         testGetBatchLoadTablesAfter();
-        testSetDataRangeWhenNoNewData();
-        testSetDataRangeOverlapOrGap();
         testgetPartitionColumnFormat();
-        testGetLatestData();
         cleanPushdownEnv();
+    }
+
+    @Test
+    public void testGetPartitionFormatForbidden() throws Exception {
+        setupPushdownEnv();
+        testGetBatchLoadTablesBefore();
+        final String table = "DEFAULT.TEST_KYLIN_FACT";
+        final NTableMetadataManager tableMgr = getInstance(getTestConfig(), "default");
+        final TableDesc tableDesc = tableMgr.getTableDesc(table);
+        tableDesc.setTableType(TableDesc.TABLE_TYPE_VIEW);
+        tableMgr.updateTableDesc(tableDesc);
+        try {
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetPartitionFormatException() throws Exception {
+        setupPushdownEnv();
+        getTestConfig().setProperty("kylin.query.pushdown.partition-check.runner-class-name", "io.kyligence.kap.AAA");
+        testGetBatchLoadTablesBefore();
+        final String table = "DEFAULT.TEST_KYLIN_FACT";
+        try {
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getPushdownPartitionFormatError(), e.getMessage());
+        }
     }
 
     private void testGetBatchLoadTablesBefore() {
@@ -676,43 +690,11 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(61, response.getRelatedIndexNum());
     }
 
-    private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {
+    private void testSetPartitionKeyWithoutException() throws Exception {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         //test set fact and table list order by fact
         Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isIncrementLoading());
-        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                "default");
-        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364500000L);
-        dataLoadingRange.setCoveredRange(segmentRange);
-        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
-        rangeManager.updateDataLoadingRange(updateRange);
-        DateRangeRequest request = mockDateRangeRequest();
-        tableService.setDataRange("default", request);
-        rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-
-        // case of load existing data
-        tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        long t2 = sdf.parse("2014/01/01").getTime();
-
-        Assert.assertEquals(t2, dataLoadingRange.getCoveredRange().getEnd());
-    }
-
-    @Test
-    public void testSetPartitionKeyAndSetDataRangeWhenPushdownIsOff() {
-        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
-        try {
-            tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
-            tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
-        } catch (Exception ex) {
-            Assert.assertFalse(ex.getCause() instanceof ClassNotFoundException);
-        }
     }
 
     //test toggle partition Key,A to null, null to A ,A to B with model:with lag behind, without lag behind
@@ -802,62 +784,6 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     }
 
-    private void testSetDataRangeWhenNoNewData() {
-        DateRangeRequest request = mockDateRangeRequest();
-        // case of no more new data
-        request.setStart(null);
-        request.setEnd(null);
-        try {
-            tableService.setDataRange("default", request);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalStateException.class, ex.getClass());
-            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "There is no more new data to load"));
-        }
-    }
-
-    private void testSetDataRangeOverlapOrGap() throws ParseException {
-
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        long t1 = sdf.parse("2012/01/01").getTime();
-        long t2 = sdf.parse("2014/01/01").getTime();
-        long t3 = sdf.parse("2012/02/01").getTime();
-        long t4 = sdf.parse("2014/03/01").getTime();
-
-        DateRangeRequest request = mockDateRangeRequest();
-        // 2012-02-01
-        request.setStart(String.valueOf(t3));
-        // 2012-03-01
-        request.setEnd(String.valueOf(t4));
-        try {
-            tableService.setDataRange("default", request);
-        } catch (Exception ex) {
-            Assert.assertEquals(TransactionException.class, ex.getClass());
-            Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
-            Assert.assertEquals("NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[" + String.valueOf(t3)
-                    + "," + String.valueOf(t4)
-                    + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,"
-                    + String.valueOf(t2) + ")", ex.getCause().getMessage());
-        }
-
-        // case of having gap with current loading range
-        long t5 = sdf.parse("2014/01/02").getTime();
-        long t6 = sdf.parse("2014/01/03").getTime();
-
-        request.setStart(String.valueOf(t5));
-        request.setEnd(String.valueOf(t6));
-        try {
-            tableService.setDataRange("default", request);
-        } catch (Exception ex) {
-            Assert.assertEquals(TransactionException.class, ex.getClass());
-            Assert.assertEquals(IllegalArgumentException.class, ex.getCause().getClass());
-            Assert.assertEquals("NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[" + t5 + "," + t6
-                    + ") has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0," + t2 + ")",
-                    ex.getCause().getMessage());
-        }
-    }
-
     private void testgetPartitionColumnFormat() throws Exception {
         // Test on batch table
         String format = tableService.getPartitionColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
@@ -890,26 +816,6 @@ public class TableServiceTest extends CSVSourceTestCase {
         when(kafkaServiceMock.getMessages(any(), any(String.class), any(Integer.class))).thenCallRealMethod();
         when(kafkaServiceMock.getMessageTypeAndDecodedMessages(any())).thenCallRealMethod();
         desc.setKafkaConfig(null);
-    }
-
-    private void testGetLatestData() throws Exception {
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        long t1 = sdf.parse("2012/01/01").getTime();
-        long t2 = sdf.parse("2014/01/01").getTime();
-
-        ExistedDataRangeResponse response = tableService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(String.valueOf(t2), response.getEndTime());
-    }
-
-    @Test
-    public void testSetDateRangeException() throws Exception {
-        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("this table can not set date range, please check table");
-        tableService.setDataRange("default", dateRangeRequest);
     }
 
     @Test
@@ -1532,8 +1438,11 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testCheckMessage() {
         Assert.assertThrows(KylinException.class,
                 () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", null));
+    }
+
+    @Test
+    public void testCheckMessageWithArgs() {
         Assert.assertThrows(KylinException.class,
                 () -> ReflectionTestUtils.invokeMethod(tableService, "checkMessage", "table", new ArrayList<>()));
-
     }
 }

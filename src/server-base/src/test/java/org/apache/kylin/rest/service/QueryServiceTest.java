@@ -83,6 +83,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
@@ -288,6 +289,53 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
 
         Assert.assertTrue(response.isQueryPushDown());
+    }
+
+    @Test
+    public void testQueryPushDownWhenForceToTieredStorageEqualsOne() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToPushDown(false);
+        sqlRequest.setForcedToTieredStorage(1);
+
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getDefaultSchemaName(), true);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
+
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
+        Mockito.doThrow(new SQLException(new SQLException(QueryContext.ROUTE_USE_FORCEDTOTIEREDSTORAGE)))
+                .when(queryService.queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+
+        final SQLResponse response = queryService.queryWithCache(sqlRequest);
+        Assert.assertEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), response.getExceptionMessage());
+    }
+
+    @Test
+    public void testQueryPushDownWhenNormalDisable() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToTieredStorage(1);
+
+        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getDefaultSchemaName(), true);
+        String correctedSql = KapQueryUtil.massageSql(queryParams);
+
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
+        Mockito.doThrow(new SQLException(new SQLException("No model found for OLAPContex")))
+                .when(queryService.queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+
+        final SQLResponse response = queryService.queryWithCache(sqlRequest);
+        Assert.assertNotEquals(MsgPicker.getMsg().getDisablePushDownPrompt(), response.getExceptionMessage());
     }
 
     @Test
@@ -2114,50 +2162,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetForcedToTieredStorage() {
-        for (ForceToTieredStorage i : ForceToTieredStorage.values()) {
-            String system = Integer.toString(i.ordinal());
-            System.clearProperty("kylin.project.forced-to-tiered-storage");
-            overwriteSystemProp("kylin.system.forced-to-tiered-storage", system);
-            ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", i);
-            if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
-                assert i == ret;
-            } else {
-                assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-            }
-
-            for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
-                String project = Integer.toString(j.ordinal());
-                overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
-                ret = queryService.getForcedToTieredStorage("default", j);
-                if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
-                    assert j == ret;
-                } else {
-                    if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
-                        assert i == ret;
-                    } else {
-                        assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-                    }
-                }
-                for (ForceToTieredStorage k : ForceToTieredStorage.values()) {
-                    ret = queryService.getForcedToTieredStorage("default", k);
-                    if (k != ForceToTieredStorage.CH_FAIL_TAIL) {
-                        assert k == ret;
-                    } else {
-                        if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
-                            assert j == ret;
-                        } else if (i != ForceToTieredStorage.CH_FAIL_TAIL) {
-                            assert i == ret;
-                        } else {
-                            assert ForceToTieredStorage.CH_FAIL_TO_DFS == ret;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
     public void testGetForcedToTieredStorageValueInvalid() {
         try {
             ForceToTieredStorage f = ForceToTieredStorage.values()[-1];
@@ -2178,7 +2182,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetForcedToTieredStorageForProject() {
         for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
             String project = Integer.toString(j.ordinal());
-            overwriteSystemProp("kylin.project.forced-to-tiered-storage", project);
+            overwriteSystemProp("kylin.second-storage.route-when-ch-fail", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
             if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                 assert j == ret;
@@ -2192,7 +2196,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testGetForcedToTieredStorageForSystem() {
         for (ForceToTieredStorage j : ForceToTieredStorage.values()) {
             String project = Integer.toString(j.ordinal());
-            overwriteSystemProp("kylin.system.forced-to-tiered-storage", project);
+            overwriteSystemProp("kylin.second-storage.route-when-ch-fail", project);
             ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", j);
             if (j != ForceToTieredStorage.CH_FAIL_TAIL) {
                 assert j == ret;
@@ -2204,8 +2208,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetForcedToTieredStorageForMismatch() {
-        overwriteSystemProp("kylin.project.forced-to-tiered-storage", "1");
-        overwriteSystemProp("kylin.system.forced-to-tiered-storage", "2");
+        overwriteSystemProp("kylin.second-storage.route-when-ch-fail", "1");
         ForceToTieredStorage ret = queryService.getForcedToTieredStorage("default", ForceToTieredStorage.CH_FAIL_TAIL);
         assert ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN == ret;
         ret = queryService.getForcedToTieredStorage("default", ForceToTieredStorage.CH_FAIL_TO_DFS);
@@ -2320,7 +2323,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckSqlRequestProject() {
-        Assert.assertThrows(KylinException.class, () -> ReflectionTestUtils.invokeMethod(queryService,
-                "checkSqlRequestProject", new SQLRequest(), MsgPicker.getMsg()));
+        SQLRequest sqlRequest = new SQLRequest();
+        Message msg = MsgPicker.getMsg();
+        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
+                sqlRequest, msg));
     }
 }

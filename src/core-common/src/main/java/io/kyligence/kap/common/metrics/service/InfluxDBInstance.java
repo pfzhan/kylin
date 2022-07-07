@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -127,6 +128,7 @@ public class InfluxDBInstance {
 
             } else {
                 final Pong pong = influxDB.ping();
+                MetricsGroup.monitorRegisterMetrics();
                 logger.trace("Connected to influxDB successfully. [{}]", pong);
             }
         } catch (Exception ex) {

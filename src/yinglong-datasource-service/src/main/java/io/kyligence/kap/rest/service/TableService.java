@@ -65,6 +65,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -144,7 +145,6 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
@@ -174,7 +174,6 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
@@ -714,52 +713,6 @@ public class TableService extends BasicService {
                 () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
     }
 
-    public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
-        aclEvaluate.checkProjectOperationPermission(project);
-        String table = dateRangeRequest.getTable();
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        Preconditions.checkNotNull(dataLoadingRange, "table " + table + " is not incremental, ");
-        SegmentRange allRange = dataLoadingRange.getCoveredRange();
-
-        var start = dateRangeRequest.getStart();
-        var end = dateRangeRequest.getEnd();
-
-        if (PushDownUtil.needPushdown(start, end)) {
-            val pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
-            start = PushDownUtil.calcStart(pushdownResult.getFirst(), allRange);
-            end = pushdownResult.getSecond();
-        }
-
-        if (allRange != null && allRange.getEnd().toString().equals(end))
-            throw new IllegalStateException("There is no more new data to load");
-
-        String finalStart = start;
-        String finalEnd = end;
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            saveDataRange(project, table, finalStart, finalEnd);
-            return null;
-        }, project);
-    }
-
-    private void saveDataRange(String project, String table, String start, String end) throws Exception {
-        proposeAndSaveDateFormatIfNotExist(project, table);
-        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-        TableDesc tableDesc = tableManager.getTableDesc(table);
-        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
-        NDataLoadingRangeManager rangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
-        handleLoadingRangeUpdate(project, table, newSegmentRange);
-    }
-
-    public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
-        aclEvaluate.checkProjectOperationPermission(project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
-        val start = PushDownUtil.calcStart(pushdownResult.getFirst(), dataLoadingRange.getCoveredRange());
-        return new ExistedDataRangeResponse(start, pushdownResult.getSecond());
-    }
-
     public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
 
@@ -772,6 +725,7 @@ public class TableService extends BasicService {
             throw new KylinException(COLUMN_NOT_EXIST, String.format(Locale.ROOT,
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
+
         try {
             if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);
@@ -789,9 +743,11 @@ public class TableService extends BasicService {
                 return DateFormat.proposeDateFormat(cell);
             }
 
+        } catch (KylinException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to get date format.", e);
-            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPushdownPartitionformatError());
+            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPushdownPartitionFormatError());
         }
     }
 
@@ -799,87 +755,6 @@ public class TableService extends BasicService {
         if (messages == null || messages.isEmpty()) {
             throw new KylinException(EMPTY_TABLE,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getNoDataInTable(), table));
-        }
-    }
-
-    public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
-            throws Exception {
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        String partitionColumn = dataLoadingRange.getColumnName();
-
-        val maxAndMinTime = PushDownUtil.getMaxAndMinTimeWithTimeOut(partitionColumn, table, project);
-        String dateFormat;
-        if (StringUtils.isEmpty(dataLoadingRange.getPartitionDateFormat()))
-            dateFormat = setPartitionColumnFormat(maxAndMinTime.getFirst(), project, table);
-        else
-            dateFormat = dataLoadingRange.getPartitionDateFormat();
-
-        return new Pair<>(DateFormat.getFormattedDate(maxAndMinTime.getFirst(), dateFormat),
-                DateFormat.getFormattedDate(maxAndMinTime.getSecond(), dateFormat));
-    }
-
-    private String setPartitionColumnFormat(String time, String project, String table) {
-        String format = DateFormat.proposeDateFormat(time);
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-            NDataLoadingRangeManager rangeManager = getManager(NDataLoadingRangeManager.class, project);
-
-            val copy = rangeManager.copyForWrite(dataLoadingRange);
-            copy.setPartitionDateFormat(format);
-            rangeManager.updateDataLoadingRange(copy);
-
-            // sync to all related models
-            val dataflowManager = getManager(NDataflowManager.class, project);
-            TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
-            val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
-            for (val model : models) {
-                modelService.onSyncPartition(model.getUuid(), project);
-            }
-
-            return 0;
-        }, project);
-        return format;
-    }
-
-    private void proposeAndSaveDateFormatIfNotExist(String project, String table) throws Exception {
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        if (StringUtils.isNotEmpty(dataLoadingRange.getPartitionDateFormat()))
-            return;
-
-        String partitionColumn = dataLoadingRange.getColumnName();
-
-        val format = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
-
-        setPartitionColumnFormat(format, project, table);
-    }
-
-    private void handleLoadingRangeUpdate(String project, String tableName, SegmentRange segmentRange)
-            throws IOException {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-
-        TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, project).getTableDesc(tableName);
-        if (tableDesc == null) {
-            throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
-        }
-        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project)
-                .getTableOrientedModelsUsingRootTable(tableDesc);
-        if (CollectionUtils.isNotEmpty(models)) {
-            val jobManager = getManager(JobManager.class, project);
-            NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
-            for (var model : models) {
-                val modelId = model.getUuid();
-                IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
-                NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
-                NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-
-                getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> jobManager.addSegmentJob(new JobParam(dataSegment, modelId, getUsername())));
-
-                logger.info(
-                        "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
-                        project, modelId, segmentRange);
-            }
         }
     }
 
@@ -918,18 +793,6 @@ public class TableService extends BasicService {
         }
 
         return result;
-    }
-
-    public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
-        NProjectManager projectManager = getManager(NProjectManager.class);
-        ProjectInstance projectInstance = projectManager.getProject(project);
-        if (projectInstance != null) {
-            project = projectInstance.getName();
-        }
-        aclEvaluate.checkProjectOperationPermission(project);
-        for (DateRangeRequest request : requests) {
-            setDataRange(project, request);
-        }
     }
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
@@ -1313,7 +1176,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(projectName);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
-            List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild);
+            List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild, null);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
                 List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
@@ -1326,8 +1189,27 @@ public class TableService extends BasicService {
         }, projectName);
     }
 
+    public Pair<String, List<String>> reloadAWSTableCompatibleCrossAccount(String projectName, S3TableExtInfo tableExtInfo,
+            boolean needSample, int maxRows, boolean needBuild, int priority, String yarnQueue) {
+        aclEvaluate.checkProjectWritePermission(projectName);
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            Pair<String, List<String>> pair = new Pair<>();
+            List<String> buildingJobs = innerReloadTable(projectName, tableExtInfo.getName(), needBuild, tableExtInfo);
+            pair.setSecond(buildingJobs);
+            if (needSample && maxRows > 0) {
+                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
+                        maxRows, priority, yarnQueue, null);
+                if (CollectionUtils.isNotEmpty(jobIds)) {
+                    pair.setFirst(jobIds.get(0));
+                }
+            }
+            return pair;
+        }, projectName);
+    }
+
     @Transaction(project = 0)
-    List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
+    List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild,
+                 S3TableExtInfo tableExtInfo) throws Exception {
         val tableManager = getManager(NTableMetadataManager.class, projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable,
@@ -1335,9 +1217,25 @@ public class TableService extends BasicService {
 
         List<String> jobs = Lists.newArrayList();
         val context = calcReloadContext(projectName, tableIdentity, true);
+        if (null != tableExtInfo) {
+            context.getTableExtDesc().addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, tableExtInfo.getRoleArn());
+            context.getTableExtDesc().addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, tableExtInfo.getEndpoint());
+        }
         if (!context.isNeedProcess()) {
+            TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(originTable);
+            TableExtDesc targetExtDesc = context.getTableExtDesc();
+            String roleArn = targetExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+            String endpoint = targetExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+            if (null != tableExtDesc) {
+                tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, roleArn);
+                tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, endpoint);
+                TableExtDesc copyExt = tableManager.copyForWrite(tableExtDesc);
+                tableManager.saveTableExt(copyExt);
+                refreshSparkSessionIfNecessary(copyExt);
+            }
             return jobs;
         }
+
         val project = getManager(NProjectManager.class).getProject(projectName);
         Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         for (val model : affectedModels) {
@@ -1364,6 +1262,12 @@ public class TableService extends BasicService {
 
         mergeTable(projectName, context, false);
         return jobs;
+    }
+
+    public void refreshSparkSessionIfNecessary(TableExtDesc extDesc) {
+        if (KylinConfig.getInstanceFromEnv().useDynamicS3RoleCredentialInTable()) {
+            SparderEnv.addS3CredentialFromTableToSpark(extDesc, SparderEnv.getSparkSession());
+        }
     }
 
     private Set<NDataModel> getAffectedModels(String project, ReloadTableContext context) {

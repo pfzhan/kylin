@@ -207,7 +207,7 @@ public class OpenModelSmartController extends NBasicController {
     }
 
     @ApiOperation(value = "/accelerateSql", tags = { "AI" })
-    @PostMapping(value = "/accelerate_sqls")
+    @PostMapping(value = { "/accelerate_sqls", "/sql_acceleration" })
     @ResponseBody
     public EnvelopeResponse<OpenAccSqlResponse> accelerateSqls(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());

@@ -29,10 +29,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -78,9 +80,37 @@ public class DataSourceStateTest extends SourceTestCase {
     @Test
     public void testLoadAllSourceInfoToCache() {
         DataSourceState instance = DataSourceState.getInstance();
+        Thread thread = new Thread(instance);
+        getTestConfig().setProperty("kylin.kerberos.project-level-enabled", "true");
+        getTestConfig().setProperty("kylin.source.load-hive-table-wait-sparder-seconds", "5");
+        getTestConfig().setProperty("kylin.source.load-hive-table-wait-sparder-interval-seconds", "1");
+        thread.start();
+        try {
+            Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+                List<String> cacheTables = instance.getTables(PROJECT, DATABASE);
+                return !cacheTables.isEmpty();
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        Assert.assertTrue(instance.getTables(PROJECT, DATABASE).isEmpty());
+        getTestConfig().setProperty("kylin.source.load-hive-table-wait-sparder-seconds", "900");
+        getTestConfig().setProperty("kylin.source.load-hive-table-wait-sparder-interval-seconds", "10");
+        Thread thread2 = new Thread(instance);
+        thread2.start();
+        try {
+            Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+                List<String> cacheTables = instance.getTables(PROJECT, DATABASE);
+                return !cacheTables.isEmpty();
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        thread2.interrupt();
+        getTestConfig().setProperty("kylin.kerberos.project-level-enabled", "false");
         instance.run();
-        List<String> cacheTables = instance.getTables(PROJECT, DATABASE);
-        Assert.assertFalse(cacheTables.isEmpty());
+        List<String> cacheTables1 = instance.getTables(PROJECT, DATABASE);
+        Assert.assertFalse(cacheTables1.isEmpty());
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);

@@ -28,6 +28,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,6 +37,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -113,6 +118,94 @@ public class TableExtService extends BasicService {
         }
 
         return tableResponse;
+    }
+
+    public LoadTableResponse loadAWSTablesCompatibleCrossAccount(List<S3TableExtInfo> s3TableExtInfoList, String project) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
+        List<String> dbTableList = new ArrayList<>();
+        Map<String, S3TableExtInfo> map = new HashMap<>();
+        for (S3TableExtInfo s3TableExtInfo : s3TableExtInfoList) {
+            dbTableList.add(s3TableExtInfo.getName());
+            map.put(s3TableExtInfo.getName(), s3TableExtInfo);
+        }
+        String[] dbTables = dbTableList.toArray(new String[0]);
+        Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables, false);
+        Set<String> existDbs = Sets.newHashSet(tableService.getSourceDbNames(project));
+        LoadTableResponse tableResponse = new LoadTableResponse();
+        List<Pair<TableDesc, TableExtDesc>> loadTables = Lists.newArrayList();
+        for (Map.Entry<String, Set<String>> entry : dbTableMap.entrySet()) {
+            String db = entry.getKey();
+            Set<String> tableSet = entry.getValue();
+            if (!existDbs.contains(db)) {
+                List<String> tables = tableSet.stream().map(table -> db + "." + table).collect(Collectors.toList());
+                tableResponse.getFailed().addAll(tables);
+                continue;
+            }
+            Set<String> existTables = Sets.newHashSet(tableService.getSourceTableNames(project, db, ""));
+            Set<String> failTables = Sets.newHashSet(tableSet);
+            existTables.retainAll(tableSet);
+            failTables.removeAll(existTables);
+            List<String> tmpTables = failTables.stream().map(table -> db + "." + table).collect(Collectors.toList());
+            tableResponse.getFailed().addAll(tmpTables);
+
+            String[] tables = existTables.stream().map(table -> db + "." + table).toArray(String[]::new);
+            if (tables.length > 0) {
+                List<Pair<TableDesc, TableExtDesc>> tableDescs = extractTableMeta(tables, project, tableResponse);
+                for (Pair<TableDesc, TableExtDesc> tableExtDescPair : tableDescs) {
+                    TableDesc tableDesc = tableExtDescPair.getFirst();
+                    TableExtDesc tableExtDesc = tableExtDescPair.getSecond();
+                    String tableKey = tableDesc.getDatabase() + "." + tableDesc.getName();
+                    S3TableExtInfo target = map.get(tableKey);
+                    if (null != target) {
+                        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, target.getRoleArn());
+                        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, target.getEndpoint());
+                        loadTables.add(tableExtDescPair);
+                    } else {
+                        tableResponse.getFailed().add(tableKey);
+                    }
+                }
+            }
+        }
+        if (!loadTables.isEmpty()) {
+            return innerLoadTables(project, tableResponse, loadTables);
+        }
+
+        return tableResponse;
+    }
+
+    public UpdateAWSTableExtDescResponse updateAWSLoadedTableExtProp(UpdateAWSTableExtDescRequest request) {
+        aclEvaluate.checkProjectOperationPermission(request.getProject());
+        UpdateAWSTableExtDescResponse response = new UpdateAWSTableExtDescResponse();
+        Map<String, S3TableExtInfo> map = new HashMap<>();
+        for (S3TableExtInfo s3TableExtInfo : request.getTables()) {
+            map.put(s3TableExtInfo.getName(), s3TableExtInfo);
+        }
+        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, request.getProject());
+        List<TableDesc> projectTableDescList = tableMetadataManager.listAllTables();
+        List<String> identityList = projectTableDescList.stream()
+                .map(TableDesc::getIdentity)
+                .filter(identity -> map.get(identity) != null)
+                .collect(Collectors.toList());
+
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NTableMetadataManager innerTableMetadataManager = getManager(NTableMetadataManager.class, request.getProject());
+            for (String identity : identityList) {
+                TableDesc tableDesc = innerTableMetadataManager.getTableDesc(identity);
+                TableExtDesc extDesc = innerTableMetadataManager.getTableExtIfExists(tableDesc);
+                if (null == extDesc) {
+                    response.getFailed().add(identity);
+                } else {
+                    TableExtDesc copyExt = innerTableMetadataManager.copyForWrite(extDesc);
+                    S3TableExtInfo s3TableExtInfo = map.get(identity);
+                    copyExt.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, s3TableExtInfo.getRoleArn());
+                    copyExt.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, s3TableExtInfo.getEndpoint());
+                    innerTableMetadataManager.saveTableExt(copyExt);
+                    tableService.refreshSparkSessionIfNecessary(copyExt);
+                    response.getSucceed().add(identity);
+                }
+            }
+            return response;
+        }, request.getProject());
     }
 
     private LoadTableResponse innerLoadTables(String project, LoadTableResponse tableResponse,

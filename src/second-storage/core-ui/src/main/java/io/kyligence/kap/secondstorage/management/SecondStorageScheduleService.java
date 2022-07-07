@@ -34,6 +34,7 @@ import io.kyligence.kap.secondstorage.factory.SecondStorageFactoryUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class SecondStorageScheduleService {
+    private static final int JOB_ID_LENGTH = 36;
 
     @Scheduled(cron = "${kylin.second-storage.table-clean-cron:0 0 0 * * *}")
     public void secondStorageTempTableCleanTask() {
@@ -98,17 +100,21 @@ public class SecondStorageScheduleService {
             val allJobs = execManager.getAllJobs();
             List<String> discardJobs = allJobs.stream()
                     .filter(job -> job.getOutput().getStatus().equals(ExecutableState.DISCARDED.name()))
-                    .map(job -> job.getId()).collect(Collectors.toList());
+                    .map(RootPersistentEntity::getId)
+                    .map(jobId -> jobId.length() > JOB_ID_LENGTH ? jobId.substring(0, JOB_ID_LENGTH) : jobId)
+                    .collect(Collectors.toList());
 
             List<String> allJobIds = allJobs.stream()
-                    .map(job -> job.getId()).collect(Collectors.toList());
+                    .map(RootPersistentEntity::getId)
+                    .map(jobId -> jobId.length() > JOB_ID_LENGTH ? jobId.substring(0, JOB_ID_LENGTH) : jobId)
+                    .collect(Collectors.toList());
 
             // temp table is start with job id
             List<String> discardTempTables = tempTables.stream()
-                    .filter(table -> discardJobs.contains(table.substring(0, 36))).collect(Collectors.toList());
+                    .filter(table -> discardJobs.contains(table.substring(0, JOB_ID_LENGTH))).collect(Collectors.toList());
 
             // a temp table doesn't belong to any job
-            List<String> orphanTempTables = tempTables.stream().filter(table -> !allJobIds.contains(table.substring(0, 36)))
+            List<String> orphanTempTables = tempTables.stream().filter(table -> !allJobIds.contains(table.substring(0, JOB_ID_LENGTH)))
                     .collect(Collectors.toList());
             log.info("check database {}, find discardTempTables: {}, orphanTempTables: {} ", database, discardTempTables, orphanTempTables);
             // drop tables;

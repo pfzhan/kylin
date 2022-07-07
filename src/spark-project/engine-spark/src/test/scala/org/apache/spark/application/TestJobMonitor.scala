@@ -25,7 +25,6 @@ package org.apache.spark.application
 import java.util
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.amazonaws.services.s3.model.AmazonS3Exception
 import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
@@ -391,4 +390,5 @@ class MockClusterManager extends IClusterManager {
   override def isApplicationBeenKilled(applicationId: String): Boolean = false
 
   override def applicationExisted(jobId: String): Boolean = false
+
 }

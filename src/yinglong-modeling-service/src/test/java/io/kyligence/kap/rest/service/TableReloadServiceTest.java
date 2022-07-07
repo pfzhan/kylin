@@ -43,6 +43,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -226,7 +227,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 put("PRICE", "bigint");
             }
         }, true);
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false, null);
         model = modelManager.getDataModelDescByAlias("nmodel_basic");
         Assert.assertEquals("BIGINT", model.getComputedColumnDescs().get(0).getDatatype());
     }
@@ -319,7 +320,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, false);
 
-        val jobs = tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        val jobs = tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         val execManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         val executables = execManager.getRunningExecutables(PROJECT, MODEL_ID);
         val indexPlan = indexManager.getIndexPlan(MODEL_ID);
@@ -382,7 +383,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, true);
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS", false);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS", false, null);
 
         val saved2 = indexManager.getIndexPlan(modelId);
         val toBeDeletedLayouts2 = saved2.getToBeDeletedIndexes();
@@ -515,7 +516,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         await().atMost(10000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
             val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
             Assert.assertEquals(4, modelManager.listAllModels().size());
             val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -528,7 +529,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_BrokenModelInManualProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4, modelManager.listAllModels().stream().filter(RootPersistentEntity::isBroken).count());
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -560,7 +561,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             return null;
         }).when(mockModerService).updateDataModelSemantic(Mockito.anyString(), Mockito.any());
 
-        mockTableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS", true);
+        mockTableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS", true, null);
 
         Assert.assertFalse(modifiedModel.get());
     }
@@ -592,7 +593,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         copy.setLastSnapshotPath("/path/to/snapshot");
         tableManager.updateTableDesc(copy);
 
-        tableService.innerReloadTable(PROJECT, TARGET_TABLE, true);
+        tableService.innerReloadTable(PROJECT, TARGET_TABLE, true, null);
         val newTable = tableManager.getTableDesc(TARGET_TABLE);
         Assert.assertNotNull(newTable.getLastSnapshotPath());
     }
@@ -602,7 +603,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         prepareReload();
 
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID", "ORDER_ID2");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
@@ -661,7 +662,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         prepareReload();
 
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
@@ -716,7 +717,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         prepareReload();
 
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
@@ -795,7 +796,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         String col = identity.split("\\.")[2];
         removeColumn(db + "." + tb, col);
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         val brokenModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         copyModel.getJoinTables().get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.LSTG_SITE_ID" });
@@ -827,7 +828,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 .getTableDesc("DEFAULT.TEST_ORDER");
         prepareTableExt("DEFAULT.TEST_ORDER");
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER", true, null);
 
         // index_plan with rule
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
@@ -884,7 +885,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
         Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         Assert.assertFalse(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
     }
 
@@ -924,7 +925,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(beforeAggShardBy, updatedIndexPlan.getAggShardByColumns());
         prepareTableExt("DEFAULT.TEST_ORDER");
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER", true, null);
 
         // index_plan with rule
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
@@ -955,7 +956,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         addColumn("DEFAULT.TEST_KYLIN_FACT", true, new ColumnDesc("", "newColumn", "int", "", "", "", null));
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         Assert.assertEquals(layoutSize - 1, dataflowManager.getDataflowByModelAlias("nmodel_basic_inner").getIndexPlan()
                 .getRuleBaseLayouts().size());
@@ -970,7 +971,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         tableMetadataManager.updateTableDesc(tableDesc);
 
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
-        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
+        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true, null);
 
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
@@ -985,7 +986,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 .getTableDesc("DEFAULT.TEST_COUNTRY");
         prepareTableExt("DEFAULT.TEST_COUNTRY");
         addColumn("DEFAULT.TEST_COUNTRY", true, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY", true, null);
 
         val model2 = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val maxId = model2.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
@@ -1013,7 +1014,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.getDuplicatedColumns().size());
 
         try {
-            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
@@ -1021,7 +1022,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }
 
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "DEAL_YEAR");
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
     }
 
     @Test
@@ -1076,7 +1077,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_ChangeColumn() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
-        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
+        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true, null);
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val df = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
@@ -1097,7 +1098,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, true);
 
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         val df2 = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
         val indexPlan2 = df2.getIndexPlan();
@@ -1139,7 +1140,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
-        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
+        tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true, null);
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val originDF = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
@@ -1154,7 +1155,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 put("PRICE", "string");
             }
         }, false);
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         val df = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
         val indexPlan = df.getIndexPlan();
@@ -1202,7 +1203,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 put("SLR_SEGMENT_CD", "bigint");
             }
         }, true);
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
                 .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
@@ -1250,7 +1251,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         addColumn("DEFAULT.TEST_KYLIN_FACT", false, new ColumnDesc("5", "newCol", "double", "", "", "", null));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "IS_EFFECTUAL");
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
                 .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
@@ -1309,7 +1310,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, true);
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
 
@@ -1379,7 +1380,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, true);
 
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
 
         indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
 
@@ -1457,7 +1458,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 put("SLR_SEGMENT_CD", "bigint");
             }
         }, true);
-        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         Assert.assertTrue(indexManager.getIndexPlan(modelId).getAllLayouts().stream()
                 .anyMatch(l -> l.equals(layout) && l.isAuto() && l.getId() > layout.getId()));
     }
@@ -1471,7 +1472,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         addColumn(tableIdentity, false, new ColumnDesc("5", "LATITUDE", "double", "", "", "", null));
         addColumn(tableIdentity, false, new ColumnDesc("6", "LATITUDE6", "double", "", "", "", null));
 
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         // check table sample
         var tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
@@ -1497,7 +1498,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(indexPlan.getToBeDeletedIndexes()));
 
         removeColumn(tableIdentity, "NAME");
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(dataflow.getUuid());
         Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
@@ -1529,7 +1530,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         removeColumn(tableIdentity, "ITEM_COUNT", "LSTG_FORMAT_NAME");
 
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());
@@ -1556,10 +1557,86 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         removeColumn(tableIdentity, "IS_EFFECTUAL");
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
+
+    @Test
+    public void testReload_NoChangeAndUpdateTableExtDesc() throws Exception {
+        S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
+        prepareTableExt("DEFAULT.TEST_ORDER");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        tableService.innerReloadTable(PROJECT, tableExtInfo.getName(), true, tableExtInfo);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val table = tableManager.getTableDesc(tableExtInfo.getName());
+        TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(table);
+        String endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+        String roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+        Assert.assertEquals("endpoint", endpoint);
+        Assert.assertEquals("role", roleArn);
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "false");
+        tableService.innerReloadTable(PROJECT, tableExtInfo.getName(), true, null);
+        tableExtDesc = tableManager.getTableExtIfExists(table);
+        endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+        roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+        Assert.assertNull(endpoint);
+        Assert.assertNull(roleArn);
+    }
+
+    @Test
+    public void testReload_RemoveColumnAndUpdateTableExtDesc() throws Exception {
+        removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
+        S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
+
+        prepareTableExt("DEFAULT.TEST_ORDER");
+        tableService.innerReloadTable(PROJECT, tableExtInfo.getName(), true, tableExtInfo);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val table = tableManager.getTableDesc(tableExtInfo.getName());
+        val tableExtDesc = tableManager.getTableExtIfExists(table);
+        String endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+        String roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+        Assert.assertEquals("endpoint", endpoint);
+        Assert.assertEquals("role", roleArn);
+    }
+
+    @Test
+    public void testReloadAWSTableCompatibleCrossAccountNoSample(){
+        S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
+        prepareTableExt("DEFAULT.TEST_ORDER");
+        tableService.reloadAWSTableCompatibleCrossAccount(PROJECT, tableExtInfo, false, 10000, true, 3, null);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc table = tableManager.getTableDesc(tableExtInfo.getName());
+        TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(table);
+        String endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+        String roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+        Assert.assertEquals("endpoint", endpoint);
+        Assert.assertEquals("role", roleArn);
+
+        tableService.reloadAWSTableCompatibleCrossAccount(PROJECT, tableExtInfo, true, 0, true, 3, null);
+        table = tableManager.getTableDesc(tableExtInfo.getName());
+        tableExtDesc = tableManager.getTableExtIfExists(table);
+        endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);
+        roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
+        Assert.assertEquals("endpoint", endpoint);
+        Assert.assertEquals("role", roleArn);
+    }
+
+    @Test(expected = Exception.class)
+    public void testReloadAWSTableCompatibleCrossAccountNeedSample(){
+        S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
+        prepareTableExt("DEFAULT.TEST_ORDER");
+        tableService.reloadAWSTableCompatibleCrossAccount(PROJECT, tableExtInfo, true, 10000, true, 3, null);
+    }
+
+    private S3TableExtInfo prepareTableExtInfo(String dbTable, String endpoint, String role){
+        S3TableExtInfo tableExtInfo = new S3TableExtInfo();
+        tableExtInfo.setName(dbTable);
+        tableExtInfo.setEndpoint(endpoint);
+        tableExtInfo.setRoleArn(role);
+        return tableExtInfo;
+    }
+
 
     private void prepareTableExt(String tableIdentity) {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
@@ -1579,6 +1656,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
             return row;
         }).collect(Collectors.toList()));
+        ext.addDataSourceProp("location", "test-location");
         tableManager.saveTableExt(ext);
     }
 

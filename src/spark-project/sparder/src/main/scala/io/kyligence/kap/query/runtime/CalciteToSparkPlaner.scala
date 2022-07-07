@@ -130,13 +130,23 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
   private def actionWithCache(rel: KapRel)(body: => DataFrame): DataFrame = {
     var layoutId = 0L
     var modelId = ""
+    var pruningSegmentHashCode = 0
     if (rel.getDigest == null) {
       body
     } else {
       try {
-        val layoutEntity = rel.getContext.storageContext.getCandidate.getLayoutEntity
+        val storageContext = rel.getContext.storageContext
+        val layoutEntity = storageContext.getCandidate.getLayoutEntity
+        val prunedSegments = storageContext.getPrunedSegments
+        val tempTimeRange = new StringBuilder()
+        if (prunedSegments != null) {
+          prunedSegments.forEach(segment => {
+            tempTimeRange.append(segment.getName)
+          })
+        }
+        pruningSegmentHashCode = tempTimeRange.toString().hashCode
         layoutId = layoutEntity.getId
-        modelId = layoutEntity.getModel.getId
+        modelId = layoutEntity.getModel.getId + "_" + pruningSegmentHashCode
       } catch {
         case e: Throwable => logWarning(s"Calculate layoutId modelId failed ex:${e.getMessage}")
       }

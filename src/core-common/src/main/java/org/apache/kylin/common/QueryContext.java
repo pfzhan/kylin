@@ -269,7 +269,7 @@ public class QueryContext implements Closeable {
 
         private AtomicLong sourceScanRows = new AtomicLong();
 
-        private List<Long> sourceScanRowsList = new ArrayList<>();
+        private AtomicLong accumSourceScanRows = new AtomicLong();
 
         public long getSourceScanBytes() {
             return sourceScanBytes.get();
@@ -287,12 +287,12 @@ public class QueryContext implements Closeable {
             sourceScanRows.set(bytes);
         }
 
-        public void addSourceScanRows(long rows) {
-            sourceScanRowsList.add(rows);
+        public void addAccumSourceScanRows(long rows) {
+            accumSourceScanRows.addAndGet(rows);
         }
 
-        public long calSumOfSourceScanRows() {
-            return sourceScanRowsList.stream().mapToLong(Long::longValue).sum();
+        public long getAccumSourceScanRows() {
+            return accumSourceScanRows.get();
         }
 
         // scanXxx from SparkUI

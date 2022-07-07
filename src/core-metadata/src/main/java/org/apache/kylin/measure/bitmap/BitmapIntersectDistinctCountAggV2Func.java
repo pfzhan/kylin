@@ -50,11 +50,13 @@ public class BitmapIntersectDistinctCountAggV2Func {
         return null;
     }
 
-    public static void add(Object result, Object value, Object key, List keyList, String filterType) { }
+    public static Object add(Object result, Object value, Object key, List keyList, String filterType) {
+        return null;
+    }
 
     public static void merge(Object result, Object value, Object key, List keyList, String filterType) { }
 
-    public static Object result() {
+    public static Object result(Object result) {
         return null;
     }
 }

@@ -27,6 +27,7 @@ import static io.kyligence.kap.tool.constant.DiagTypeEnum.FULL;
 import static io.kyligence.kap.tool.constant.DiagTypeEnum.JOB;
 import static io.kyligence.kap.tool.constant.DiagTypeEnum.QUERY;
 import static io.kyligence.kap.tool.constant.StageEnum.DONE;
+import static org.apache.kylin.common.exception.ServerErrorCode.CONFIG_NONEXIST_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
@@ -35,7 +36,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -69,6 +72,10 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
@@ -86,6 +93,8 @@ public class SystemService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    private final String MODEL_CONFIG_BLOCK_LIST = "kylin.index.rule-scheduler-data";
 
     @Data
     @NoArgsConstructor
@@ -322,5 +331,38 @@ public class SystemService extends BasicService {
     public void reloadMetadata() throws IOException {
             MessageSynchronization messageSynchronization = MessageSynchronization.getInstance(KylinConfig.getInstanceFromEnv());
             messageSynchronization.replayAllMetadata(true);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public Map<String, String> getReadOnlyConfig(String projectName, String modelAlias) {
+        TreeMap<String, String> result = new TreeMap<>();
+        if (StringUtils.isBlank(projectName)) {
+            if (StringUtils.isNotBlank(modelAlias)) {
+                throw new KylinException(CONFIG_NONEXIST_MODEL,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLackProject(), projectName), false);
+            }
+            result.putAll(getConfig().getReadonlyProperties());
+        } else if (StringUtils.isBlank(modelAlias)) {
+            // Project Level Config
+            val project = getManager(NProjectManager.class).getProject(projectName);
+            if (project == null) {
+                throw new KylinException(CONFIG_NONEXIST_MODEL,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getNonExistProject(), projectName), false);
+            }
+            result.putAll(project.getConfig().getReadonlyProperties());
+        } else {
+            // Model Level Config
+            NDataModel model = getManager(NDataModelManager.class, projectName).getDataModelDescByAlias(modelAlias);
+            if (model == null) {
+                throw new KylinException(CONFIG_NONEXIST_MODEL,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getNonExistedModel(), modelAlias), false);
+            }
+            val indexPlan = getManager(NIndexPlanManager.class, projectName).getIndexPlan(model.getId());
+            if (indexPlan != null) {
+                result.putAll(indexPlan.getOverrideProps());
+                result.remove(MODEL_CONFIG_BLOCK_LIST);
+            }
+        }
+        return result;
     }
 }

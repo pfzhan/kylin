@@ -23,7 +23,6 @@
 package org.apache.spark.deploy.master
 
 import java.util
-
 import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.deploy.DeployMessages.{KillApplication, MasterStateResponse, RequestMasterState}
@@ -123,6 +122,7 @@ class StandaloneClusterManager extends IClusterManager with Logging {
       true
     }
   }
+
 }
 
 object StandaloneClusterManager extends Logging {

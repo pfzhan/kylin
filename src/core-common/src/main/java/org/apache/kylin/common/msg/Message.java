@@ -48,6 +48,19 @@ import java.util.Locale;
 import org.apache.kylin.common.Singletons;
 
 public class Message {
+    private static final String SECOND_STORAGE_PROJECT_ENABLED = "The project %s does not have tiered storage enabled.";
+    private static final String SECOND_STORAGE_MODEL_ENABLED = "The model %s does not have tiered storage enabled.";
+    private static final String SECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX = "The base table index is missing in the segments, please add and try again.";
+    private static final String SECOND_STORAGE_DELETE_NODE_FAILED = "Node %s has data, size is %d bytes";
+    private static final String FORCED_TO_TIERED_STORAGE_AND_FORCE_TO_INDEX = "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+    private static final String FORCED_TO_TIERED_STORAGE_RETURN_ERROR = "Query failed. Tiered storage is unavailable, please fix and try again.";
+    private static final String FORCED_TO_TIERED_STORAGE_INVALID_PARAMETER = "invalid parameters, please fix and try again.";
+    private static final String PARAMETER_IS_REQUIRED = "'%s' is required.";
+    private static final String DISABLE_PUSH_DOWN_PROMPT = "You should turn on pushdown button if you want to pushdown.";
+    private static final String QUERY_NODE_INVALID = "Can’t execute this request on Query node. Please check and try again.";
+    private static final String NON_EXISTED_MODEL = "Model %s doesn't exist. Please confirm and try again later.";
+    private static final String LACK_PROJECT = "Please fill in the project parameters.";
+    private static final String NON_EXIST_PROJECT = "Project %s doesn't exist. Please confirm and try again later.";
 
     protected Message() {
 
@@ -460,10 +473,6 @@ public class Message {
         return "Can’t find the table. Please check and try again";
     }
 
-    public String getTableDescNotFound() {
-        return "Cannot find table descriptor '%s'.";
-    }
-
     // Table
     public String getTableNotFound() {
         return "Can’t find table \"%s\". Please check and try again.";
@@ -751,8 +760,13 @@ public class Message {
         return "Can’t save model \"%s\". Please ensure that the used column \"%s\" exist in source table \"%s\".";
     }
 
+    public String getViewDateFormatDetectionError() {
+        return "It is not supported to obtain the time format of the partition column "
+                + "or the data range of the view table, please manually select or enter.";
+    }
+
     // Async push down get date format
-    public String getPushdownPartitionformatError() {
+    public String getPushdownPartitionFormatError() {
         return "Can’t detect at the moment. Please set the partition format manually.";
     }
 
@@ -1193,7 +1207,7 @@ public class Message {
     }
 
     public String getQueryNodeInvalid() {
-        return "Can’t execute this request on Query node. Please check and try again.";
+        return QUERY_NODE_INVALID;
     }
 
     public String getInvalidTimeFormat() {
@@ -1624,19 +1638,19 @@ public class Message {
     }
 
     public String getSecondStorageProjectEnabled() {
-        return "The project %s does not have tiered storage enabled.";
+        return SECOND_STORAGE_PROJECT_ENABLED;
     }
 
     public String getSecondStorageModelEnabled() {
-        return "The model %s does not have tiered storage enabled.";
+        return SECOND_STORAGE_MODEL_ENABLED;
     }
 
     public String getSecondStorageSegmentWithoutBaseIndex() {
-        return "The base table index is missing in the segments, please add and try again.";
+        return SECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX;
     }
 
     public String getSecondStorageDeleteNodeFailed() {
-        return "Node %s has data, size is %d bytes";
+        return SECOND_STORAGE_DELETE_NODE_FAILED;
     }
 
     public String getJobRestartFailed() {
@@ -1708,15 +1722,15 @@ public class Message {
     }
 
     public String getForcedToTieredstorageAndForceToIndex() {
-        return "When force_to_index=ture, the query cannot pushdown when using tiered storage fails, forcedToTieredStorage=1 or conf=1 is invalid, please modify and try again";
+        return FORCED_TO_TIERED_STORAGE_AND_FORCE_TO_INDEX;
     }
 
     public String getForcedToTieredstorageReturnError() {
-        return "Query failed. Tiered storage is unavailable, please fix and try again.";
+        return FORCED_TO_TIERED_STORAGE_RETURN_ERROR;
     }
 
     public String getForcedToTieredstorageInvalidParameter() {
-        return "invalid parameters, please fix and try again.";
+        return FORCED_TO_TIERED_STORAGE_INVALID_PARAMETER;
     }
 
     public String getSecondStorageNodeNotAvailable() {
@@ -1833,7 +1847,23 @@ public class Message {
         return "Please add permissions to columns in the table!";
     }
 
-    public String getPARAMETER_IS_REQUIRED() {
-        return "'%s' is required.";
+    public String getParameterIsRequired() {
+        return PARAMETER_IS_REQUIRED;
+    }
+
+    public String getDisablePushDownPrompt() {
+        return DISABLE_PUSH_DOWN_PROMPT;
+    }
+
+    public String getNonExistedModel() {
+        return NON_EXISTED_MODEL;
+    }
+
+    public String getLackProject() {
+        return LACK_PROJECT;
+    }
+
+    public String getNonExistProject() {
+        return NON_EXIST_PROJECT;
     }
 }

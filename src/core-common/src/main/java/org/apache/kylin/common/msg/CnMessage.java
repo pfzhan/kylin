@@ -367,11 +367,6 @@ public class CnMessage extends Message {
         return "此项目未开启多级分区，多级分区无法使用。请开启后重试。";
     }
 
-    // Table
-    public String getHIVE_TABLE_NOT_FOUND() {
-        return "找不到 Hive 表 '%s'";
-    }
-
     // table sampling
     @Override
     public String getBeyondMixSamplingRowshint() {
@@ -790,9 +785,14 @@ public class CnMessage extends Message {
         return "模型 “%s” 保存失败。请确保模型中使用的列 “%s” 在源表 “%s” 中存在。";
     }
 
+    @Override
+    public String getViewDateFormatDetectionError() {
+        return "暂不支持获取视图表的分区列时间格式或数据范围，请手动选择或输入。";
+    }
+
     // Async push down get date format
     @Override
-    public String getPushdownPartitionformatError() {
+    public String getPushdownPartitionFormatError() {
         return "自动探测失败，请手动选择分区格式。";
     }
 
@@ -2090,7 +2090,27 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getPARAMETER_IS_REQUIRED() {
+    public String getParameterIsRequired() {
         return "找不到 '%s'。";
+    }
+
+    @Override
+    public String getDisablePushDownPrompt() {
+        return "当您需要查询下压时，需要开启下压开关。";
+    }
+
+    @Override
+    public String getNonExistedModel() {
+        return "模型 %s 不存在，请检查后再重试.";
+    }
+
+    @Override
+    public String getLackProject() {
+        return "请填写项目参数.";
+    }
+
+    @Override
+    public String getNonExistProject() {
+        return "项目 %s 不存在，请检查后再重试.";
     }
 }

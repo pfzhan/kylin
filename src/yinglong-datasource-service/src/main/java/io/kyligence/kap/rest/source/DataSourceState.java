@@ -57,6 +57,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
+import org.apache.spark.sql.SparderEnv;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -97,7 +98,21 @@ public class DataSourceState implements Runnable {
     @Override
     public void run() {
         try {
+            int waitSeconds = 0;
+            while (!SparderEnv.isSparkAvailable() && KylinConfig.getInstanceFromEnv().getKerberosProjectLevelEnable()) {
+                if (waitSeconds >= KylinConfig.getInstanceFromEnv().getLoadHiveTableWaitSparderSeconds()) {
+                    log.warn("Skip wait sparder start, wait seconds :{}", waitSeconds);
+                    return;
+                }
+                log.info("Wait sparder start");
+                Integer intervals = KylinConfig.getInstanceFromEnv().getLoadHiveTableWaitSparderIntervals();
+                TimeUnit.SECONDS.sleep(intervals);
+                waitSeconds = waitSeconds + intervals;
+            }
             loadAllSourceInfoToCache();
+        } catch (InterruptedException ex) {
+            log.info("thread interrupted while wait sparder start");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             log.error("Scheduling refresh of hive table name cache failed", e);
         } finally {
@@ -116,7 +131,7 @@ public class DataSourceState implements Runnable {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         KerberosLoginManager kerberosManager = KerberosLoginManager.getInstance();
 
-        Map<String, Pair<ProjectInstance, UserGroupInformation>> ugiMap = Maps.newHashMap();
+        Map<String, Pair<ProjectInstance, UserGroupInformation>> ugiMap = Maps.newLinkedHashMap();
         ugiMap.put(SOURCE_KEY_PREFIX + UserGroupInformation.getLoginUser().getUserName(),
                 Pair.newPair(null, UserGroupInformation.getLoginUser()));
 

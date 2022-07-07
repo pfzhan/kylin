@@ -22,7 +22,9 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.{Locale, Objects}
+import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.{Locale, Objects, Timer, TimerTask}
+
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
@@ -454,9 +456,28 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     if (dataSegment.isDictReady) {
       logInfo(s"Skip DICTIONARY segment $segmentId")
     } else {
+      // KE-32076 ensure at least one worker was registered before dictionary lock added.
+      waitTillWorkerRegistered()
       buildDict(table, dictCols)
     }
     encodeColumn(table, encodeCols)
+  }
+
+  def waitTillWorkerRegistered(): Unit = {
+    val cdl = new CountDownLatch(1)
+    val timer = new Timer("worker-starvation-timer", true)
+    timer.scheduleAtFixedRate(new TimerTask {
+      override def run(): Unit = {
+        if (sparkSession.sparkContext.statusTracker.getExecutorInfos.isEmpty) {
+          logWarning("Ensure at least one worker has been registered before building dictionary.")
+        } else {
+          this.cancel()
+          cdl.countDown()
+        }
+      }
+    }, 0, TimeUnit.SECONDS.toMillis(20))
+    cdl.await()
+    timer.cancel()
   }
 
   private def concatCCs(table: Dataset[Row], computColumns: Set[TblColRef]): Dataset[Row] = {

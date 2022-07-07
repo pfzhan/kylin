@@ -739,7 +739,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         updateNextId();
     }
 
-    private void updateNextId() {
+    public void updateNextId() {
         val allIndexes = getAllIndexes();
         nextAggregationIndexId = Math.max(allIndexes.stream().filter(c -> !c.isTableIndex())
                 .mapToLong(IndexEntity::getId).max().orElse(-INDEX_ID_STEP) + INDEX_ID_STEP, nextAggregationIndexId);

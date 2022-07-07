@@ -25,19 +25,12 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.io.IOException;
 
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.KylinTimeoutException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -52,7 +45,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
@@ -63,7 +55,6 @@ import io.swagger.annotations.ApiOperation;
 public class SampleController extends BaseController {
 
     private static final String TABLE = "table";
-    private static final Logger logger = LoggerFactory.getLogger(SampleController.class);
 
     @Autowired
     @Qualifier("tableService")
@@ -92,29 +83,6 @@ public class SampleController extends BaseController {
         modelBuildService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
                 request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "latestData", tags = { "AI" })
-    @GetMapping(value = "/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON,
-            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-    @ResponseBody
-    public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
-        checkProjectName(project);
-        checkRequiredArg(TABLE, table);
-
-        ExistedDataRangeResponse response;
-        try {
-            response = tableService.getLatestDataRange(project, table);
-        } catch (KylinTimeoutException ke) {
-            logger.error(MsgPicker.getMsg().getpushdownDatarangeTimeout(), ke);
-            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getpushdownDatarangeTimeout());
-        } catch (Exception e) {
-            logger.error(MsgPicker.getMsg().getPushdownDatarangeError(), e);
-            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPushdownDatarangeError());
-        }
-
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "partitionColumnFormat", tags = { "AI" })

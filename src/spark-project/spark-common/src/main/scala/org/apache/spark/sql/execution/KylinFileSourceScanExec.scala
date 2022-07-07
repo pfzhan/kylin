@@ -45,8 +45,13 @@ class KylinFileSourceScanExec(
      optionalNumCoalescedBuckets: Option[Int],
      dataFilters: Seq[Expression],
      tableIdentifier: Option[TableIdentifier],
-     disableBucketedScan: Boolean = false) extends LayoutFileSourceScanExec(
+     disableBucketedScan: Boolean = false,
+     sourceScanRows: Long) extends LayoutFileSourceScanExec(
   relation, output, requiredSchema, partitionFilters, None, optionalNumCoalescedBuckets, dataFilters, tableIdentifier, disableBucketedScan) {
+
+  def getSourceScanRows: Long = {
+    sourceScanRows
+  }
 
   @transient override lazy val selectedPartitions: Array[PartitionDirectory] = {
     val optimizerMetadataTimeNs = relation.location.metadataOpsTimeNs.getOrElse(0L)
@@ -284,7 +289,8 @@ class KylinFileSourceScanExec(
       optionalNumCoalescedBuckets,
       dataFilters,
       tableIdentifier,
-      disableBucketedScan
+      disableBucketedScan,
+      sourceScanRows
     )
     plan.copyTagsFrom(this)
     plan

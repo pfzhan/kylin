@@ -95,11 +95,11 @@ public class RawSql {
         return fullTextStringCache;
     }
 
-    public void autoAppendLimit(int limit) {
-        autoAppendLimit(limit, 0);
+    public void autoAppendLimit(KylinConfig kylinConfig, int limit) {
+        autoAppendLimit(kylinConfig, limit, 0);
     }
 
-    public void autoAppendLimit(int limit, int offset) {
+    public void autoAppendLimit(KylinConfig kylinConfig, int limit, int offset) {
         if (CollectionUtils.isEmpty(allBlockList) || !isSelectStatement()) {
             return;
         }
@@ -108,6 +108,11 @@ public class RawSql {
         List<String> sqlElements = Lists
                 .newArrayList(getStatementString().toLowerCase(Locale.ROOT).split("(?![\\._])\\p{P}|\\s+"));
         boolean limitAppended = false;
+
+        Integer maxRows = kylinConfig.getMaxResultRows();
+        if (maxRows != null && maxRows > 0 && (maxRows < limit || limit <= 0)) {
+            limit = maxRows;
+        }
 
         if (limit > 0 && !sqlElements.contains("limit")) {
             appendStmtBlock("\nLIMIT " + limit);
@@ -119,9 +124,8 @@ public class RawSql {
         }
 
         // https://issues.apache.org/jira/browse/KYLIN-2649
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         int forceLimit;
-        if ((forceLimit = kylinConfig.getForceLimit()) > 0 && !limitAppended
+        if ((forceLimit = kylinConfig.getForceLimit()) > 0 && !limitAppended && !sqlElements.contains("limit")
                 && getStatementString().toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
             appendStmtBlock("\nLIMIT " + forceLimit);
         }

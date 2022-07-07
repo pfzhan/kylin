@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.TIME_INVALID_RANGE_LESS_THAN_ZERO;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -35,6 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.request.S3TableExtInfo;
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -264,117 +267,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSetDateRangePass() throws Exception {
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-    }
-
-    @Test
-    public void getGetBatchLoadTables() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", "default") //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).getBatchLoadTables("default");
-    }
-
-    @Test
-    public void batchLoadTablesWithEmptyRequest() throws Exception {
-        List<DateRangeRequest> requests = Lists.newArrayList();
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-    }
-
-    @Test
-    public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
-        DateRangeRequest request = new DateRangeRequest();
-        request.setProject("default");
-        request.setTable("DEFAULT.TEST_KYLIN_FACT");
-        request.setStart("-1");
-        request.setEnd("-1");
-        List<DateRangeRequest> requests = Lists.newArrayList(request);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
-                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
-    }
-
-    @Test
-    public void batchLoadTables_DateRange_EndLessThanStart_Exception() throws Exception {
-        String errorMsg = "The end time must be greater than the start time";
-        DateRangeRequest request = new DateRangeRequest();
-        request.setProject("default");
-        request.setTable("DEFAULT.TEST_KYLIN_FACT");
-        request.setStart("100");
-        request.setEnd("1");
-        List<DateRangeRequest> requests = Lists.newArrayList(request);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(requests)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
-    }
-
-    @Test
-    public void testSetDateRang_lessThan0_exception() throws Exception {
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("-1");
-        dateRangeRequest.setTable("TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(),
-                TIME_INVALID_RANGE_LESS_THAN_ZERO.getMsg()));
-    }
-
-    @Test
-    public void testSetDateRang_EndLessThanStart_exception() throws Exception {
-        String errorMsg = "The end time must be greater than the start time";
-        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("100");
-        dateRangeRequest.setEnd("1");
-        dateRangeRequest.setTable("TEST_KYLIN_FACT");
-        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
-                .contentType(MediaType.APPLICATION_JSON) //
-                .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
-    }
-
-    @Test
     public void testSetTop() throws Exception {
         final TopTableRequest topTableRequest = mockTopTableRequest();
         Mockito.doNothing().when(tableService).setTop(topTableRequest.getTable(), topTableRequest.getProject(),
@@ -454,6 +346,75 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+    }
+
+    @Test
+    public void testLoadAWSTablesCompatibleCrossAccount() throws Exception {
+        List<S3TableExtInfo> s3TableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo = new S3TableExtInfo();
+        s3TableExtInfo.setName("DEFAULT.TABLE0");
+        s3TableExtInfo.setLocation("s3://bucket1/test1/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket2/test2/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role1");
+        s3TableExtInfoList.add(s3TableExtInfo);
+        s3TableExtInfoList.add(s3TableExtInfo2);
+
+        AWSTableLoadRequest tableLoadRequest = new AWSTableLoadRequest();
+        tableLoadRequest.setProject("default");
+        tableLoadRequest.setDataSourceType(9);
+        tableLoadRequest.setTables(s3TableExtInfoList);
+
+        Set<String> loaded = Sets.newHashSet("TABLE0");
+        Set<String> failed = Sets.newHashSet("TABLE1");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
+
+        Mockito.when(tableExtService.loadAWSTablesCompatibleCrossAccount(tableLoadRequest.getTables(),
+                        "default")).thenReturn(loadTableResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/compatibility/aws") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).loadAWSTablesCompatibleCrossAccount(Mockito.any(AWSTableLoadRequest.class));
+    }
+
+    @Test
+    public void testUpdateLoadedTableExtProp() throws Exception {
+        List<S3TableExtInfo> s3TableExtInfoList = new ArrayList<>();
+        S3TableExtInfo s3TableExtInfo = new S3TableExtInfo();
+        s3TableExtInfo.setName("DEFAULT.TABLE0");
+        s3TableExtInfo.setLocation("s3://bucket11/test11/");
+        S3TableExtInfo s3TableExtInfo2 = new S3TableExtInfo();
+        s3TableExtInfo2.setName("DEFAULT.TABLE1");
+        s3TableExtInfo2.setLocation("s3://bucket22/test22/");
+        s3TableExtInfo2.setEndpoint("us-west-2.amazonaws.com");
+        s3TableExtInfo2.setRoleArn("test:role2");
+        s3TableExtInfoList.add(s3TableExtInfo);
+        s3TableExtInfoList.add(s3TableExtInfo2);
+
+        UpdateAWSTableExtDescRequest request = new UpdateAWSTableExtDescRequest();
+        request.setProject("default");
+        request.setTables(s3TableExtInfoList);
+
+        Set<String> succeed = Sets.newHashSet("TABLE0");
+        Set<String> failed = Sets.newHashSet("TABLE1");
+        UpdateAWSTableExtDescResponse updateTableExeDescResponse = new UpdateAWSTableExtDescResponse();
+        updateTableExeDescResponse.setSucceed(succeed);
+        updateTableExeDescResponse.setFailed(failed);
+
+        Mockito.when(tableExtService.updateAWSLoadedTableExtProp(request))
+                .thenReturn(updateTableExeDescResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/ext/prop/aws") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).updateLoadedAWSTableExtProp(Mockito.any(UpdateAWSTableExtDescRequest.class));
     }
 
     @Test
