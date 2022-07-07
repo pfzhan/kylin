@@ -69,11 +69,11 @@ public class MetricsGroup {
 
     public static final Set<String> gauges = Collections.synchronizedSet(new HashSet<>());
 
-    public static final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<String, Counter>();
+    public static final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<>();
 
-    public static final ConcurrentHashMap<String, Meter> meters = new ConcurrentHashMap<String, Meter>();
+    public static final ConcurrentHashMap<String, Meter> meters = new ConcurrentHashMap<>();
 
-    public static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap<String, Histogram>();
+    public static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap<>();
 
     private MetricsGroup() {
     }
@@ -444,7 +444,7 @@ public class MetricsGroup {
         return counters.get(metricName);
     }
 
-    public static final Map<String, MetricsObject> cacheInfluxMetricStatusMap = new ConcurrentHashMap<String, MetricsObject>();
+    public static final Map<String, MetricsObject> cacheInfluxMetricStatusMap = new ConcurrentHashMap<>();
 
     public static long tryRestoreCounter(String fieldName, String category, String entity, Map<String, String> tags) {
         try {
