@@ -49,6 +49,11 @@
             <artifactId>kap-external-curator</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence</groupId>
+            <artifactId>kyligence-config-external</artifactId>
+        </dependency>
+
         <!-- provided -->
         <dependency>
             <groupId>io.netty</groupId>

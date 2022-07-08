@@ -78,13 +78,15 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848
-        group: ABC
+        server-addr: ${NACOS_DISCOVERY_SERVER_ADDR}
+        group: "${TENANT_ID}"
         service: ${spring.application.name}
   session:
-    store-type: NONE
+    store-type: JDBC
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
+  config:
+    import: optional:file://${KYLIN_HOME}/conf/config.yaml
 
 logging:
   level:

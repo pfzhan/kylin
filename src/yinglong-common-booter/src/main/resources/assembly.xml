@@ -48,6 +48,18 @@
             <outputDirectory>lib/</outputDirectory>
             <destName>newten-job.jar</destName>
         </file>
+        <file>
+            <source>${basedir}/src/main/resources/config/config.yaml</source>
+            <outputDirectory>conf/</outputDirectory>
+        </file>
+        <file>
+            <source>${basedir}/src/main/resources/config/init.properties</source>
+            <outputDirectory>conf/</outputDirectory>
+        </file>
+        <file>
+            <source>${basedir}/src/main/resources/config/config_library.csv</source>
+            <outputDirectory>conf/</outputDirectory>
+        </file>
     </files>
     <dependencySets>
         <dependencySet>

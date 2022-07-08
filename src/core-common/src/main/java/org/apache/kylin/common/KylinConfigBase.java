@@ -71,6 +71,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.config.core.loader.IExternalConfigLoader;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
@@ -177,18 +178,26 @@ public abstract class KylinConfigBase implements Serializable {
 
     // ============================================================================
 
-    volatile Properties properties = new Properties();
+    /**
+     * only reload properties
+     */
+    volatile PropertiesDelegate properties;
 
-    public KylinConfigBase() {
-        this(new Properties());
+    protected KylinConfigBase(IExternalConfigLoader configLoader) {
+        this(new Properties(), configLoader);
     }
 
-    public KylinConfigBase(Properties props) {
-        this.properties = BCC.check(props);
+    protected KylinConfigBase(Properties props, IExternalConfigLoader configLoader) {
+        this(props, false, configLoader);
     }
 
-    protected KylinConfigBase(Properties props, boolean force) {
-        this.properties = force ? props : BCC.check(props);
+    protected KylinConfigBase(Properties props, boolean force, IExternalConfigLoader configLoader) {
+        if (props instanceof PropertiesDelegate) {
+            this.properties = (PropertiesDelegate) props;
+        } else {
+            this.properties = force ? new PropertiesDelegate(props, configLoader)
+                    : new PropertiesDelegate(BCC.check(props), configLoader);
+        }
     }
 
     protected final String getOptional(String prop) {
@@ -296,7 +305,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     final protected void reloadKylinConfig(Properties properties) {
-        this.properties = BCC.check(properties);
+        this.properties.reloadProperties(BCC.check(properties));
         setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
         setProperty("kylin.metadata.url.unique-id", getMetadataUrlUniqueId());
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());

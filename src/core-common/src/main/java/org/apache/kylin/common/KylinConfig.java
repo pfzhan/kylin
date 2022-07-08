@@ -42,34 +42,30 @@
 
 package org.apache.kylin.common;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import static org.apache.kylin.common.KylinExternalConfigLoader.KYLIN_CONF_PROPERTIES_FILE;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
 import org.slf4j.Logger;
@@ -78,21 +74,26 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.config.core.loader.IExternalConfigLoader;
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
+import lombok.Setter;
 
 /**
  */
 public class KylinConfig extends KylinConfigBase {
+
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(KylinConfig.class);
+
+    @Setter
+    private static IExternalConfigLoader configLoader = null;
 
     final transient ReentrantLock lock = new ReentrantLock();
     /**
      * Kylin properties file name
      */
-    public static final String KYLIN_CONF_PROPERTIES_FILE = "kylin.properties";
     public static final String KYLIN_CONF = "KYLIN_CONF";
 
     // static cached instances
@@ -102,6 +103,8 @@ public class KylinConfig extends KylinConfigBase {
     private static transient ThreadLocal<KylinConfig> THREAD_ENV_INSTANCE = new ThreadLocal<>();
 
     public static final String MODEL_OFFLINE_FLAG = "kylin.model.offline";
+
+    public static final String USE_LEGACY_CONFIG = "KYLIN_LEGACY_CONFIG";
 
     static {
         /*
@@ -137,10 +140,12 @@ public class KylinConfig extends KylinConfigBase {
         }
         synchronized (KylinConfig.class) {
             if (SYS_ENV_INSTANCE == null) {
-                SYS_ENV_INSTANCE = newKylinConfig();
+                SYS_ENV_INSTANCE = newKylinConfig(configLoader != null && !useLegacyConfig() ? configLoader
+                        : ShellKylinExternalConfigLoaderFactory.getConfigLoader());
                 logger.trace("Created a new KylinConfig by getInstanceFromEnv, KylinConfig Id: {}",
                         System.identityHashCode(SYS_ENV_INSTANCE));
             }
+
             return SYS_ENV_INSTANCE;
         }
     }
@@ -155,10 +160,18 @@ public class KylinConfig extends KylinConfigBase {
         return SYS_ENV_INSTANCE;
     }
 
+    /**
+     * only for xxTool and UT
+     * @return
+     */
     public static KylinConfig newKylinConfig() {
+        return newKylinConfig(ShellKylinExternalConfigLoaderFactory.getConfigLoader());
+    }
+
+    public static KylinConfig newKylinConfig(IExternalConfigLoader configLoader) {
         try {
-            KylinConfig config = new KylinConfig();
-            config.reloadKylinConfig(buildSiteProperties());
+            KylinConfig config = new KylinConfig(configLoader);
+            config.reloadKylinConfig(new Properties());
             logger.trace("Created a new KylinConfig by newKylinConfig, KylinConfig Id: {}",
                     System.identityHashCode(config));
             return config;
@@ -399,44 +412,20 @@ public class KylinConfig extends KylinConfigBase {
 
     // build kylin properties from site deployment, a.k.a KYLIN_HOME/conf/kylin.properties
     private static OrderedProperties buildSiteOrderedProps() {
-
+        String config;
+        if (configLoader == null) {
+            config = ShellKylinExternalConfigLoaderFactory.getConfigLoader().getConfig();
+        } else {
+            config = configLoader.getConfig();
+        }
+        StringReader reader = new StringReader(config);
+        OrderedProperties orderedProperties = new OrderedProperties();
         try {
-            // 1. load default configurations from classpath. 
-            // we have a kylin-defaults.properties in kylin/core-common/src/main/resources 
-            URL resource = Thread.currentThread().getContextClassLoader().getResource("kylin-defaults.properties");
-            Preconditions.checkNotNull(resource);
-            logger.info("Loading kylin-defaults.properties from {}", resource.getPath());
-            OrderedProperties orderedProperties = new OrderedProperties();
-            loadAndTrimProperties(resource.openStream(), orderedProperties);
-
-            for (int i = 0; i < 10; i++) {
-                String fileName = "kylin-defaults" + (i) + ".properties";
-                URL additionalResource = Thread.currentThread().getContextClassLoader().getResource(fileName);
-                if (additionalResource != null) {
-                    logger.info("Loading {} from {} ", fileName, additionalResource.getPath());
-                    loadAndTrimProperties(additionalResource.openStream(), orderedProperties);
-                }
-            }
-
-            // 2. load site conf, to keep backward compatibility it's still named kylin.properties
-            // actually it's better to be named kylin-site.properties
-            File propFile = getSitePropertiesFile();
-            if (propFile == null || !propFile.exists()) {
-                logger.error("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
-                throw new KylinConfigCannotInitException("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
-            }
-            loadAndTrimProperties(new FileInputStream(propFile), orderedProperties);
-
-            // 3. still support kylin.properties.override as secondary override
-            // not suggest to use it anymore
-            File propOverrideFile = new File(propFile.getParentFile(), propFile.getName() + ".override");
-            if (propOverrideFile.exists()) {
-                loadAndTrimProperties(new FileInputStream(propOverrideFile), orderedProperties);
-            }
-            return orderedProperties;
+            orderedProperties.load(reader);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return orderedProperties;
     }
 
     public static KylinConfig loadKylinConfigFromHdfs(String uri) {
@@ -446,7 +435,7 @@ public class KylinConfig extends KylinConfigBase {
             throw new IllegalArgumentException("StorageUrl should like @hdfs schema");
         logger.info("Ready to load KylinConfig from uri: {}", uri);
         StorageURL url = StorageURL.valueOf(uri);
-        String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
+        String metaDir = url.getParameter("path") + "/" + KYLIN_CONF_PROPERTIES_FILE;
         Path path = new Path(metaDir);
         try (InputStream is = path.getFileSystem(HadoopUtil.getCurrentConfiguration()).open(new Path(metaDir))) {
             Properties prop = KylinConfig.streamToProps(is);
@@ -456,53 +445,22 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    private static OrderedProperties loadPropertiesFromInputStream(InputStream inputStream) {
-        BufferedReader confReader = null;
-        try {
-            confReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
-            OrderedProperties temp = new OrderedProperties();
-            temp.load(confReader);
-            return temp;
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            IOUtils.closeQuietly(confReader);
-        }
-    }
-
-    /**
-     * 1.load props from InputStream
-     * 2.trim all key-value
-     * 3.backward compatibility check
-     * 4.close the passed in inputStream
-     * @param inputStream
-     * @param properties
-     */
-    private static void loadAndTrimProperties(@Nonnull InputStream inputStream, @Nonnull OrderedProperties properties) {
-        Preconditions.checkNotNull(inputStream);
-        Preconditions.checkNotNull(properties);
-        try {
-            OrderedProperties trimProps = OrderedProperties.copyAndTrim(loadPropertiesFromInputStream(inputStream));
-            properties.putAll(BCC.check(trimProps));
-        } catch (Exception e) {
-            logger.error(" loadAndTrimProperties error ", e);
-            throw new KylinException(UNKNOWN_ERROR_CODE, " loadAndTrimProperties error ", e);
-        }
-    }
-
     // ============================================================================
 
     private final Singletons singletons;
 
     private KylinConfig() {
-        super();
+        this(null);
+    }
+
+    private KylinConfig(IExternalConfigLoader configLoader) {
+        super(configLoader);
         this.singletons = new Singletons();
         logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
 
     protected KylinConfig(Properties props, boolean force) {
-        super(props, force);
+        super(props, force, null);
         this.singletons = new Singletons();
         logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
@@ -629,7 +587,7 @@ public class KylinConfig extends KylinConfigBase {
         try {
             final Properties newProperties = reloadKylinConfig2Properties(buildSiteProperties());
             this.cachedHdfsWorkingDirectory = null;
-            this.properties = newProperties;
+            this.properties.reloadProperties(newProperties);
         } finally {
             lock.unlock();
         }
@@ -776,6 +734,10 @@ public class KylinConfig extends KylinConfigBase {
                 THREAD_ENV_INSTANCE.set(originThreadLocalConfig);
             }
         }
+    }
+    
+    public static boolean useLegacyConfig() {
+        return Objects.equals(TRUE, System.getenv(USE_LEGACY_CONFIG));
     }
 
 }
