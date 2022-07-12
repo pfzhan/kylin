@@ -44,6 +44,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.constant.Constant;
@@ -68,6 +69,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.ChainedExecutable;
 import io.kyligence.kap.job.execution.ChainedStageExecutable;
@@ -79,13 +82,13 @@ import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import lombok.val;
 import lombok.var;
 
 public class JobErrorTest extends NLocalFileMetadataTestCase {
-    @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
 
     @InjectMocks
     private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
@@ -112,14 +115,30 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
-        ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(jobService, "projectService", projectService);
-        ReflectionTestUtils.setField(jobService, "modelService", modelService);
+
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(jobInfoService, "projectService", projectService);
+
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        try {
+            // need not start job scheduler
+            jobContext.destroy();
+        } catch (Exception e) {
+            throw new RuntimeException("Destroy jobContext failed.", e);
+        }
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     private String getProject() {
@@ -128,11 +147,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testWrapWithExecuteException() throws ExecuteException {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         val sparkExecutable = new NSparkExecutable();
         sparkExecutable.setProject(getProject());
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, RandomUtil.randomUUIDStr());
@@ -161,11 +181,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetExceptionCode() throws IOException {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         manager.addJob(executable);
 
         val exceptionCodeStream = getClass().getClassLoader().getResource(JobService.EXCEPTION_CODE_PATH).openStream();
@@ -199,11 +220,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetExceptionResolveAndCode() {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         manager.addJob(executable);
 
         val project = getProject();
@@ -257,11 +279,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateJobError() {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         manager.addJob(executable);
 
         val project = getProject();
@@ -288,11 +311,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateJobErrorManager() throws InterruptedException {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         manager.addJob(executable);
 
         val jobId = executable.getId();
@@ -339,11 +363,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
 
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
 
         val sparkExecutable = new NSparkExecutable();
         sparkExecutable.setProject(getProject());
@@ -372,6 +397,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedReason = "date format not match";
         var failedResolve = JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve();
         var failedCode = JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode();
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.PENDING, null, null, "test output");
         manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.ERROR, null, null, "test output");
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
 
@@ -391,11 +417,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetDuration() throws InterruptedException {
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         manager.addJob(executable);
 
         var output = manager.getOutput(executable.getId());
@@ -409,6 +436,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
             Assert.assertTrue(duration[0] >= 10);
         });
 
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         output = manager.getOutput(executable.getId());
         duration[0] = AbstractExecutable.getDuration(output);
@@ -423,11 +451,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         val segmentId = RandomUtil.randomUUIDStr();
         val segmentId2 = RandomUtil.randomUUIDStr();
 
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
 
         val sparkExecutable = new NSparkExecutable();
         sparkExecutable.setProject(getProject());
@@ -449,7 +478,9 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         manager.addJob(executable);
 
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
         manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
@@ -467,11 +498,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     public void testGetDurationWithoutWaiteTimeFromSingleSegment() throws JsonProcessingException {
         val segmentId = RandomUtil.randomUUIDStr();
 
-        val manager = ExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val manager = ExecutableManager.getInstance(getTestConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executable.setJobType(JobTypeEnum.INC_BUILD);
 
         val sparkExecutable = new NSparkExecutable();
         sparkExecutable.setProject(getProject());
@@ -495,7 +527,9 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         Map<String, String> info = Maps.newHashMap();
 
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING, info);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, info);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
         manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);

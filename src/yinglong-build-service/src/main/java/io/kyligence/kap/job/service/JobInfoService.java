@@ -119,7 +119,6 @@ import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.delegate.TableMetadataInvoker;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.service.JobSupporter;
-import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -162,9 +161,6 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     @Autowired(required = false)
     private TableMetadataInvoker tableMetadataInvoker;
-
-    @Autowired
-    private ModelService modelService;
 
     @Autowired
     public JobInfoService setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -850,7 +846,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
         executableResponseList.forEach(executableResponse -> {
             ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
-            NDataModel nDataModel = modelService.getManager(NDataModelManager.class, executableResponse.getProject())
+            NDataModel nDataModel = getManager(NDataModelManager.class, executableResponse.getProject())
                     .getDataModelDesc(executableResponse.getTargetModel());
             String modelName = Objects.isNull(nDataModel) ? null : nDataModel.getAlias();
 
