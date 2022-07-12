@@ -239,6 +239,10 @@ public class QueryExec {
             postOptRules.addAll(HepUtils.SumCastDoubleRules);
         }
 
+        if (kylinConfig.isQueryFilterReductionEnabled()) {
+            postOptRules.addAll(HepUtils.FilterReductionRules);
+        }
+
         if (!postOptRules.isEmpty()) {
             RelNode transformed = HepUtils.runRuleCollection(node, postOptRules, false);
             if (transformed != node && allowAlternativeQueryPlan) {

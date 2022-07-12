@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CONCURRENT_SUBMIT_LIMIT;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_MULTI_PARTITION_ABANDON;
@@ -67,6 +68,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -115,6 +117,7 @@ import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -575,10 +578,42 @@ public class ModelServiceBuildTest extends SourceTestCase {
         cleanPushdownEnv();
     }
 
-    private void testGetLatestData() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
+    private void testGetLatestData() {
+        ExistedDataRangeResponse data = modelService.getLatestDataRange("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
-        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
+        Assert.assertEquals(String.valueOf(Long.MAX_VALUE), data.getEndTime());
+    }
+
+    @Test
+    public void testDetectViewPartitionDateFormatForbidden() throws Exception {
+        setupPushdownEnv();
+
+        final String table = "DEFAULT.TEST_KYLIN_FACT";
+        final NTableMetadataManager tableMgr = getInstance(getTestConfig(), "default");
+        final TableDesc tableDesc = tableMgr.getTableDesc(table);
+        tableDesc.setTableType(TableDesc.TABLE_TYPE_VIEW);
+        tableMgr.updateTableDesc(tableDesc);
+        try {
+            modelService.getLatestDataRange("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDetectPartitionDateFormatError() throws Exception {
+        setupPushdownEnv();
+        final NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.getPartitionDesc().setPartitionDateFormat("yyyyMMdd");
+        });
+        try {
+            modelService.getLatestDataRange("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(MsgPicker.getMsg().getPushdownDatarangeError(), e.getMessage());
+        }
     }
 
     public void testChangePartitionDesc() throws Exception {

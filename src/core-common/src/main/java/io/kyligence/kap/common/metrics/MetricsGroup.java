@@ -27,6 +27,7 @@ package io.kyligence.kap.common.metrics;
 import static java.util.stream.Collectors.toMap;
 
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -66,13 +67,13 @@ public class MetricsGroup {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsGroup.class);
 
-    private static final Set<String> gauges = Collections.synchronizedSet(new HashSet<>());
+    public static final Set<String> gauges = Collections.synchronizedSet(new HashSet<>());
 
-    private static final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap();
+    public static final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<>();
 
-    private static final ConcurrentHashMap<String, Meter> meters = new ConcurrentHashMap();
+    public static final ConcurrentHashMap<String, Meter> meters = new ConcurrentHashMap<>();
 
-    private static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap();
+    public static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap<>();
 
     private MetricsGroup() {
     }
@@ -106,10 +107,8 @@ public class MetricsGroup {
         }
         try {
             final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (counter != null) {
-                counter.inc(increments);
-                return true;
-            }
+            counter.inc(increments);
+            return true;
         } catch (Exception e) {
             logger.warn("ke.metrics counterInc {}", e.getMessage());
         }
@@ -132,10 +131,8 @@ public class MetricsGroup {
         }
         try {
             final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (histogram != null) {
-                histogram.update(updateTo);
-                return true;
-            }
+            histogram.update(updateTo);
+            return true;
         } catch (Exception e) {
             logger.warn("ke.metrics histogramUpdate {}", e.getMessage());
         }
@@ -150,10 +147,8 @@ public class MetricsGroup {
             Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (meter != null) {
-                meter.mark();
-                return true;
-            }
+            meter.mark();
+            return true;
         } catch (Exception e) {
             logger.warn("ke.metrics meterMark {}", e.getMessage());
         }
@@ -161,55 +156,39 @@ public class MetricsGroup {
     }
 
     public static boolean removeGlobalMetrics() {
-        try {
-            final String metricNameSuffix = metricNameSuffix(MetricsCategory.GLOBAL.getVal(), "global",
-                    Collections.emptyMap());
-            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
-            removeMetrics(metricNameSuffix, registry);
-            return true;
-        } catch (Exception e) {
-            logger.warn("ke.metrics removeGlobalMetrics {}", e.getMessage());
-        }
-        return false;
+        final String metricNameSuffix = metricNameSuffix(MetricsCategory.GLOBAL.getVal(), "global",
+                Collections.emptyMap());
+        final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
+        removeMetrics(metricNameSuffix, registry);
+        return true;
     }
 
     public static boolean removeProjectMetrics(final String projectName) {
-        try {
-            if (StringUtils.isEmpty(projectName)) {
-                throw new IllegalArgumentException("removeProjectMetrics, projectName shouldn't be empty.");
-            }
-            final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), projectName,
-                    Collections.emptyMap());
-
-            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
-            removeMetrics(metricNameSuffix, registry);
-            return true;
-        } catch (Exception e) {
-            logger.warn("ke.metrics removeProjectMetrics, projectName: {} {}", projectName, e.getMessage());
+        if (StringUtils.isEmpty(projectName)) {
+            throw new IllegalArgumentException("removeProjectMetrics, projectName shouldn't be empty.");
         }
-        return false;
+        final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), projectName,
+                Collections.emptyMap());
+
+        final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
+        removeMetrics(metricNameSuffix, registry);
+        return true;
     }
 
     public static boolean removeModelMetrics(String project, String modelId) {
-        try {
-            if (StringUtils.isEmpty(project)) {
-                throw new IllegalArgumentException("removeModelMetrics, projectName shouldn't be empty.");
-            }
-            if (StringUtils.isEmpty(modelId)) {
-                throw new IllegalArgumentException("removeModelMetrics, modelId shouldn't be empty.");
-            }
-            Map<String, String> tags = Maps.newHashMap();
-            tags.put(MetricsTag.MODEL.getVal(), modelId);
-            final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), project, tags);
-            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
-
-            removeMetrics(metricNameSuffix, registry);
-            return true;
-        } catch (Exception e) {
-            logger.warn("ke.metrics removeModelMetrics, modelId: {}, projectName: {}, {}", modelId, project,
-                    e.getMessage());
+        if (StringUtils.isEmpty(project)) {
+            throw new IllegalArgumentException("removeModelMetrics, projectName shouldn't be empty.");
         }
-        return false;
+        if (StringUtils.isEmpty(modelId)) {
+            throw new IllegalArgumentException("removeModelMetrics, modelId shouldn't be empty.");
+        }
+        Map<String, String> tags = Maps.newHashMap();
+        tags.put(MetricsTag.MODEL.getVal(), modelId);
+        final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), project, tags);
+        final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
+
+        removeMetrics(metricNameSuffix, registry);
+        return true;
     }
 
     private static void removeMetrics(String metricNameSuffix, MetricRegistry registry) {
@@ -246,92 +225,87 @@ public class MetricsGroup {
     }
 
     public static boolean registerProjectMetrics(final String projectName, final String host) {
-        try {
-            if (StringUtils.isEmpty(projectName)) {
-                throw new IllegalArgumentException("registerProjectMetrics, projectName shouldn't be empty.");
-            }
-
-            Map<String, String> tags = getHostTagMap(host, projectName);
-
-            // transaction
-            newCounter(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.PROJECT, projectName, tags);
-            newHistogram(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT, projectName, tags);
-            // query
-            newCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
-            Counter denominator = getCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
-            Counter numerator = getCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_LT_1S_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_1S_3S_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_3S_5S_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_5S_10S_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_SLOW_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_FAILED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_PUSH_DOWN_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_CONSTANTS_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_CACHE_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_AGG_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
-            newGauge(MetricsName.QUERY_TABLE_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
-                    new QueryRatioGauge(numerator, denominator));
-            newCounter(MetricsName.QUERY_TOTAL_DURATION, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, projectName, tags);
-            newMeter(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, projectName, tags);
-            newMeter(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, projectName, tags);
-            newMeter(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, projectName, tags);
-            newMeter(MetricsName.QUERY_CONSTANTS_RATE, MetricsCategory.PROJECT, projectName, tags);
-            newMeter(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, projectName, tags);
-            newHistogram(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, projectName, tags);
-            // job
-            newCounter(MetricsName.JOB, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_ERROR, MetricsCategory.PROJECT, projectName, tags);
-            newHistogram(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, projectName, tags);
-            // metadata management
-            newCounter(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.METADATA_BACKUP, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.PROJECT, projectName, tags);
-
-            newHistogram(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, projectName, tags);
-
-            return true;
-        } catch (Exception e) {
-            logger.warn("ke.metrics registerProjectMetrics, projectName: {} {}", projectName, e.getMessage());
+        if (StringUtils.isEmpty(projectName)) {
+            throw new IllegalArgumentException("registerProjectMetrics, projectName shouldn't be empty.");
         }
-        return false;
+
+        Map<String, String> tags = getHostTagMap(host, projectName);
+
+        // transaction
+        newCounter(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.PROJECT, projectName, tags);
+        newHistogram(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT, projectName, tags);
+        // query
+        newCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
+        Counter denominator = getCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
+        Counter numerator = getCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_LT_1S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_1S_3S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_3S_5S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_5S_10S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_SLOW_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_FAILED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_PUSH_DOWN_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_CONSTANTS_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_CACHE_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_AGG_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
+        numerator = getCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
+        newGauge(MetricsName.QUERY_TABLE_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                new QueryRatioGauge(numerator, denominator));
+        newCounter(MetricsName.QUERY_TOTAL_DURATION, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, projectName, tags);
+        newMeter(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, projectName, tags);
+        newMeter(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, projectName, tags);
+        newMeter(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, projectName, tags);
+        newMeter(MetricsName.QUERY_CONSTANTS_RATE, MetricsCategory.PROJECT, projectName, tags);
+        newMeter(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, projectName, tags);
+        newHistogram(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, projectName, tags);
+        // job
+        newCounter(MetricsName.JOB, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_ERROR, MetricsCategory.PROJECT, projectName, tags);
+        newHistogram(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, projectName, tags);
+        // metadata management
+        newCounter(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.METADATA_BACKUP, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.PROJECT, projectName, tags);
+        newCounter(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.PROJECT, projectName, tags);
+
+        newHistogram(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, projectName, tags);
+
+        return true;
     }
 
     public static void newMetricSet(MetricsName name, MetricsCategory category, String entity, MetricSet metricSet) {
@@ -364,12 +338,7 @@ public class MetricsGroup {
 
     private static boolean newGauge(String name, MetricsCategory category, String entity, Map<String, String> tags,
             Metric metric) {
-        try {
-            return registerGaugeIfAbsent(name, category, entity, tags, metric);
-        } catch (Exception e) {
-            logger.warn("ke.metrics newGauge {}", e.getMessage());
-        }
-        return false;
+        return registerGaugeIfAbsent(name, category, entity, tags, metric);
     }
 
     public static boolean newCounter(MetricsName name, MetricsCategory category, String entity) {
@@ -378,15 +347,8 @@ public class MetricsGroup {
 
     public static boolean newCounter(MetricsName name, MetricsCategory category, String entity,
             Map<String, String> tags) {
-        try {
-            final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (counter != null) {
-                return true;
-            }
-        } catch (Exception e) {
-            logger.warn("ke.metrics newCounter {}", e.getMessage());
-        }
-        return false;
+        registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
+        return true;
     }
 
     public static boolean newHistogram(MetricsName name, MetricsCategory category, String entity) {
@@ -396,10 +358,8 @@ public class MetricsGroup {
     public static boolean newHistogram(MetricsName name, MetricsCategory category, String entity,
             Map<String, String> tags) {
         try {
-            final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (histogram != null) {
-                return true;
-            }
+            registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
+            return true;
         } catch (Exception e) {
             logger.warn("ke.metrics newHistogram {}", e.getMessage());
         }
@@ -412,15 +372,8 @@ public class MetricsGroup {
 
     private static boolean newMeter(MetricsName name, MetricsCategory category, String entity,
             Map<String, String> tags) {
-        try {
-            final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
-            if (meter != null) {
-                return true;
-            }
-        } catch (Exception e) {
-            logger.warn("ke.metrics newMeter {}", e.getMessage());
-        }
-        return false;
+        registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
+        return true;
     }
 
     private static SortedMap<String, String> filterTags(Map<String, String> tags) {
@@ -429,7 +382,7 @@ public class MetricsGroup {
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
-    private static String metricName(String name, String category, String entity, Map<String, String> tags) {
+    public static String metricName(String name, String category, String entity, Map<String, String> tags) {
         Preconditions.checkNotNull(name);
         StringBuilder sb = new StringBuilder(name);
         sb.append(":").append(metricNameSuffix(category, entity, tags));
@@ -491,8 +444,18 @@ public class MetricsGroup {
         return counters.get(metricName);
     }
 
-    private static long tryRestoreCounter(String fieldName, String category, String entity, Map<String, String> tags) {
+    public static final Map<String, MetricsObject> cacheInfluxMetricStatusMap = new ConcurrentHashMap<>();
+
+    public static long tryRestoreCounter(String fieldName, String category, String entity, Map<String, String> tags) {
         try {
+            MetricsObject metricsObject = new MetricsObject(fieldName, category, entity, tags);
+            if (MetricsName.QUERY.getVal().equals(fieldName)) {
+                String cacheKey = metricsObject.toString();
+                cacheInfluxMetricStatusMap.put(cacheKey, metricsObject);
+                long restoreVal = tryRestoreExceptionCounter(fieldName, category, entity, tags);
+                cacheInfluxMetricStatusMap.get(cacheKey).setInitStatus(true);
+                return restoreVal;
+            }
             if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
                 return 0;
             }
@@ -502,49 +465,164 @@ public class MetricsGroup {
             }
 
             final KapConfig config = KapConfig.getInstanceFromEnv();
-            final StringBuilder sb = new StringBuilder("select ");
-            sb.append(fieldName);
-            sb.append(" from ");
-            sb.append(MetricsInfluxdbReporter.METRICS_MEASUREMENT);
-            sb.append(" where category='");
-            sb.append(category);
-            sb.append("' and entity='");
-            sb.append(entity);
-            sb.append("'");
 
-            if (!MapUtils.isEmpty(tags)) {
-                filterTags(tags).forEach((k, v) -> {
-                    sb.append(" and ");
-                    sb.append(k);
-                    sb.append("='");
-                    sb.append(v);
-                    sb.append("'");
-                });
-            }
-
-            sb.append(" order by time desc limit 1;");
-
-            final String querySql = sb.toString();
+            final String querySql = getValFromInfluxQuerySql("", metricsObject, null);
 
             final QueryResult result = defaultInfluxDb
                     .query(new Query(querySql, config.getMetricsDbNameWithMetadataUrlPrefix()));
-            if (CollectionUtils.isEmpty(result.getResults().get(0).getSeries())) {
-                logger.trace("ke.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
-                return 0;
-            }
-            QueryResult.Series series = result.getResults().get(0).getSeries().get(0);
-            String valStr = fieldName.equals(series.getColumns().get(1))
-                    ? String.valueOf(series.getValues().get(0).get(1))
-                    : String.valueOf(series.getValues().get(0).get(0));
-
-            logger.trace("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
-            return NumberFormat.getInstance(Locale.getDefault(Locale.Category.FORMAT)).parse(valStr).longValue();
+            return getResultFromSeries(result, fieldName);
         } catch (Exception e) {
             logger.warn(
                     "ke.metrics tryRestoreCounter error. fieldName: [{}], category [{}], entity [{}], tags [{}]. error msg {}",
                     fieldName, category, entity, tags, e.getMessage());
         }
         return 0;
+    }
+
+    public static void monitorRegisterMetrics() {
+        cacheInfluxMetricStatusMap.keySet().forEach(cacheKey -> {
+            MetricsObject metricsObject = cacheInfluxMetricStatusMap.get(cacheKey);
+            if (!metricsObject.isInitStatus()) {
+                String name = metricsObject.getFieldName();
+                String category = metricsObject.getCategory();
+                String entity = metricsObject.getEntity();
+                Map<String, String> tags = metricsObject.getTags();
+                final String metricName = metricName(name, category, entity, tags);
+                synchronized (counters) {
+                    final Counter metric = MetricsController.getDefaultMetricRegistry().counter(metricName);
+                    final long restoreVal = tryRestoreExceptionCounter(name, category, entity, tags);
+                    if (restoreVal > 0) {
+                        metric.dec(metric.getCount());
+                        metric.inc(restoreVal);
+                        logger.info("Restore monitorRegisterMetrics...metric.getCount()={}"
+                                        + ", name={}, entity={}, tags={}",
+                                metric.getCount(), name, entity, tags);
+                    }
+                    counters.put(metricName, metric);
+                }
+            }
+        });
+    }
+
+    private static long tryRestoreExceptionCounter(String fieldName, String category, String entity, Map<String, String> tags) {
+        MetricsObject metricsObject = new MetricsObject(fieldName, category, entity, tags);
+        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
+            cacheInfluxMetricStatusMap.get(metricsObject.toString()).setInitStatus(true);
+            return 9999999999L;
+        }
+        return tryRestoreExceptionCounter(metricsObject);
+    }
+
+    public static long tryRestoreExceptionCounter(MetricsObject metricsObject) {
+        try {
+            final InfluxDB defaultInfluxDb = MetricsInfluxdbReporter.getInstance().getMetricInstance().getInfluxDB();
+            if (!defaultInfluxDb.ping().isGood()) {
+                throw new IllegalStateException("the pinged influxdb is not good.");
+            }
+            return tryRestoreExceptionCounter(metricsObject, defaultInfluxDb);
+        } catch (Exception e) {
+            logger.warn(
+                    "Influx tryRestoreExceptionCounter error. metricsObject={}",
+                    metricsObject, e);
+        }
+        return 0;
+    }
+
+    public static long tryRestoreExceptionCounter(MetricsObject metricsObject, InfluxDB defaultInfluxDb) {
+        final KapConfig config = KapConfig.getInstanceFromEnv();
+        long currTime = System.currentTimeMillis();
+        long startTime = currTime - 7 * 24 * 3600 * 1000;
+        String startTimeFilter = " and time > " + startTime + " ";
+        long queryTotalTimesFirst = getValFromInflux(MetricsObjectType.FIRST.getVal(),
+                defaultInfluxDb, config, metricsObject, startTimeFilter);
+        long queryTotalTimesFirstMaxGThanFirst = getValFromInflux(MetricsObjectType.MAX.getVal(),
+                defaultInfluxDb, config, metricsObject, startTimeFilter + " and query_total_times >= " + queryTotalTimesFirst + " ");
+        long queryTotalTimesFirstMaxLThanFirst = getValFromInflux(MetricsObjectType.MAX.getVal(),
+                defaultInfluxDb, config, metricsObject, startTimeFilter + " and query_total_times < " + queryTotalTimesFirst + " ");
+        cacheInfluxMetricStatusMap.get(metricsObject.toString()).setInitStatus(true);
+        return queryTotalTimesFirstMaxGThanFirst + queryTotalTimesFirstMaxLThanFirst;
+    }
+
+    public static long getValFromInflux(String metricsObjectType, InfluxDB defaultInfluxDb,
+           KapConfig kapConfig, MetricsObject metricsObject, String filter) {
+        try {
+            String fieldName = metricsObject.getFieldName();
+            final String querySql = getValFromInfluxQuerySql(metricsObjectType, metricsObject, filter);
+
+            final QueryResult result = defaultInfluxDb
+                    .query(new Query(querySql, kapConfig.getMetricsDbNameWithMetadataUrlPrefix()));
+            return getResultFromSeries(result, fieldName);
+        } catch (Exception e) {
+            logger.error("GetValFromInflux error metricsObjectType={}, metricsObject={}",
+                    metricsObjectType, metricsObject, e);
+            return -1;
+        }
+    }
+
+    public static long getResultFromSeries(QueryResult result, String fieldName) throws ParseException {
+        if (CollectionUtils.isEmpty(result.getResults().get(0).getSeries())) {
+            return 0;
+        }
+        QueryResult.Series series = result.getResults().get(0).getSeries().get(0);
+        String valStr = fieldName.equals(series.getColumns().get(1))
+                ? String.valueOf(series.getValues().get(0).get(1))
+                : String.valueOf(series.getValues().get(0).get(0));
+        return NumberFormat.getInstance(Locale.getDefault(Locale.Category.FORMAT)).parse(valStr).longValue();
+    }
+
+    public static String getValFromInfluxQuerySql(String metricsObjectType, MetricsObject metricsObject, String filter) {
+        String fieldName = metricsObject.getFieldName();
+        String category = metricsObject.getCategory();
+        String entity = metricsObject.getEntity();
+        Map<String, String> tags = metricsObject.getTags();
+        final StringBuilder sb = new StringBuilder("select ");
+        String tempSql = "(" + fieldName + ") as " + fieldName + " ";
+        switch (metricsObjectType) {
+            case "last":
+                sb.append(MetricsObjectType.LAST.getVal());
+                sb.append(tempSql);
+                break;
+            case "first":
+                sb.append(MetricsObjectType.FIRST.getVal());
+                sb.append(tempSql);
+                break;
+            case "max":
+                sb.append(MetricsObjectType.MAX.getVal());
+                sb.append(tempSql);
+                break;
+            case "min":
+                sb.append(MetricsObjectType.MIN.getVal());
+                sb.append(tempSql);
+                break;
+            case "count":
+                sb.append(MetricsObjectType.COUNT.getVal());
+                sb.append(tempSql);
+                break;
+            default:
+                sb.append(fieldName);
+                break;
+        }
+        sb.append(" from ");
+        sb.append(MetricsInfluxdbReporter.METRICS_MEASUREMENT);
+        sb.append(" where category='");
+        sb.append(category);
+        sb.append("' and entity='");
+        sb.append(entity);
+        sb.append("'");
+        if (!MapUtils.isEmpty(tags)) {
+            filterTags(tags).forEach((k, v) -> {
+                sb.append(" and ");
+                sb.append(k);
+                sb.append("='");
+                sb.append(v);
+                sb.append("'");
+            });
+        }
+        if (filter != null) {
+            sb.append(filter);
+        }
+        sb.append(" order by time desc limit 1;");
+        return sb.toString();
     }
 
     private static Meter registerMeterIfAbsent(String name, String category, String entity, Map<String, String> tags) {

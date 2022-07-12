@@ -29,11 +29,12 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import lombok.val;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation;
-import org.apache.spark.sql.catalyst.parser.ParseException;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 
 public class SparkSqlUtil {
     public static Dataset<Row> query(SparkSession ss, String sql) {
@@ -49,16 +50,21 @@ public class SparkSqlUtil {
         return queryForList(ss, sql);
     }
 
-    public static Set<String> getViewOrignalTables(String viewName, SparkSession spark) throws ParseException {
+    public static Set<String> getViewOrignalTables(String viewName, SparkSession spark) throws AnalysisException {
         String viewText = spark.sql("desc formatted " + viewName).where("col_name = 'View Text'").head().getString(1);
         val logicalPlan = spark.sessionState().sqlParser().parsePlan(viewText);
         Set<String> viewTables = Sets.newHashSet();
-        scala.collection.JavaConverters.seqAsJavaListConverter(logicalPlan.collectLeaves()).asJava().stream()
-                .forEach(l -> {
-                    if (l instanceof UnresolvedRelation) {
-                        viewTables.add(((UnresolvedRelation) l).tableName());
-                    }
-                });
+        for (Object l : scala.collection.JavaConverters.seqAsJavaListConverter(logicalPlan.collectLeaves()).asJava()) {
+            if (l instanceof UnresolvedRelation) {
+                val tableName = ((UnresolvedRelation) l).tableName();
+                //if nested view
+                if (spark.catalog().getTable(tableName).tableType().equals(CatalogTableType.VIEW().name())) {
+                    viewTables.addAll(getViewOrignalTables(tableName, spark));
+                } else {
+                    viewTables.add(tableName);
+                }
+            }
+        }
         return viewTables;
     }
 }

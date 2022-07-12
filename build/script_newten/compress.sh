@@ -53,6 +53,10 @@ cp -rf influxdb ${package_name}/
 cp -rf grafana ${package_name}/
 cp -rf postgresql ${package_name}/
 
+if [[ -d docs ]]; then
+  cp -rf docs ${package_name}/
+fi
+
 # Add ssb data preparation files
 mkdir -p ${package_name}/tool/ssb
 cp -rf ../src/examples/sample_cube/data ${package_name}/tool/ssb/
@@ -75,6 +79,7 @@ for log_conf in `find conf -name "*-log4j.xml"`; do
 done
 cp -rf conf/kylin.properties ${package_name}/conf/kylin.properties
 cp -rf conf/setenv.sh ${package_name}/conf/setenv.sh.template
+cp -rf conf/query-limit-fair-scheduler.xml.template ${package_name}/conf/query-limit-fair-scheduler.xml.template
 cp -rf bin/ ${package_name}/bin/
 cp -rf sbin/ ${package_name}/sbin/
 

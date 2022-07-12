@@ -28,7 +28,9 @@ import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBu
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.{SegmentRange, TableDesc, TableRef}
+import org.apache.spark.SparkExecutorInfo
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
+import org.mockito.Mockito
 
 import scala.collection.JavaConverters._
 
@@ -60,10 +62,41 @@ class TestSegmentFlatTable extends SparderBaseFunSuite with SharedSparkSession w
     val flatTable = new SegmentFlatTable(spark, flatTableDesc)
     assert(flatTable.newTableDS(df.getModel.getAllTables.iterator().next()) != null)
 
-    val tableRef : TableRef = df.getModel.getAllTables.iterator().next()
-    val tableDesc : TableDesc = tableRef.getTableDesc
+    val tableRef: TableRef = df.getModel.getAllTables.iterator().next()
+    val tableDesc: TableDesc = tableRef.getTableDesc
     tableDesc.setRangePartition(true)
     val ref = new TableRef(df.getModel, tableDesc.getName, tableDesc, false)
     assert(flatTable.newTableDS(ref) != null)
+  }
+
+  test("waitTillWorkerRegistered") {
+    getTestConfig.setProperty("kylin.engine.persist-flattable-enabled", "false")
+    getTestConfig.setProperty("kylin.engine.count.lookup-table-max-time", "0")
+    getTestConfig.setProperty("kylin.source.record-source-usage-enabled", "false")
+
+    val project1 = "default"
+    val model1 = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96"
+
+    val dfMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, project1)
+    val df: NDataflow = dfMgr.getDataflow(model1)
+    // cleanup all segments first
+    val update = new NDataflowUpdate(df.getUuid)
+    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
+    dfMgr.updateDataflow(update)
+
+    val seg = dfMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
+    val toBuildTree = new AdaptiveSpanningTree(getTestConfig, new AdaptiveTreeBuilder(seg, seg.getIndexPlan.getAllLayouts))
+    val flatTableDesc = new SegmentFlatTableDesc(getTestConfig, seg, toBuildTree)
+
+    val spiedSparkSession = Mockito.spy(spark)
+    val spiedSparkContext = Mockito.spy(spark.sparkContext)
+    val spiedTracker = Mockito.spy(spark.sparkContext.statusTracker)
+    val flatTable = new SegmentFlatTable(spiedSparkSession, flatTableDesc)
+    Mockito.when(spiedSparkSession.sparkContext).thenReturn(spiedSparkContext)
+    Mockito.when(spiedSparkContext.statusTracker).thenReturn(spiedTracker)
+    Mockito.when(spiedTracker.getExecutorInfos)
+      .thenReturn(Array.empty[SparkExecutorInfo])
+      .thenCallRealMethod()
+    flatTable.waitTillWorkerRegistered()
   }
 }

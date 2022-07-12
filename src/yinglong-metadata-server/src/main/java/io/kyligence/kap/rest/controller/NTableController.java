@@ -40,13 +40,16 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.rest.request.AWSTableLoadRequest;
+import io.kyligence.kap.rest.request.UpdateAWSTableExtDescRequest;
+import io.kyligence.kap.rest.response.UpdateAWSTableExtDescResponse;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -66,14 +69,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
-import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -251,51 +252,52 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @ApiOperation(value = "dataRange", tags = { "AI" })
-    @PostMapping(value = "/data_range")
+    @ApiOperation(value = "loadAWSTablesCompatibleCrossAccount", tags = {"KC" },
+            notes = "Update Body: data_source_type, need_sampling, sampling_rows, data_source_properties")
+    @PostMapping(value = "/compatibility/aws")
     @ResponseBody
-    public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
-        checkProjectName(dateRangeRequest.getProject());
-        checkRequiredArg(TABLE, dateRangeRequest.getTable());
-        validateDataRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
-        tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "batchLoad", tags = { "AI" })
-    @GetMapping(value = "/batch_load")
-    @ResponseBody
-    public EnvelopeResponse<List<BatchLoadTableResponse>> getBatchLoadTables(
-            @RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableService.getBatchLoadTables(project), "");
-    }
-
-    @ApiOperation(value = "batchUpdate", tags = { "AI" })
-    @PostMapping(value = "/batch_load")
-    @ResponseBody
-    public EnvelopeResponse<String> batchLoad(@RequestBody List<DateRangeRequest> requests) throws Exception {
-        if (requests.isEmpty())
-            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-
-        checkArgsAndValidateRangeForBatchLoad(requests);
-        tableService.batchLoadDataRange(requests.get(0).getProject(), requests);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    private void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        for (DateRangeRequest request : requests) {
-            if (projectManager != null) {
-                ProjectInstance projectInstance = projectManager.getProject(request.getProject());
-                if (projectInstance != null) {
-                    request.setProject(projectInstance.getName());
-                }
-            }
-            checkProjectName(request.getProject());
-            checkRequiredArg("table", request.getTable());
-            validateRange(request.getStart(), request.getEnd());
+    public EnvelopeResponse<LoadTableResponse> loadAWSTablesCompatibleCrossAccount(@RequestBody AWSTableLoadRequest tableLoadRequest)
+            throws Exception {
+        checkProjectName(tableLoadRequest.getProject());
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(tableLoadRequest.getProject()) == null) {
+            throw new KylinException(PROJECT_NOT_EXIST, tableLoadRequest.getProject());
         }
+        if (CollectionUtils.isEmpty(tableLoadRequest.getTables())) {
+            throw new KylinException(EMPTY_PARAMETER, "tables parameter must be not null !");
+        }
+
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        LoadTableResponse loadByTable = tableExtService.loadAWSTablesCompatibleCrossAccount(tableLoadRequest.getTables(),
+                tableLoadRequest.getProject());
+        loadTableResponse.getFailed().addAll(loadByTable.getFailed());
+        loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
+
+        if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
+            TableSamplingService.checkSamplingRows(tableLoadRequest.getSamplingRows());
+            tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
+                    tableLoadRequest.getTag());
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
+    }
+
+    @ApiOperation(value = "updateLoadedAWSTableExtProp", tags = {"KC" }, notes = "Update Body: data_source_properties")
+    @PutMapping(value = "/ext/prop/aws")
+    @ResponseBody
+    public EnvelopeResponse<UpdateAWSTableExtDescResponse> updateLoadedAWSTableExtProp(@RequestBody UpdateAWSTableExtDescRequest request) {
+        checkProjectName(request.getProject());
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(request.getProject()) == null) {
+            throw new KylinException(PROJECT_NOT_EXIST, request.getProject());
+        }
+        if (CollectionUtils.isEmpty(request.getTables())) {
+            throw new KylinException(EMPTY_PARAMETER, "tables parameter must be not null !");
+        }
+
+        UpdateAWSTableExtDescResponse updateTableExtDescResponse = tableExtService.updateAWSLoadedTableExtProp(request);
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, updateTableExtDescResponse, "");
     }
 
     @ApiOperation(value = "databases", tags = { "AI" })

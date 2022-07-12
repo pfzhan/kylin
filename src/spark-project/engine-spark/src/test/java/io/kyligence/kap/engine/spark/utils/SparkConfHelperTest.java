@@ -67,6 +67,8 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testOneGradeWhenLessTHan1GB() throws JsonProcessingException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.engine.spark.build-conf-extra-rules", "org.apache.spark.conf.rule.YarnConfRule");
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");

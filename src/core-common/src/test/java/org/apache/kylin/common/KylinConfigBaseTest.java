@@ -919,6 +919,11 @@ class KylinConfigBaseTest {
         map.put("getLightningClusterId", new PropertiesEntity("kylin.lightning.cluster-id", "0", 0L));
         map.put("getLightningWorkspaceId", new PropertiesEntity("kylin.lightning.workspace-id", "0", 0L));
         map.put("getJobCallbackLanguage", new PropertiesEntity("kylin.job.callback-language", "en", "en"));
+        map.put("getMaxResultRows", new PropertiesEntity("kylin.query.max-result-rows", "0", 0));
+        map.put("getLoadHiveTableWaitSparderSeconds",
+                new PropertiesEntity("kylin.source.load-hive-table-wait-sparder-seconds", "900", 900));
+        map.put("getLoadHiveTableWaitSparderIntervals",
+                new PropertiesEntity("kylin.source.load-hive-table-wait-sparder-interval-seconds", "10", 10));
     }
 
     @Test

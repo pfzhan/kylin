@@ -277,7 +277,7 @@ public class ModelServiceQueryTest extends SourceTestCase {
         List<NDataModel> models2 = modelResult2.getValue();
         FusionModelResponse model2 = (FusionModelResponse) models2.get(0);
 
-        Assert.assertEquals(14383, model2.getOldParams().getInputRecordCnt());
+        Assert.assertEquals(12010, model2.getOldParams().getInputRecordCnt());
         Assert.assertEquals(1505415, model2.getOldParams().getInputRecordSizeBytes());
         Assert.assertEquals(396, model2.getOldParams().getSizeKB());
     }

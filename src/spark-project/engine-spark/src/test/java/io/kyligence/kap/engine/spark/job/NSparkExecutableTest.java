@@ -120,7 +120,12 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
         overwriteSystemProp("kylin.engine.spark.job-jar", kylinJobJar);
         {
-            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+            val desc = sparkExecutable.getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConf);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
+            String cmd = (String) sparkExecutable.sparkJobHandler.generateSparkCmd(kylinConfig, desc);
+
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
             Assert.assertTrue(
@@ -132,7 +137,12 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
         overwriteSystemProp("kylin.engine.extra-jars-path", "/this_new_path.jar");
         {
-            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+            val desc = sparkExecutable.getSparkAppDesc();
+            desc.setHadoopConfDir(hadoopConf);
+            desc.setKylinJobJar(kylinJobJar);
+            desc.setAppArgs(appArgs);
+            String cmd = (String) sparkExecutable.sparkJobHandler.generateSparkCmd(kylinConfig, desc);
+
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("/this_new_path.jar"));
         }
@@ -141,7 +151,11 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
                 "'`touch /tmp/foo.bar` $(touch /tmp/foo.bar)'");
         {
             try {
-                sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
+                val desc = sparkExecutable.getSparkAppDesc();
+                desc.setHadoopConfDir(hadoopConf);
+                desc.setKylinJobJar(kylinJobJar);
+                desc.setAppArgs(appArgs);
+                String cmd = (String) sparkExecutable.sparkJobHandler.generateSparkCmd(kylinConfig, desc);
             } catch (IllegalArgumentException iae) {
                 Assert.assertTrue(iae.getMessage().contains("Not allowed to specify injected command"));
             }

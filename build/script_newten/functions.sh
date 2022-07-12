@@ -65,21 +65,3 @@ function calMd5() {
         md5sum $1
     fi
 }
-
-function checkDownloadSparkVersion() {
-    if [[ -z $1 ]];
-    then
-        echo "spark version check failed, download spark version parameter is null"
-        exit 1
-    fi
-
-    download_spark_release_version=$1
-    spark_version_pom=`mvn help:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
-    pom_spark_release_version=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
-
-    if [[ $download_spark_release_version != $pom_spark_release_version ]];
-    then
-        echo "spark version check failed, download version is ${download_spark_release_version}, but ${pom_spark_release_version} in pom file"
-        exit 1
-    fi
-}

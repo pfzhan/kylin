@@ -139,6 +139,30 @@ public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCollectQueryScanRowsAndTimeCondition() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
+            boolean isEffective;
+            config.setProperty("kylin.query.auto-adjust-big-query-rows-threshold-enabled", "false");
+            isEffective = queryService.isCollectQueryScanRowsAndTimeEnabled();
+            Assert.assertFalse(isEffective);
+            config.setProperty("kylin.query.auto-adjust-big-query-rows-threshold-enabled", "true");
+            QueryContext.current().getQueryTagInfo().setAsyncQuery(true);
+            isEffective = queryService.isCollectQueryScanRowsAndTimeEnabled();
+            Assert.assertFalse(isEffective);
+            QueryContext.current().getQueryTagInfo().setAsyncQuery(false);
+            isEffective = queryService.isCollectQueryScanRowsAndTimeEnabled();
+            Assert.assertTrue(isEffective);
+            QueryContext.current().getQueryTagInfo().setStorageCacheUsed(true);
+            isEffective = queryService.isCollectQueryScanRowsAndTimeEnabled();
+            Assert.assertFalse(isEffective);
+            QueryContext.current().getQueryTagInfo().setStorageCacheUsed(false);
+            isEffective = queryService.isCollectQueryScanRowsAndTimeEnabled();
+            Assert.assertTrue(isEffective);
+        }
+    }
+
+    @Test
     public void testGetLdapUserACLInfo() {
         {
             ldapUserService.listUsers();

@@ -719,11 +719,31 @@ public class KapConfig {
     }
 
     public long getBigQuerySourceScanRowsThreshold() {
-        return Long.parseLong(config.getOptional("kylin.query.big-query-source-scan-rows-threshold", "100000000"));
+        return Long.parseLong(config.getOptional("kylin.query.big-query-source-scan-rows-threshold", "-1"));
     }
 
     public String getShareStateSwitchImplement() {
         return config.getOptional("kylin.query.share-state-switch-implement", "close");
+    }
+
+    public boolean isQueryLimitEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.query-limit-enabled", FALSE));
+    }
+
+    public boolean isApplyLimitInfoToSourceScanRowsEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.apply-limit-info-to-source-scan-rows-enabled", FALSE));
+    }
+
+    public boolean isAutoAdjustBigQueryRowsThresholdEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.auto-adjust-big-query-rows-threshold-enabled", FALSE));
+    }
+
+    public long getBigQuerySecond() {
+        return Long.parseLong(config.getOptional("kylin.query.big-query-second", "10"));
+    }
+
+    public long getBigQueryThresholdUpdateIntervalSecond() {
+        return Long.parseLong(config.getOptional("kylin.query.big-query-threshold-update-interval-second", "10800"));
     }
 
 }

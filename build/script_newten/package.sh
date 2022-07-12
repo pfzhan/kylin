@@ -50,6 +50,47 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.15.0 release note
+
+**Enhancement**
+
+- Optimize query current capacity limit. For more information, please refer to User Manual.
+    - Query current capacity limit, optimize query scan row count estimation by extracting Limit pushdown information
+    - Query current capacity limit, determination of the method for estimating the size query threshold
+    - Query current limit, when the query is rejected, optimize the return result to BI
+    - Query current capacity limit, priority scheduling of small query tasks
+- Integrate the user manual into the installation package
+- kylin.system.forced-to-tiered-storage为kylin.second-storage.route-when-ch-fail/Change "kylin.system.forced-to-tiered-storage" to "kylin.second-storage.route-when-ch-fail" for consistency
+- Fix the issue that  query cannot go to TiredStorage if "force_to_index" is set to true  in query API
+- Optimize a series of = into IN
+- Simplify the filter condition to reduce the dimension according to the join condition of the subquery
+- Remove the extra agg added in the exist subquery
+- Provides an API to return system-level parameters to facilitate problem diagnosis
+- Modify calcite to fix OOM caused by segment pruning
+
+**Bugfix**
+
+- After configuring kylin.query.force-limit to do asynchronous query, the number of records scanned and the number of bytes in the query are 0
+- Adaptive Execution ShuffleExchangeExec Lost
+- When determining the ownership of the size query pool, the correct threshold for the number of scanned rows is not used
+- Multiple = signs are optimized into in, ignoring the case where nested subqueries hit 2 indexes
+- Fix  the issue that temp table in Tired Storage might be incorrectly deleted by routine tool.
+- Fix the issue that delete aggreation index in segment will cause running refresh task fail if segment has Tired Storage.
+- The query history shows that the hit is the aggregate index, and clicking it shows the table index
+- When loading csv through the external table, the floating point number is used as filter, and the query result is incorrect
+- Incomplete pagination of index content
+- Fix the issue that different decimal precision will fail to push down aggregation operations to Tiered Storage
+- Fix the issue that when arithmetic operators are used as query filters, fail to push down aggregation operation to Tiered Storage
+- In the model interface, an error Duplicate key is reported due to two identical index ids
+- When the model is offline, delete the dimension table associated with the model, and then reload the dimension table, the model is displayed in the online state
+- When the query engine uses Sparder and the where condition query is always false, the intersect_count_v2 function query reports an error
+- The concurrent build model is interlocked abnormally, causing the build to fail
+- The query result is wrong when the two subqueries associated with UNION hit two different segments
+- The table exception prompt is not clear when saving the table
+- When optimization suggestion recommends multiple computed columns with the same expression, they cannot be added to the model
+- Node OOM caused when getting model's time-partitioned column format
+- After a restart of KE, the last accumulated value is not obtained, and the number of queries is reset
+
 #### Kyligence Enterprise 4.5.14.0 release note
 
 **Enhancement**

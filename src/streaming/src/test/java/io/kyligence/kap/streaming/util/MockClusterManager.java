@@ -23,13 +23,14 @@
  */
 package io.kyligence.kap.streaming.util;
 
+import java.util.List;
+import java.util.Set;
+
+import org.apache.spark.sql.SparkSession;
+
 import io.kyligence.kap.cluster.AvailableResource;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.cluster.ResourceInfo;
-import org.apache.spark.sql.SparkSession;
-
-import java.util.List;
-import java.util.Set;
 
 public class MockClusterManager implements IClusterManager {
 
@@ -77,4 +78,5 @@ public class MockClusterManager implements IClusterManager {
     public boolean applicationExisted(String jobId) {
         return false;
     }
+
 }

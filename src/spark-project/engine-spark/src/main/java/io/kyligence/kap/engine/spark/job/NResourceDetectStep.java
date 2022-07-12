@@ -46,6 +46,11 @@ public class NResourceDetectStep extends NSparkExecutable {
         super(notSetId);
     }
 
+    @Override
+    protected void initHandler() {
+        sparkJobHandler = new DefaultSparkBuildJobHandler();
+    }
+
     public NResourceDetectStep(DefaultChainedExecutable parent) {
         if (parent instanceof NSparkCubingJob) {
             this.setSparkSubmitClassName(RDSegmentBuildJob.class.getName());

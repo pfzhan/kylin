@@ -184,6 +184,7 @@ class YarnClusterManager extends IClusterManager with Logging {
       queueNames
     })
   }
+
 }
 
 object YarnClusterManager {

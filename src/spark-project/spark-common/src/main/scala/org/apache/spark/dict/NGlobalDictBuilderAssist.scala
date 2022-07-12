@@ -32,7 +32,6 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StringType
 
@@ -60,22 +59,17 @@ object NGlobalDictBuilderAssist extends Logging {
       }
 
     ss.sparkContext.setJobDescription("Resize dict " + ref.getIdentity)
-    existsDictDs
-      .repartition(bucketPartitionSize, col(existsDictDs.schema.head.name).cast(StringType))
-      .mapPartitions {
-        iter =>
-          val partitionID = TaskContext.get().partitionId()
-          logInfo(s"Rebuild partition dict col: ${ref.getTable + "." + ref.getName}, partitionId: $partitionID")
-          val d = broadcastDict.value
-          val bucketDict = d.createNewBucketDictionary()
-          while (iter.hasNext) {
-            val dictTuple = iter.next
-            bucketDict.addAbsoluteValue(dictTuple._1, dictTuple._2)
-          }
-          bucketDict.saveBucketDict(partitionID)
-          Iterator.empty
-      }(RowEncoder.apply(existsDictDs.schema))
-      .count()
+    existsDictDs.repartition(bucketPartitionSize, col(existsDictDs.schema.head.name).cast(StringType))
+      // https://issues.apache.org/jira/browse/SPARK-32051
+      .foreachPartition((iter: Iterator[(String, Long)]) => {
+        val partitionID = TaskContext.get().partitionId()
+        logInfo(s"Rebuild partition dict col: ${ref.getTable + "." + ref.getName}, partitionId: $partitionID")
+        val d = broadcastDict.value
+        val bucketDict = d.createNewBucketDictionary()
+        iter.foreach(tpl => bucketDict.addAbsoluteValue(tpl._1, tpl._2))
+
+        bucketDict.saveBucketDict(partitionID)
+      })
 
     globalDict.writeMetaDict(bucketPartitionSize,
       seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)

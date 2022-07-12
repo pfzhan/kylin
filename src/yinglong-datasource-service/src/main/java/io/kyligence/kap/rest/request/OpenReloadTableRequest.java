@@ -36,6 +36,8 @@ public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
     private String project;
     @JsonProperty("table")
     private String table;
+    @JsonProperty("s3_table_ext_info")
+    private S3TableExtInfo s3TableExtInfo;
     @JsonProperty("need_sampling")
     private Boolean needSampling;
     @JsonProperty("sampling_rows")

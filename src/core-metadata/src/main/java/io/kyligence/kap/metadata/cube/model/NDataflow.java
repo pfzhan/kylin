@@ -100,6 +100,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @JsonProperty("status")
     private RealizationStatusEnum status;
+
+    @JsonProperty("last_status")
+    private RealizationStatusEnum lastStatus;
+
     @JsonProperty("cost")
     private int cost = 50;
 
@@ -450,12 +454,19 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
+    public RealizationStatusEnum getLastStatus() {
+        return lastStatus;
+    }
+
     public RealizationStatusEnum getStatus() {
         return status;
     }
 
     public void setStatus(RealizationStatusEnum status) {
         checkIsNotCachedAndShared();
+        if (RealizationStatusEnum.BROKEN == status && RealizationStatusEnum.BROKEN != this.status) {
+            this.lastStatus = this.status;
+        }
         this.status = status;
     }
 
