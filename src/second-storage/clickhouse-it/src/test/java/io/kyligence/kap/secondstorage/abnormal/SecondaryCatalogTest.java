@@ -29,21 +29,6 @@ import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
-import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import io.kyligence.kap.util.ExecAndComp;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -56,6 +41,22 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import com.google.common.collect.ImmutableMap;
+
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.util.ExecAndComp;
 
 public class SecondaryCatalogTest implements JobWaiter {
     static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";

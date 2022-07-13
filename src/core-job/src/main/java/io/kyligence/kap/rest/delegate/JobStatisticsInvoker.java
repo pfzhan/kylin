@@ -65,11 +65,19 @@ public class JobStatisticsInvoker {
         if (metadataStore instanceof HDFSMetadataStore) {
             throw new KylinRuntimeException("This request cannot be route to metadata server");
         }
-        if (SpringContext.getApplicationContext() == null) {
+        if (SpringContext.getApplicationContext() == null || null == getJobStatisticsContract()) {
             // for UT
             return new JobStatisticsInvoker();
         } else {
             return SpringContext.getBean(JobStatisticsInvoker.class);
+        }
+    }
+
+    private static JobStatisticsContract getJobStatisticsContract() {
+        try {
+            return SpringContext.getBean(JobStatisticsContract.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 

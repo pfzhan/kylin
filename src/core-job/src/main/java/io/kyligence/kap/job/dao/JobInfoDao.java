@@ -159,7 +159,7 @@ public class JobInfoDao {
         } else if (JobTypeEnum.SNAPSHOT_REFRESH == executablePO.getJobType()
                 || JobTypeEnum.SNAPSHOT_BUILD == executablePO.getJobType()) {
             subject = executablePO.getParams().get(NBatchConstants.P_TABLE_NAME);
-        } else {
+        } else if (null != executablePO.getTargetModel() && null != executablePO.getProject()) {
             subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
         }
 

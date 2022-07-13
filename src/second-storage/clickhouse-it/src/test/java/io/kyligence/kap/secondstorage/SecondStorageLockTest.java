@@ -78,6 +78,7 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.spark.sql.SparkSession;
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -115,8 +116,12 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableSet;
+import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 import io.kyligence.kap.job.handler.AbstractJobHandler;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -137,6 +142,8 @@ import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
 import io.kyligence.kap.rest.controller.NAdminController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.controller.NQueryController;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
@@ -145,7 +152,6 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
-import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelQueryService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
@@ -210,8 +216,7 @@ public class SecondStorageLockTest implements JobWaiter {
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
-    @Mock
-    private final JobService jobService = Mockito.spy(JobService.class);
+
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
@@ -263,6 +268,10 @@ public class SecondStorageLockTest implements JobWaiter {
     @Mock
     private final NAdminController nAdminController = Mockito.spy(new NAdminController());
 
+    @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
+
+
     private EmbeddedHttpServer _httpServer = null;
     protected IndexDataConstructor indexDataConstructor;
     private final SparkSession ss = sharedSpark.getSpark();
@@ -294,6 +303,8 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", new ModelMetadataInvoker());
 
         ReflectionTestUtils.setField(nModelController, "modelService", modelService);
         ReflectionTestUtils.setField(nModelController, "fusionModelService", fusionModelService);
@@ -311,6 +322,21 @@ public class SecondStorageLockTest implements JobWaiter {
         _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
 
         indexDataConstructor = new IndexDataConstructor(getProject());
+
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv());
+
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
+    }
+
+    @After
+    public void tearDown() {
+        JobContextUtil.cleanUp();
     }
 
     @Test

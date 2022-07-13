@@ -63,11 +63,9 @@ import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.query.util.LoadCounter;
-import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.micrometer.core.instrument.Counter;
@@ -226,10 +224,6 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRegisterMicrometerProjectMetrics() {
-        ModelMetadataBaseInvoker modelMetadataBaseInvoker = Mockito.mock(ModelMetadataBaseInvoker.class);
-        Mockito.doReturn("").when(modelMetadataBaseInvoker).getModelNameById(Mockito.any(String.class), Mockito.any(String.class));
-        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
-        jobInfoDao.setModelMetadataInvoker(modelMetadataBaseInvoker);
         StorageVolumeInfoResponse response = Mockito.mock(StorageVolumeInfoResponse.class);
         Mockito.when(response.getTotalStorageSize()).thenReturn(2L);
         ProjectService projectService = PowerMockito.mock(ProjectService.class);

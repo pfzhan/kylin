@@ -59,7 +59,6 @@ public class JobMetadataBaseInvoker {
         } catch (Exception e) {
             return null;
         }
-
     }
 
     private JobMetadataBaseDelegate jobMetadataBaseDelegate = new JobMetadataBaseDelegate();

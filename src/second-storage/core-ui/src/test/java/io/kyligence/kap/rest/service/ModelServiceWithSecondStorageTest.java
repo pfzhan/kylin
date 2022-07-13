@@ -24,20 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.job.delegate.JobMetadataDelegate;
-import io.kyligence.kap.job.util.ExecutableUtils;
-import io.kyligence.kap.rest.delegate.JobMetadataContract;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -69,10 +63,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -84,17 +83,22 @@ import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataContract;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import lombok.val;
 import lombok.var;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
@@ -147,6 +151,8 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
                 .thenAnswer(invocation -> new SecondStorageService());
         PowerMockito.when(SpringContext.getBean(JobMetadataInvoker.class))
                 .thenAnswer(invocation -> new JobMetadataInvoker());
+        PowerMockito.when(SpringContext.getBean(JobMetadataBaseInvoker.class))
+                .thenAnswer(invocation -> new JobMetadataInvoker());
         PowerMockito.when(SpringContext.getBean(JobMetadataContract.class))
                 .thenAnswer(invocation -> new JobMetadataDelegate());
 
@@ -191,6 +197,12 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
         EventBusFactory.getInstance().register(eventListener, true);
         EventBusFactory.getInstance().register(modelBrokenListener, false);
         ExecutableUtils.initJobFactory();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
+
+        JobStatisticsService jobStatisticsService = new JobStatisticsService();
+        JobStatisticsInvoker.setDelegate(jobStatisticsService);
     }
 
     @After
@@ -199,6 +211,7 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

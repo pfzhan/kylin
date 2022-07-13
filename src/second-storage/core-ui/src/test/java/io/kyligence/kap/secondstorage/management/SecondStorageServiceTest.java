@@ -125,8 +125,8 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
         List<String> jobs = Arrays.asList("job1", "job2");
         AbstractExecutable job1 = PowerMockito.mock(AbstractExecutable.class);
         AbstractExecutable job2 = PowerMockito.mock(AbstractExecutable.class);
-        PowerMockito.when(job1.getStatus()).thenReturn(ExecutableState.RUNNING);
-        PowerMockito.when(job2.getStatus()).thenReturn(ExecutableState.SUCCEED);
+        PowerMockito.when(job1.getStatusInMem()).thenReturn(ExecutableState.RUNNING);
+        PowerMockito.when(job2.getStatusInMem()).thenReturn(ExecutableState.SUCCEED);
         PowerMockito.when(job1.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD);
         PowerMockito.when(job2.getJobType()).thenReturn(JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
 
