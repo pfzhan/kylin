@@ -89,6 +89,8 @@ import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataContract;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -134,9 +136,6 @@ public class SmartModelServiceTest extends SourceTestCase {
 
     @InjectMocks
     private final ProjectService projectService = Mockito.spy(new ProjectService());
-
-    @Mock
-    private final JobSupporter jobService = Mockito.spy(JobSupporter.class);
 
     @Mock
     private final AclTCRServiceSupporter aclTCRService = Mockito.spy(AclTCRServiceSupporter.class);
@@ -190,8 +189,13 @@ public class SmartModelServiceTest extends SourceTestCase {
         ReflectionTestUtils.setField(projectService, "projectSmartService", projectSmartService);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+
+        JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
+        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
+        JobMetadataInvoker.setDelegate(jobMetadataContract);
+
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ModelMetadataInvoker.setDelegate(modelService);

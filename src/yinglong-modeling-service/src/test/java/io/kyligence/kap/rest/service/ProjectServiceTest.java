@@ -571,6 +571,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         }, project);
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
+        //TODO need to be rewritten
         // Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
     }
 

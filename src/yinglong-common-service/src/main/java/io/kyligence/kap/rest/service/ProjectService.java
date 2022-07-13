@@ -124,7 +124,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import io.kyligence.kap.rest.delegate.ProjectMetadataContract;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -178,9 +178,6 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
     @Autowired
     UserService userService;
-
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -773,7 +770,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
         }
 
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<String> jobIds = jobMetadataInvoker.getJobExecutablesPO(project).stream()
+        List<String> jobIds = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project).stream()
                 .map(executableManager::fromPO).filter(Objects::nonNull)
                 .filter(executable -> (executable.getStatusInMem().toJobStatus() == JobStatusEnum.RUNNING)
                         || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.PENDING)
