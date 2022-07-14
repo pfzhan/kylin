@@ -115,7 +115,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     private static final String DRIVER_EXTRA_CLASSPATH = "spark.driver.extraClassPath";
     private static final String EXECUTOR_EXTRA_CLASSPATH = "spark.executor.extraClassPath";
 
-    protected static final String SPARK_MASTER = "spark.master";
+    public static final String SPARK_MASTER = "spark.master";
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String CLUSTER_MODE = "cluster";
     protected ISparkJobHandler sparkJobHandler;

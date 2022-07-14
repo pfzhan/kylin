@@ -24,14 +24,10 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.query.engine.QueryRoutingEngine;
-import io.kyligence.kap.query.engine.data.QueryResult;
+import java.io.File;
+import java.util.List;
+
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.util.QueryParams;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,8 +38,10 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.List;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.query.engine.QueryRoutingEngine;
+import io.kyligence.kap.query.engine.data.QueryResult;
 
 public class NBitmapFunctionForCalciteExecTest extends NLocalWithSparkSessionTest {
 
@@ -55,18 +53,12 @@ public class NBitmapFunctionForCalciteExecTest extends NLocalWithSparkSessionTes
     @Before
     public void setup() {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
         Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "true");
     }
 
     @After
     public void after() throws Exception {
-        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
         Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally");

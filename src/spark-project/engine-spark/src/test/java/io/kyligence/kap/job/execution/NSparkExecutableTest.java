@@ -22,12 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job;
+package io.kyligence.kap.job.execution;
 
 import java.util.Objects;
 import java.util.Random;
 
-import io.kyligence.kap.job.execution.NSparkExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;

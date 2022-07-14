@@ -74,13 +74,12 @@ public class ModelMetadataBaseService {
         String project = dataFlowUpdateRequest.getProject();
         NDataflowUpdate update = dataFlowUpdateRequest.getDataflowUpdate();
 
-        // After serialization and deserialization， segment and layout will lost dataSegDetails, try to restore it here.
+        // After serialization and deserialization， layout will lost dataSegDetails, try to restore it here.
         NDataSegDetails[] dataSegDetails = dataFlowUpdateRequest.getDataSegDetails();
         Integer[] layoutCounts = dataFlowUpdateRequest.getLayoutCounts();
         if (dataSegDetails != null && layoutCounts != null) {
             int layoutCount = 0;
             for (int i = 0; i < dataSegDetails.length; i++) {
-                update.getToUpdateSegs()[i].setSegDetails(dataSegDetails[i]);
                 for (int j = layoutCount; j < layoutCount + layoutCounts[i]; j++) {
                     update.getToAddOrUpdateLayouts()[j].setSegDetails(dataSegDetails[i]);
                 }

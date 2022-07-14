@@ -72,7 +72,6 @@ import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -170,8 +169,7 @@ public class TableReloadServiceWithSecondStorageTest extends NLocalFileMetadataT
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "9");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                MaintainModelType.AUTO_MAINTAIN);
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         projectManager.forceDropProject("broken_test");
@@ -217,7 +215,7 @@ public class TableReloadServiceWithSecondStorageTest extends NLocalFileMetadataT
         val tableMeta = tableService.extractTableMeta(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, PROJECT).get(0);
         Mockito.when(userGroupInformation.doAs(Mockito.any(PrivilegedExceptionAction.class))).thenReturn(tableMeta);
 
-        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
 
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }

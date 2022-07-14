@@ -178,7 +178,7 @@ public class MetricsRegistry {
                 .strongReference(true).register(meterRegistry);
     }
     // TODO need to be rewritten
-//    public static void registerProjectPrometheusMetrics(KylinConfig kylinConfig, String project) {
+    public static void registerProjectPrometheusMetrics(KylinConfig kylinConfig, String project) {
 //        if (!kylinConfig.isPrometheusMetricsEnabled()) {
 //            return;
 //        }
@@ -190,7 +190,7 @@ public class MetricsRegistry {
 //                        : scheduler.getContext().getRunningJobs().values().stream()
 //                                .filter(job -> ExecutableState.RUNNING.equals(job.getOutput().getState())).count())
 //                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
-//    }
+    }
 
     public static void registerHostMetrics(String host) {
         MetricsGroup.newCounter(MetricsName.SPARDER_RESTART, MetricsCategory.HOST, host);

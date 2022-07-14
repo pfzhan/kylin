@@ -39,10 +39,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +48,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
+import io.kyligence.kap.job.execution.AbstractExecutable;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryDailyStatistic;
@@ -97,8 +97,8 @@ public class SystemUsageTool {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<ExecutablePO> allJobs = Lists.newArrayList();
         projectManager.listAllProjects().forEach(projectInstance -> {
-            NExecutableManager executableManager = KylinConfig.getInstanceFromEnv()
-                    .getManager(projectInstance.getName(), NExecutableManager.class);
+            ExecutableManager executableManager = KylinConfig.getInstanceFromEnv()
+                    .getManager(projectInstance.getName(), ExecutableManager.class);
             allJobs.addAll(executableManager.getAllJobs(startTime, endTime));
         });
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -118,8 +118,8 @@ public class SystemUsageTool {
                             .filter(e -> ExecutableState.SUCCEED.name().equals(e.getOutput().getStatus()))
                             .mapToDouble(e -> {
                                 AbstractExecutable executable = KylinConfig.getInstanceFromEnv()
-                                        .getManager(e.getProject(), NExecutableManager.class).fromPO(e);
-                                return executable.getDurationFromStepOrStageDurationSum();
+                                        .getManager(e.getProject(), ExecutableManager.class).fromPO(e);
+                                return executable.getDurationFromStepOrStageDurationSum(e);
                             }).sum();
                     lines.add(String.format(Locale.ROOT, "%s,%s,%s,%s", key, buildNum,
                             divide(totalDuration, buildSucceedNum * 60.0 * 1000, "%.2f"),

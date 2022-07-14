@@ -53,7 +53,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.service.JobService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -88,6 +87,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -118,7 +118,6 @@ import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableExtService;
 import lombok.val;
 import lombok.var;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @Ignore
 public class JobInfoServiceTest extends NLocalFileMetadataTestCase {

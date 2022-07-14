@@ -178,11 +178,6 @@ import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-<<<<<<< HEAD
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-=======
-import io.kyligence.kap.metadata.project.NProjectManager;
->>>>>>> KE-36679 fix code style
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;

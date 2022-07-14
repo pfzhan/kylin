@@ -225,7 +225,7 @@ public class IndexDataConstructor {
             return;
         }
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
 
         List<NSparkCubingJob> jobs = Lists.newArrayList();
         for (BuildInfo buildInfo : buildInfos) {

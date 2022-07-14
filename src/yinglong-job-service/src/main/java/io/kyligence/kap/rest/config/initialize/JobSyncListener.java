@@ -69,10 +69,7 @@ import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-<<<<<<< HEAD
 import com.google.common.base.Throwables;
-=======
->>>>>>> KE-36679 fix code style
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -94,10 +91,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
-<<<<<<< HEAD
 import lombok.Builder;
-=======
->>>>>>> KE-36679 fix code style
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;

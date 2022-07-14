@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.engine.spark.job.NSparkExecutable.SPARK_MASTER;
+import static io.kyligence.kap.job.execution.NSparkExecutable.SPARK_MASTER;
 
 import java.util.Map;
 
+import io.kyligence.kap.job.execution.NSparkExecutable;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.exception.ExecuteException;

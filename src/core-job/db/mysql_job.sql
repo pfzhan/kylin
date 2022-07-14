@@ -30,7 +30,7 @@ SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `job_info` (
   `id` bigint(10) NOT NULL AUTO_INCREMENT,
-  `job_id` varchar(50) NOT NULL,
+  `job_id` varchar(100) NOT NULL,
   `job_type` varchar(50) NOT NULL,
   `job_status` varchar(50) NOT NULL,
   `project` varchar(50) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS `job_info` (
 
 CREATE TABLE IF NOT EXISTS `job_lock` (
   `id` bigint(10) NOT NULL AUTO_INCREMENT,
-  `lock_id` varchar(50) NOT NULL COMMENT 'what is locked',
+  `lock_id` varchar(100) NOT NULL COMMENT 'what is locked',
   `lock_node` varchar(50) DEFAULT NULL COMMENT 'who locked it',
   `lock_expire_time` datetime DEFAULT NULL COMMENT 'when does the lock expire',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,

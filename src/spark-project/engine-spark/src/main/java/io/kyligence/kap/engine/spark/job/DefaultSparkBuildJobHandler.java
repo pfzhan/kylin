@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.engine.spark.job.NSparkExecutable.SPARK_MASTER;
+import static io.kyligence.kap.job.execution.NSparkExecutable.SPARK_MASTER;
 
 import java.io.File;
 import java.io.IOException;

@@ -144,7 +144,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
                 .collect(Collectors.toSet());
         if (!databasesNotExist.isEmpty()) {
             throw new KylinException(DATABASE_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDATABASE_NOT_EXIST(), StringUtils.join(databasesNotExist, ", ")));
+                    MsgPicker.getMsg().getDatabaseNotExist(), StringUtils.join(databasesNotExist, ", ")));
         }
         Set<TableDesc> tablesOfDatabases = tableManager.listAllTables().stream()
                 .filter(tableDesc -> databases.contains(tableDesc.getDatabase())).collect(Collectors.toSet());
@@ -188,7 +188,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
         }
         if (!invalidSnapshotsToBuild.isEmpty()) {
             throw new KylinException(INVALID_PARAMETER,
-                    MsgPicker.getMsg().getPARTITIONS_TO_BUILD_CANNOT_BE_EMPTY(invalidSnapshotsToBuild));
+                    MsgPicker.getMsg().getPartitionsToBuildCannotBeEmpty(invalidSnapshotsToBuild));
         }
 
         Map<String, SnapshotRequest.TableOption> finalOptions = Maps.newHashMap();
@@ -291,7 +291,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
         if (!nonPermittedTables.isEmpty()) {
             List<String> tableIdentities = nonPermittedTables.stream().map(TableDesc::getIdentity)
                     .collect(Collectors.toList());
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSNAPSHOT_OPERATION_PERMISSION_DENIED());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSnapshotOperationPermissionDenied());
         }
 
     }
@@ -365,14 +365,14 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
                 .collect(Collectors.toList());
         if (!tablesWithEmptySnapshot.isEmpty()) {
             throw new KylinException(SNAPSHOT_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSNAPSHOT_NOT_FOUND(), StringUtils.join(tablesWithEmptySnapshot, "', '")));
+                    MsgPicker.getMsg().getSnapshotNotFound(), StringUtils.join(tablesWithEmptySnapshot, "', '")));
         }
     }
 
     private void checkSnapshotManualManagement(String project) {
         if (!getManager(NProjectManager.class).getProject(project).getConfig().isSnapshotManualManagementEnabled()) {
             throw new KylinException(SNAPSHOT_MANAGEMENT_NOT_ENABLED,
-                    MsgPicker.getMsg().getSNAPSHOT_MANAGEMENT_NOT_ENABLED());
+                    MsgPicker.getMsg().getSnapshotManagementNotEnabled());
         }
     }
 
@@ -412,7 +412,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
         }
         if (!notFoundTables.isEmpty()) {
             throw new KylinException(TABLE_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getTABLE_NOT_FOUND(), StringUtils.join(notFoundTables, "', '")));
+                    MsgPicker.getMsg().getTableNotFound(), StringUtils.join(notFoundTables, "', '")));
         }
         return tables;
     }
@@ -737,7 +737,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
         ISource source = SourceFactory.getSource(sourceAware);
         if (!source.supportBuildSnapShotByPartition()) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    MsgPicker.getMsg().getJDBC_NOT_SUPPORT_PARTITION_COLUMN_IN_SNAPSHOT());
+                    MsgPicker.getMsg().getJdbcNotSupportPartitionColumnInSnapshot());
         }
     }
 
@@ -778,7 +778,7 @@ public class SnapshotJobService extends BasicService implements SnapshotSupporte
         });
         if (!notFoundCols.isEmpty()) {
             throw new KylinException(COLUMN_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getCOLUMN_NOT_EXIST(), StringUtils.join(notFoundCols, "', '")));
+                    MsgPicker.getMsg().getColumnNotExist(), StringUtils.join(notFoundCols, "', '")));
         }
     }
 
