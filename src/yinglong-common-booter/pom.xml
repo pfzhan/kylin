@@ -21,8 +21,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+            <groupId>io.kyligence.saas</groupId>
+            <artifactId>saas-nacos-discovery-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -161,6 +165,16 @@
                     <artifactId>hive-exec</artifactId>
                 </dependency>
                 <!--end for sandbox -->
+            </dependencies>
+        </profile>
+        <profile>
+            <id>iam</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.kyligence.saas</groupId>
+                    <artifactId>iam-user-manager</artifactId>
+                    <version>${iam-user-manager.version}</version>
+                </dependency>
             </dependencies>
         </profile>
         <profile>

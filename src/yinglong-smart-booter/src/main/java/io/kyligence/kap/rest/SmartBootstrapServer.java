@@ -35,7 +35,7 @@ import org.springframework.context.annotation.ImportResource;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableCaching
-@EnableFeignClients
+@EnableFeignClients(basePackages = { "io.kyligence", "org.apache.kylin" })
 public class SmartBootstrapServer {
 
     public static void main(String[] args) {
