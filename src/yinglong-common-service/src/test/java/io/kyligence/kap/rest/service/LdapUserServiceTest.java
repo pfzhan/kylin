@@ -80,6 +80,7 @@ import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
@@ -132,7 +133,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         String dn = ldapConfig.getProperty("kylin.security.ldap.connection-username");
         String password = ldapConfig.getProperty("kylin.security.ldap.connection-password");
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=com");
-        config.addAdditionalBindCredentials(dn, password);
+        config.addAdditionalBindCredentials(dn, EncryptUtil.decrypt(password));
         config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);

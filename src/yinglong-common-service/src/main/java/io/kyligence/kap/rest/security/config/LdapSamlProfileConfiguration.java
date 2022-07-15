@@ -22,23 +22,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest;
+package io.kyligence.kap.rest.security.config;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ImportResource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.ldap.core.support.LdapContextSource;
+import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 
-@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
-@SpringBootApplication
-@EnableDiscoveryClient
-@EnableCaching
-@EnableFeignClients(basePackages = { "io.kyligence", "org.apache.kylin" })
-public class QueryBootstrapServer {
+@Profile({ "ldap", "saml" })
+@Configuration
+public class LdapSamlProfileConfiguration {
 
-    public static void main(String[] args) {
-        SpringApplication.run(QueryBootstrapServer.class, args);
+    @Value("${kylin.security.ldap.connection-server}")
+    private String connectionServer;
+
+    @Value("${kylin.security.ldap.connection-username}")
+    private String connectionUsername;
+
+    @Value("${kylin.security.ldap.connection-password}")
+    private String connectionPassword;
+
+    @Bean("ldapSource")
+    public LdapContextSource ldapSource() {
+        DefaultSpringSecurityContextSource ldapSource = new DefaultSpringSecurityContextSource(connectionServer);
+        ldapSource.setUserDn(connectionUsername);
+        ldapSource.setPassword(connectionPassword);
+        return ldapSource;
     }
+
 }

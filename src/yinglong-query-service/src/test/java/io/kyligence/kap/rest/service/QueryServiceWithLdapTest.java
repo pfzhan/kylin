@@ -28,6 +28,7 @@ package io.kyligence.kap.rest.service;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
@@ -112,7 +113,7 @@ public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
         String dn = ldapConfig.getProperty("kylin.security.ldap.connection-username");
         String password = ldapConfig.getProperty("kylin.security.ldap.connection-password");
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=com");
-        config.addAdditionalBindCredentials(dn, password);
+        config.addAdditionalBindCredentials(dn, EncryptUtil.decrypt(password));
         config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);
