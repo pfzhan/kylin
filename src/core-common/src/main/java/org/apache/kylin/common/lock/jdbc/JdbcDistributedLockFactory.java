@@ -28,7 +28,6 @@ import java.util.concurrent.locks.Lock;
 
 import javax.sql.DataSource;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.springframework.integration.jdbc.lock.DefaultLockRepository;
 import org.springframework.integration.jdbc.lock.JdbcLockRegistry;
@@ -55,8 +54,6 @@ public class JdbcDistributedLockFactory extends DistributedLockFactory {
     @Override
     public void initialize() {
         try {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            config.setJDBCDistributedLockURL(config.getJDBCDistributedLockURL().toString());
             JdbcDistributedLockUtil.createDistributedLockTableIfNotExist();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
