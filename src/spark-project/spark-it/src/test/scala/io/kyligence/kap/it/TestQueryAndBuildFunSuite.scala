@@ -145,10 +145,6 @@ class TestQueryAndBuildFunSuite
     // test for snapshot cleanup
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.version-ttl", "0")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.max-versions", "1")
-
-    JobContextUtil.cleanUp()
-    JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv)
-
     build()
   }
 
@@ -157,7 +153,6 @@ class TestQueryAndBuildFunSuite
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
-    JobContextUtil.cleanUp()
   }
 
   test("buildKylinFact") {

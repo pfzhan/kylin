@@ -25,7 +25,6 @@ package io.kyligence.kap.it
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.engine.spark.utils.LogEx
-import io.kyligence.kap.job.util.JobContextUtil
 import io.kyligence.kap.metadata.cube.model.{IndexPlan, NDataflowManager, NIndexPlanManager}
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import io.kyligence.kap.query.QueryFetcher
@@ -85,9 +84,6 @@ class TestModelViewQuery
 
     addModels()
 
-    JobContextUtil.cleanUp()
-    JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv)
-
     build()
   }
 
@@ -96,7 +92,6 @@ class TestModelViewQuery
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
     Unsafe.clearProperty("calcite.keep-in-clause")
-    JobContextUtil.cleanUp()
   }
 
   private val modelIds = Seq(

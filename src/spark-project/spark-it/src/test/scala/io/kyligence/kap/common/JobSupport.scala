@@ -24,7 +24,6 @@ package io.kyligence.kap.common
 
 import java.io.File
 import java.util.Objects
-
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.common.util.Unsafe
@@ -33,7 +32,7 @@ import io.kyligence.kap.job.execution.merger.{AfterBuildResourceMerger, AfterMer
 import io.kyligence.kap.job.execution.step.{NSparkCubingStep, NSparkMergingStep}
 import io.kyligence.kap.job.execution.{AbstractExecutable, NSparkCubingJob, NSparkMergingJob}
 import io.kyligence.kap.job.manager.ExecutableManager
-import io.kyligence.kap.job.util.ExecutableUtils
+import io.kyligence.kap.job.util.{ExecutableUtils, JobContextUtil}
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.commons.io.FileUtils
@@ -67,12 +66,8 @@ trait JobSupport
   override def beforeAll(): Unit = {
     super.beforeAll()
     Unsafe.setProperty("kylin.job.scheduler.poll-interval-second", schedulerInterval)
-    // TODO need to be rewritten
-    // scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
-    // scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
-    //    if (!scheduler.hasStarted) {
-    //      throw new RuntimeException("scheduler has not been started")
-    //    }
+    JobContextUtil.cleanUp()
+    JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv)
   }
 
   private def restoreSparderEnv(): Unit = {
@@ -95,7 +90,7 @@ trait JobSupport
     // scheduler.shutdown()
     restoreSparderEnv()
     super.afterAll()
-
+    JobContextUtil.cleanUp()
   }
 
   @throws[Exception]

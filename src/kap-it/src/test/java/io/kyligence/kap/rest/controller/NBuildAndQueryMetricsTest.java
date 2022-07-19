@@ -74,6 +74,7 @@ import io.kyligence.kap.job.execution.NSparkCubingJob;
 import io.kyligence.kap.job.execution.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.ExecutableUtils;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -90,7 +91,6 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-//TODO need to be rewritten
 @Ignore
 public class NBuildAndQueryMetricsTest extends AbstractMVCIntegrationTestCase {
 
@@ -199,8 +199,8 @@ public class NBuildAndQueryMetricsTest extends AbstractMVCIntegrationTestCase {
             ret.createOrReplaceTempView(tableDesc.getName());
         }
 
-//        val scheduler = NDefaultScheduler.getInstance(getProject());
-//        scheduler.init(new JobEngineConfig(kylinConfig));
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContext(getTestConfig());
 
         ExecutableManager originExecutableManager = ExecutableManager.getInstance(getTestConfig(), getProject());
         ExecutableManager executableManager = Mockito.spy(originExecutableManager);
@@ -247,7 +247,7 @@ public class NBuildAndQueryMetricsTest extends AbstractMVCIntegrationTestCase {
     @After
     public void teardown() throws Exception {
         cleanPushdownEnv();
-//        NDefaultScheduler.destroyInstance();
+        JobContextUtil.cleanUp();
     }
 
     @Test

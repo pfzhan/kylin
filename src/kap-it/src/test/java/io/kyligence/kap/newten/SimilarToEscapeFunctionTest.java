@@ -42,9 +42,9 @@ import org.junit.Test;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.util.ExecAndComp;
 
-//TODO need to be rewritten
 @Ignore
 public class SimilarToEscapeFunctionTest extends NLocalWithSparkSessionTest {
     @BeforeClass
@@ -69,17 +69,14 @@ public class SimilarToEscapeFunctionTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
-//        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-//        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-//        if (!scheduler.hasStarted()) {
-//            throw new RuntimeException("scheduler has not been started");
-//        }
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After
     public void after() throws Exception {
-//        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Override
