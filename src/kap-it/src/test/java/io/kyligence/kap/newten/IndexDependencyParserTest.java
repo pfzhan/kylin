@@ -48,7 +48,7 @@ public class IndexDependencyParserTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
-        this.createTestMetadata("../../src/server-base/src/test/resources/ut_meta/heterogeneous_segment_2");
+        this.createTestMetadata("src/test/resources/ut_meta/heterogeneous_segment_2");
     }
 
     @After

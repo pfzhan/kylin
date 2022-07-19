@@ -155,6 +155,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-query-ext</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.kyligence.yinglong</groupId>
             <artifactId>yinglong-modeling-service</artifactId>
             <type>test-jar</type>

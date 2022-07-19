@@ -61,19 +61,36 @@
             <scope>provided</scope>
         </dependency>
 
+        <!--yinglong-->
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
+            <artifactId>yinglong-smart-server</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-modeling-service</artifactId>
+            <artifactId>yinglong-query-server</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>spring-boot-starter-validation</artifactId>
+                    <groupId>org.springframework.boot</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-metadata-server</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
+            <artifactId>yinglong-common-server</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.yinglong</groupId>
+            <artifactId>yinglong-data-loading-server</artifactId>
             <scope>provided</scope>
         </dependency>
 

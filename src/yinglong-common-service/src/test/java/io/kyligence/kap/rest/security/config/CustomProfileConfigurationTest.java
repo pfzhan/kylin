@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.security.config;
 
+import io.kyligence.kap.junit.annotation.MetadataInfo;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.AclService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -45,6 +46,7 @@ import io.kyligence.kap.rest.service.OpenUserService;
 import io.kyligence.kap.rest.service.StaticUserGroupService;
 import io.kyligence.kap.rest.service.StaticUserService;
 
+@MetadataInfo(onlyProps = true)
 class CustomProfileConfigurationTest {
 
     private SpringApplication application;

@@ -207,7 +207,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void tearDown() {
         EventBusFactory.getInstance().unregister(eventListener);
         cleanupTestMetadata();
-        FileUtils.deleteQuietly(new File("../server-base/metastore_db"));
+        FileUtils.deleteQuietly(new File("metastore_db"));
         JobContextUtil.cleanUp();
     }
 

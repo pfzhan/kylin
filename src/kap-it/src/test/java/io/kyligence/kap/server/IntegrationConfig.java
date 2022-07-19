@@ -29,8 +29,8 @@ import org.springframework.context.annotation.ImportResource;
 
 @Configuration
 @ImportResource(locations = {
-        "file:../kap-it/src/test/resources/applicationContext.xml",
-        "file:../kap-it/src/test/resources/kylinSecurity.xml"})
+        "file:../server/src/main/resources/applicationContext.xml",
+        "file:../server/src/main/resources/kylinSecurity.xml"})
 public class IntegrationConfig {
 
 }
