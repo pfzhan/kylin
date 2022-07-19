@@ -25,6 +25,7 @@ package org.apache.spark.sql.newSession
 
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.IndexDataConstructor
+import io.kyligence.kap.job.util.JobContextUtil
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
@@ -53,17 +54,15 @@ abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog 
   override def beforeAll(): Unit = {
     overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1")
     super.beforeAll()
-    //TODO need to be rewritten
-    //    val scheduler = NDefaultScheduler.getInstance(project)
-    //    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
-    //    assert(scheduler.hasStarted)
     setStorage(NDataModelManager.getInstance(kylinConf, project), dfID)
+
+    JobContextUtil.cleanUp()
+    JobContextUtil.getJobContext(kylinConf)
   }
 
   override def afterAll(): Unit = {
-    //TODO need to be rewritten
-    // NDefaultScheduler.destroyInstance()
     super.afterAll()
+    JobContextUtil.cleanUp()
   }
 
   test("testNonExistTimeRange") {

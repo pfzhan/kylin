@@ -212,19 +212,29 @@ public class JobContextUtil {
         }
     }
 
+    public static DataSourceTransactionManager getTransactionManager(KylinConfig config) {
+        if (config.isUTEnv()) {
+            synchronized (JobContextUtil.class) {
+                initMappers(config);
+                return transactionManager;
+            }
+        } else {
+            return SpringContext.getBean(DataSourceTransactionManager.class);
+        }
+    }
+
     // for test only
     synchronized public static void cleanUp() {
         try {
             if (null != jobContext) {
                 jobContext.destroy();
-
-                jobInfoMapper = null;
-                jobLockMapper = null;
-                jobInfoDao = null;
-                jobContext = null;
-                sqlSessionManager = null;
-                transactionManager = null;
             }
+            jobInfoMapper = null;
+            jobLockMapper = null;
+            jobInfoDao = null;
+            jobContext = null;
+            sqlSessionManager = null;
+            transactionManager = null;
         } catch (Exception e) {
             log.error("JobContextUtil clean up failed.");
             throw new RuntimeException("JobContextUtil clean up failed.", e);

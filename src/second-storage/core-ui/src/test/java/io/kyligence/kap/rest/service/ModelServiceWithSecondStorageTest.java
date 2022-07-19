@@ -87,6 +87,7 @@ import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import io.kyligence.kap.rest.delegate.JobMetadataContract;
 import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.JobStatisticsInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -153,6 +154,8 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
                 .thenAnswer(invocation -> new JobMetadataInvoker());
         PowerMockito.when(SpringContext.getBean(JobMetadataBaseInvoker.class))
                 .thenAnswer(invocation -> new JobMetadataInvoker());
+        PowerMockito.when(SpringContext.getBean(ModelMetadataBaseInvoker.class))
+                .thenAnswer(invocation -> new ModelMetadataBaseInvoker());
         PowerMockito.when(SpringContext.getBean(JobMetadataContract.class))
                 .thenAnswer(invocation -> new JobMetadataDelegate());
 

@@ -78,7 +78,6 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.spark.sql.SparkSession;
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -323,7 +322,6 @@ public class SecondStorageLockTest implements JobWaiter {
 
         indexDataConstructor = new IndexDataConstructor(getProject());
 
-        JobContextUtil.cleanUp();
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv());
 
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
@@ -332,11 +330,6 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
         JobMetadataInvoker.setDelegate(jobMetadataDelegate);
         ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
-    }
-
-    @After
-    public void tearDown() {
-        JobContextUtil.cleanUp();
     }
 
     @Test

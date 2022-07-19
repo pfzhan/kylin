@@ -105,6 +105,7 @@ import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.job.rest.JobMapperFilter;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.job.util.JobFilterUtil;
 import io.kyligence.kap.job.util.JobInfoUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -430,42 +431,42 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     @VisibleForTesting
-    public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action) throws IOException {
+    public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action)
+            throws IOException {
         val executableManager = getManager(ExecutableManager.class, project);
         AbstractExecutable executable = executableManager.fromPO(executablePO);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
-            case RESUME:
-                SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
-                JdbcUtil.withTransaction(()-> {
-                    executableManager.updateJobError(jobId, null, null, null, null);
-                    executableManager.resumeJob(jobId, executable);
-                    return null;
-                });
-                MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
-                break;
-            case RESTART:
-                SecondStorageUtil.checkJobRestart(project, jobId, executable);
-                killExistApplication(executable);
-                JdbcUtil.withTransaction(() -> {
-                    executableManager.updateJobError(jobId, null, null, null, null);
-                    executableManager.restartJob(jobId, executable);
-                    return null;
-                });
-                break;
-            case DISCARD:
-                discardJob(project, jobId, executable);
-                break;
-            case PAUSE:
-                killExistApplication(executable);
-                executableManager.pauseJob(jobId, executablePO, executable);
-                break;
-            default:
-                throw new IllegalStateException("This job can not do this action: " + action);
+        case RESUME:
+            SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
+            JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
+                executableManager.updateJobError(jobId, null, null, null, null);
+                executableManager.resumeJob(jobId, executable);
+                return null;
+            });
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
+            break;
+        case RESTART:
+            SecondStorageUtil.checkJobRestart(project, jobId, executable);
+            killExistApplication(executable);
+            JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
+                executableManager.updateJobError(jobId, null, null, null, null);
+                executableManager.restartJob(jobId, executable);
+                return null;
+            });
+            break;
+        case DISCARD:
+            discardJob(project, jobId, executable);
+            break;
+        case PAUSE:
+            killExistApplication(executable);
+            executableManager.pauseJob(jobId, executablePO, executable);
+            break;
+        default:
+            throw new IllegalStateException("This job can not do this action: " + action);
         }
-
     }
 
     @Transaction(project = 0)

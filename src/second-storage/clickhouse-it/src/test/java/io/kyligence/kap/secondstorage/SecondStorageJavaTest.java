@@ -73,7 +73,10 @@ import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -422,20 +425,25 @@ public class SecondStorageJavaTest implements JobWaiter {
         cleanSegments(segs);
         registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_PAUSED, 10000);
         val jobId = triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
-        await().atMost(2, TimeUnit.SECONDS).until(() -> {
+
+        JobContext jobContext = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv());
+        long minimumWaitSecondsForJobScheduler = jobContext.getJobConfig().getJobSchedulerMasterPollIntervalSec()
+                + jobContext.getJobConfig().getJobSchedulerSlavePollIntervalSec();
+        await().atMost(minimumWaitSecondsForJobScheduler, TimeUnit.SECONDS).until(() -> {
             val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
         });
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             executableManager.pauseJob(jobId);
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
         waitJobEnd(project, jobId);
-//        Thread.sleep(15000);
-        //TODO need to be rewritten
-//        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-//        await().atMost(15, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+
+        JdbcJobScheduler jobScheduler = jobContext.getJobScheduler();
+        await().atMost(15, TimeUnit.SECONDS).until(() -> jobScheduler.getRunningJob().size() == 0);
+
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         int partitionNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
         Assert.assertEquals(0, partitionNum);

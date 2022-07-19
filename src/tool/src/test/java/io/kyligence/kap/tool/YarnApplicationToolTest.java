@@ -47,11 +47,13 @@ import org.junit.rules.TemporaryFolder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Throwables;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.job.util.JobContextUtil;
+import io.kyligence.kap.tool.util.JobMetadataWriter;
 import lombok.val;
 
 public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
@@ -74,6 +76,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
     @After
     public void teardown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -116,5 +119,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
             metadata.forEach(x -> resourceStore.checkAndPutResource(x.getResPath(), x.getByteSource(), -1));
             return 0;
         }).maxRetry(1).build());
+
+        JobMetadataWriter.writeJobMetaData(getTestConfig(), metadata);
     }
 }

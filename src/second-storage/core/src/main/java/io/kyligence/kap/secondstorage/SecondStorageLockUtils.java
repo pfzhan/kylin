@@ -24,10 +24,6 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.google.common.base.Preconditions;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.SegmentRange;
-
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +31,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.SegmentRange;
+
+import com.google.common.base.Preconditions;
 
 
 public class SecondStorageLockUtils {

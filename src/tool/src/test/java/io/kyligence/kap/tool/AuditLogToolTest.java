@@ -74,6 +74,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
+import io.kyligence.kap.tool.util.JobMetadataWriter;
 import lombok.val;
 
 public class AuditLogToolTest extends NLocalFileMetadataTestCase {
@@ -113,6 +115,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -303,6 +306,9 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
             metadata.forEach(x -> resourceStore.checkAndPutResource(x.getResPath(), x.getByteSource(), -1));
             return 0;
         }).maxRetry(1).build());
+
+        JobMetadataWriter.writeJobMetaData(getTestConfig(), metadata);
+
         val auditLogStore = (JdbcAuditLogStore) getStore().getAuditLogStore();
         auditLogStore.batchInsert(auditLog);
     }

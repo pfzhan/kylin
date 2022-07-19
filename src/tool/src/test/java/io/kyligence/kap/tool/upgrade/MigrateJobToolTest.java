@@ -39,6 +39,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
+import io.kyligence.kap.tool.util.JobMetadataWriter;
 import lombok.val;
 
 public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
@@ -46,11 +48,13 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata("src/test/resources/ut_upgrade_tool");
+        JobMetadataWriter.writeJobMetaData(getTestConfig());
     }
 
     @After
     public void teardown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -78,6 +82,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
         getTestConfig().clearManagers();
         ResourceStore.clearCache();
 
+        JobMetadataWriter.writeJobMetaData(getTestConfig());
         executableManager = ExecutableManager.getInstance(getTestConfig(), "version40");
 
         executeJobs = executableManager.getAllExecutables().stream()
@@ -99,17 +104,17 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
 
             switch (job.getJobType()) {
             case INDEX_BUILD:
-                Assert.assertEquals("io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler",
+                Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler",
                         job.getHandler().getClass().getName());
                 break;
             case INC_BUILD:
-                Assert.assertEquals("io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler",
+                Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler",
                         job.getHandler().getClass().getName());
                 break;
             case INDEX_REFRESH:
             case SUB_PARTITION_REFRESH:
             case INDEX_MERGE:
-                Assert.assertEquals("io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler",
+                Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler",
                         job.getHandler().getClass().getName());
                 break;
             default:

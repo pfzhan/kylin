@@ -55,16 +55,21 @@ public class JobInfoUtil {
 
     public static ExecutablePO deserializeExecutablePO(JobInfo jobInfo) {
         ByteSource byteSource = ByteSource.wrap(jobInfo.getJobContent());
-        try (InputStream is = byteSource.openStream(); DataInputStream din = new DataInputStream(is)) {
-            ExecutablePO r = JOB_SERIALIZER.deserialize(din);
-            r.setLastModified(jobInfo.getUpdateTime().getTime());
-            r.setProject(jobInfo.getProject());
-            return r;
+        try {
+            return deserializeExecutablePO(byteSource, jobInfo.getUpdateTime().getTime(), jobInfo.getProject());
         } catch (IOException e) {
             log.warn("Error when deserializing jobInfo, id: {} " + jobInfo.getJobId(), e);
             return null;
         }
     }
 
-
+    public static ExecutablePO deserializeExecutablePO(ByteSource byteSource, long updateTime, String project)
+            throws IOException {
+        try (InputStream is = byteSource.openStream(); DataInputStream din = new DataInputStream(is)) {
+            ExecutablePO r = JOB_SERIALIZER.deserialize(din);
+            r.setLastModified(updateTime);
+            r.setProject(project);
+            return r;
+        }
+    }
 }

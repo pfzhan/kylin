@@ -24,55 +24,21 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.kyligence.kap.clickhouse.ClickHouseStorage;
-import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.IndexDataConstructor;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.newten.clickhouse.ClickHouseSimpleITTestUtils;
-import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
-import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
-import io.kyligence.kap.rest.controller.NModelController;
-import io.kyligence.kap.rest.controller.SegmentController;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.service.FusionModelService;
-import io.kyligence.kap.rest.service.IndexPlanService;
-import io.kyligence.kap.rest.service.JobService;
-import io.kyligence.kap.rest.service.ModelBuildService;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.NUserGroupService;
-import io.kyligence.kap.rest.service.SegmentHelper;
-import io.kyligence.kap.secondstorage.ddl.InsertInto;
-import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
-import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
-import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
-import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
-import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
-import io.kyligence.kap.secondstorage.management.SecondStorageService;
-import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
-import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
-import io.kyligence.kap.secondstorage.test.EnableScheduler;
-import io.kyligence.kap.secondstorage.test.EnableTestUser;
-import io.kyligence.kap.secondstorage.test.SharedSparkSession;
-import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
-import io.kyligence.kap.secondstorage.test.utils.SecondStorageMetadataHelperTest;
-import lombok.Data;
-import lombok.SneakyThrows;
-import lombok.val;
-import lombok.var;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -110,20 +76,61 @@ import org.powermock.modules.junit4.PowerMockRunnerDelegate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import io.kyligence.kap.clickhouse.ClickHouseStorage;
+import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.dao.JobInfoDao;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.job.service.JobInfoService;
+import io.kyligence.kap.job.util.JobContextUtil;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.newten.clickhouse.ClickHouseSimpleITTestUtils;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
+import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.controller.SegmentController;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelBuildService;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.NUserGroupService;
+import io.kyligence.kap.rest.service.SegmentHelper;
+import io.kyligence.kap.secondstorage.ddl.InsertInto;
+import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
+import io.kyligence.kap.secondstorage.management.OpenSecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
+import io.kyligence.kap.secondstorage.management.SecondStorageService;
+import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
+import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
+import io.kyligence.kap.secondstorage.test.EnableScheduler;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.secondstorage.test.utils.SecondStorageMetadataHelperTest;
+import lombok.Data;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.var;
 
 /**
  * Second storage lock operator unit tests
@@ -151,8 +158,10 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
-    @Mock
-    private final JobService jobService = Mockito.spy(JobService.class);
+
+    @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
+
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
@@ -231,7 +240,17 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
 
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
         ReflectionTestUtils.setField(segmentController, "modelService", modelService);
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(segmentController, "modelMetadataInvoker", modelMetadataInvoker);
 
         ReflectionTestUtils.setField(nModelController, "modelService", modelService);
         ReflectionTestUtils.setField(nModelController, "fusionModelService", fusionModelService);
@@ -245,7 +264,6 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
 
         indexDataConstructor = new IndexDataConstructor(getProject());
     }
-
 
     @Test
     public void testLockOperate() throws Exception {

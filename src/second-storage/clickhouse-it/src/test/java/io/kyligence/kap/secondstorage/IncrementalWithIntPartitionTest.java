@@ -65,8 +65,11 @@ import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -534,9 +537,9 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         SecondStorageUtil.checkSecondStorageData(project);
     }
 
-    //TODO need to be rewritten
     private void waitUntilNoRunningJob(int waitMs) {
-        // NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        // await().atMost(waitMs, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+        JobContext jobContext = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv());
+        JdbcJobScheduler jobScheduler = jobContext.getJobScheduler();
+        await().atMost(15, TimeUnit.SECONDS).until(() -> jobScheduler.getRunningJob().size() == 0);
     }
 }

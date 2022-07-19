@@ -49,17 +49,15 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.job.JobContext;
-import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -172,8 +170,7 @@ public class SecondStorageUtil {
     public static List<AbstractExecutable> findSecondStorageRelatedJobByProject(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
-        return executableManager.getAllJobs().stream().map(executablePO -> executableManager.fromPO(executablePO))
-                .filter(job -> RELATED_JOBS.contains(job.getJobType())).collect(Collectors.toList());
+        return executableManager.getExecutablesByJobType(RELATED_JOBS);
     }
 
     public static void validateProjectLock(String project, List<String> requestLocks) {
@@ -394,8 +391,9 @@ public class SecondStorageUtil {
     }
 
     public static void checkJobRestart(String project, String jobId) {
-        ExecutablePO executablePO = SpringContext.getBean(JobInfoDao.class).getExecutablePOByUuid(jobId);
-        AbstractExecutable executable = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ExecutablePO executablePO = JobContextUtil.getJobInfoDao(config).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(config, project)
                 .fromPO(executablePO);
         checkJobRestart(project, jobId, executable);
     }
@@ -440,8 +438,9 @@ public class SecondStorageUtil {
     }
     
     public static void checkJobResume(String project, String jobId) {
-        ExecutablePO executablePO = SpringContext.getBean(JobInfoDao.class).getExecutablePOByUuid(jobId);
-        AbstractExecutable executable = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ExecutablePO executablePO = JobContextUtil.getJobInfoDao(config).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(config, project)
                 .fromPO(executablePO);
         checkJobResume(project, jobId, executable, executablePO);
     }
@@ -462,8 +461,8 @@ public class SecondStorageUtil {
                 secondStorageLoading = false;
             }
         }
-        JobContext jobContext = SpringContext.getBean(JobContext.class);
-        long runningJobsCount = jobContext.fetchAllRunningJobs(project, null, null).stream()
+        long runningJobsCount = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv())
+                .fetchAllRunningJobs(project, null, null).stream()
                 .filter(jobInfo -> jobInfo.getJobId().startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
             throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());

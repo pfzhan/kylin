@@ -64,7 +64,9 @@ public class JobMapperFilter {
 
     private String orderType;
 
+    @Builder.Default
     private int offset = -1;
 
+    @Builder.Default
     private int limit = -1;
 }

@@ -22,9 +22,10 @@
 
 package io.kyligence.kap.it
 
-import io.kyligence.kap.common.util.{TestUtils, Unsafe}
+import io.kyligence.kap.common.util.TestUtils
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.engine.spark.IndexDataWarehouse
+import io.kyligence.kap.job.util.JobContextUtil
 import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
 import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
@@ -40,9 +41,6 @@ import org.apache.spark.sql.{DataFrame, SparderEnv}
 
 import java.io.File
 import java.util.TimeZone
-
-import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -147,6 +145,10 @@ class TestQueryAndBuildFunSuite
     // test for snapshot cleanup
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.version-ttl", "0")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.max-versions", "1")
+
+    JobContextUtil.cleanUp()
+    JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv)
+
     build()
   }
 
@@ -155,6 +157,7 @@ class TestQueryAndBuildFunSuite
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
+    JobContextUtil.cleanUp()
   }
 
   test("buildKylinFact") {

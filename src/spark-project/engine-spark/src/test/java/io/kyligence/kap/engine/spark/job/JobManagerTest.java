@@ -57,6 +57,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.ExecutableParams;
 import io.kyligence.kap.job.manager.ExecutableManager;
@@ -374,24 +375,20 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         checkConcurrent(param2);
     }
 
-    //TODO need to be rewritten
-    /*
     @Test
-    public void testQuotaLimitReached() {
+    public void testQuotaLimitReached() throws Exception {
         thrown.expect(KylinException.class);
-        NDefaultScheduler defaultScheduler = NDefaultScheduler.getInstance(PROJECT);
-        defaultScheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        defaultScheduler.getContext().setReachQuotaLimit(true);
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        jobContext.setProjectReachQuotaLimit(PROJECT, true);
         JobParam param = new JobParam(Sets.newHashSet(), null, null, "ADMIn", Sets.newHashSet(), null);
         try {
             jobManager.addJob(param);
         } finally {
-            defaultScheduler.forceShutdown();
-            defaultScheduler.getContext().setReachQuotaLimit(false);
+            JobContextUtil.cleanUp();
+            jobContext.setProjectReachQuotaLimit(PROJECT, true);
         }
     }
-
-     */
 
     @Test
     public void testAddJob_throwsException() {

@@ -55,11 +55,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.engine.spark.IndexDataConstructor;
+import io.kyligence.kap.job.delegate.JobMetadataDelegate;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.manager.JobManager;
+import io.kyligence.kap.job.service.JobInfoService;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelBuildService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
@@ -127,6 +130,9 @@ public class IncrementalTest implements JobWaiter {
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
+    @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
+
     @Before
     public void setUp() {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
@@ -137,6 +143,10 @@ public class IncrementalTest implements JobWaiter {
         ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
 
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageEndpoint.setModelService(modelService);

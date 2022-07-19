@@ -455,7 +455,8 @@ public class ExecutableManager {
             AbstractExecutable result = constructor.newInstance(DUMMY_OBJECT);
             result.setId(executablePO.getUuid());
             result.setName(executablePO.getName());
-            result.setProject(project);
+            String jobProject = null == executablePO.getProject() ? project : executablePO.getProject();
+            result.setProject(jobProject);
             result.setParams(executablePO.getParams());
             result.setJobType(executablePO.getJobType());
             result.setTargetSubject(executablePO.getTargetModel());
@@ -904,7 +905,7 @@ public class ExecutableManager {
         if (!job.getStatusInMem().isProgressing()) {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatusInMem());
         }
-        JdbcUtil.withTransaction(() -> {
+        JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(config), () -> {
             updateStagePaused(job);
             Map<String, String> info = getWaiteTime(executablePO, job);
             updateJobOutput(jobId, ExecutableState.PAUSED, info);
@@ -1237,6 +1238,15 @@ public class ExecutableManager {
 
     public List<AbstractExecutable> getExecutablesByStatus(ExecutableState status) {
         return getExecutablesByStatus(null, Lists.newArrayList(status));
+    }
+
+    public List<AbstractExecutable> getExecutablesByJobType(Set<JobTypeEnum> RELATED_JOBS) {
+        List<String> jobTypeNames = RELATED_JOBS.stream().map(jobTypeEnum -> jobTypeEnum.name()).collect(Collectors.toList());
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setJobNames(jobTypeNames);
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).map(this::fromPO)
+                .collect(Collectors.toList());
     }
 
     public ExecutablePO getExecutablePO(String jobId) {

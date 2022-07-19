@@ -71,6 +71,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.job.ISparkJobHandler;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
@@ -80,6 +81,7 @@ import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.execution.merger.MetadataMerger;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -423,8 +425,11 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             if (StringUtils.isNotEmpty(updateInfo.get("process_id"))) {
                 try {
                     updateInfo.remove("output");
+                    JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
                         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .updateJobOutput(getParentId(), getStatus(), updateInfo, null, null);
+                        return null;
+                    });
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }

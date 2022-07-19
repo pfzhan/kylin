@@ -27,13 +27,18 @@ package io.kyligence.kap.tool.garbage;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
+import io.kyligence.kap.rest.delegate.ModelMetadataBaseInvoker;
 
 public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
@@ -44,12 +49,14 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
     @Before
     public void init() {
         createTestMetadata();
+        JobContextUtil.cleanUp();
         manager = ExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
     }
 
     @After
     public void destroy() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -92,14 +99,21 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     private void createJob(String jobId, long createTime) {
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ModelMetadataBaseInvoker modelMetadataBaseInvoker = Mockito.mock(ModelMetadataBaseInvoker.class);
+        Mockito.when(modelMetadataBaseInvoker.getModelNameById(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn("test");
+        jobInfoDao.setModelMetadataInvoker(modelMetadataBaseInvoker);
+
         MockCleanableExecutable executable = new MockCleanableExecutable();
         executable.setParam("test1", "test1");
         executable.setId(jobId);
         executable.setProject(DEFAULT_PROJECT);
+        executable.setJobType(JobTypeEnum.INC_BUILD);
         ExecutablePO po = ExecutableManager.toPO(executable, DEFAULT_PROJECT);
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
         executableOutputPO.setCreateTime(createTime);
         po.setOutput(executableOutputPO);
-        manager.addJob(po);
+        jobInfoDao.addJob(po);
     }
 }

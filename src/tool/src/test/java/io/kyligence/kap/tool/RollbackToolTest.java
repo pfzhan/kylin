@@ -47,6 +47,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sparkproject.guava.collect.Sets;
@@ -70,6 +71,7 @@ import io.kyligence.kap.tool.general.RollbackStatusEnum;
 import lombok.val;
 import lombok.var;
 
+@Ignore
 public class RollbackToolTest extends NLocalFileMetadataTestCase {
 
     DateTimeFormatter DATE_TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss",
@@ -232,6 +234,8 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(tool.rollbackStatus, RollbackStatusEnum.WAIT_USER_CONFIRM_SUCCESS);
     }
 
+    // https://olapio.atlassian.net/browse/KE-38102
+    @Ignore
     @Test
     public void testJobRollback() throws Exception {
         val tool = Mockito.spy(new RollbackTool());

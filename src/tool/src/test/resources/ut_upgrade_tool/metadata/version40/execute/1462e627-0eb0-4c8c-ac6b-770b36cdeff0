@@ -11,7 +11,7 @@
     "version" : "4.0.0.0",
     "name" : "Detect Resource",
     "tasks" : null,
-    "type" : "io.kyligence.kap.engine.spark.job.NResourceDetectStep",
+    "type" : "io.kyligence.kap.job.execution.step.NResourceDetectStep",
     "params" : {
       "distMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/1462e627-0eb0-4c8c-ac6b-770b36cdeff0/00/meta",
       "submitter" : "ADMIN",
@@ -50,7 +50,7 @@
     "version" : "4.0.0.0",
     "name" : "Table Sampling",
     "tasks" : null,
-    "type" : "io.kyligence.kap.engine.spark.job.NTableSamplingJob$SamplingStep",
+    "type" : "io.kyligence.kap.job.execution.NTableSamplingJob$SamplingStep",
     "params" : {
       "distMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/1462e627-0eb0-4c8c-ac6b-770b36cdeff0/01/meta",
       "submitter" : "ADMIN",
@@ -85,7 +85,7 @@
       "wait_time" : 0
     }
   } ],
-  "type" : "io.kyligence.kap.engine.spark.job.NTableSamplingJob",
+  "type" : "io.kyligence.kap.job.execution.NTableSamplingJob",
   "params" : {
     "submitter" : "ADMIN",
     "jobId" : "1462e627-0eb0-4c8c-ac6b-770b36cdeff0",

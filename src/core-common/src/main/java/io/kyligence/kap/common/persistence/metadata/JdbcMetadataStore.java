@@ -130,7 +130,7 @@ public class JdbcMetadataStore extends MetadataStore {
             @Override
             public Object handle() {
                 checkEpochModified(unitPath, epochId);
-                if (UnitOfWork.get().isTransparent()) {
+                if (UnitOfWork.isAlreadyInTransaction() && UnitOfWork.get().isTransparent()) {
                     throw new IllegalStateException("Transaction is in transparent mode, please use feign api to update core metadata.");
                 }
                 int affectedRow;

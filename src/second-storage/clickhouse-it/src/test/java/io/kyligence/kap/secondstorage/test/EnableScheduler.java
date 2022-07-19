@@ -26,7 +26,6 @@ package io.kyligence.kap.secondstorage.test;
 import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.job.util.JobContextUtil;
 
-//TODO need to be rewritten
 public class EnableScheduler extends EnableLocalMeta {
 
     public EnableScheduler(String project, String... extraMeta) {
@@ -42,8 +41,6 @@ public class EnableScheduler extends EnableLocalMeta {
 
         JobContextUtil.cleanUp();
         JobContextUtil.getJobContextForTest(getTestConfig());
-
-
     }
 
     @Override

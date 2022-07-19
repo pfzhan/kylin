@@ -44,8 +44,10 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
 import io.kyligence.kap.tool.obf.KylinConfObfuscatorTest;
+import io.kyligence.kap.tool.util.JobMetadataWriter;
 import lombok.val;
 
 public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
@@ -63,6 +65,17 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         createTestMetadata();
         KylinConfObfuscatorTest.prepare();
+    }
+
+    public void createTestMetadata(String... overlay) {
+        super.createTestMetadata(overlay);
+        JobMetadataWriter.writeJobMetaData(getTestConfig());
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @After

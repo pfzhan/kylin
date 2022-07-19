@@ -69,10 +69,10 @@ public class MigrateJobTool extends ExecutableApplication {
     private static final Map<String, String> JOB_TYPE_HANDLER_MAP = new HashMap<>();
 
     static {
-        JOB_TYPE_HANDLER_MAP.put("INDEX_BUILD", "io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler");
-        JOB_TYPE_HANDLER_MAP.put("INC_BUILD", "io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler");
-        JOB_TYPE_HANDLER_MAP.put("INDEX_MERGE", "io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler");
-        JOB_TYPE_HANDLER_MAP.put("INDEX_REFRESH", "io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_BUILD", "io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler");
+        JOB_TYPE_HANDLER_MAP.put("INC_BUILD", "io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_MERGE", "io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_REFRESH", "io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler");
     }
 
     private KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -186,7 +186,7 @@ public class MigrateJobTool extends ExecutableApplication {
 
                 taskNode.put("name", "Update Metadata");
 
-                taskNode.put("type", "io.kyligence.kap.engine.spark.job.NSparkUpdateMetadataStep");
+                taskNode.put("type", "io.kyligence.kap.job.execution.step.NSparkUpdateMetadataStep");
 
                 if (taskNode.has("params")) {
                     ObjectNode paramsNode = (ObjectNode) taskNode.get("params");

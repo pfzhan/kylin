@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
@@ -52,6 +53,7 @@ import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.ShellExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -67,12 +69,17 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws IOException {
         createTestMetadata();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContext(getTestConfig());
+
         prepare();
     }
 
     @After
     public void teardown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -162,6 +169,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         val jobMgr = ExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
         job1.setProject("default");
+        job1.setJobType(JobTypeEnum.INC_BUILD);
         val task1 = new ShellExecutable();
         job1.addTask(task1);
         jobMgr.addJob(job1);
@@ -172,6 +180,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
                 "/default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT/invalid/keep" };
 
         extra.put(AbstractExecutable.DEPENDENT_FILES, StringUtils.join(dependFiles, ","));
+        jobMgr.updateJobOutput(job1.getId(), ExecutableState.PENDING, extra, null, null);
         jobMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING, extra, null, null);
 
         val cleaner = new StorageCleaner();
@@ -271,8 +280,10 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         val execMgr = ExecutableManager.getInstance(config, "default");
         val job1 = new DefaultChainedExecutable();
         job1.setId("job1");
+        job1.setJobType(JobTypeEnum.INC_BUILD);
         execMgr.addJob(job1);
         val job2 = new DefaultChainedExecutable();
+        job2.setJobType(JobTypeEnum.INC_BUILD);
         job2.setId("job2");
         execMgr.addJob(job2);
     }

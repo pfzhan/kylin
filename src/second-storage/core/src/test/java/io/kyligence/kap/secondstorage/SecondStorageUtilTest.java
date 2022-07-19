@@ -53,6 +53,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -73,11 +74,14 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void tearDown() throws Exception {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     private void prepareManger() {
@@ -171,12 +175,12 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void findSecondStorageJobByProject() {
         prepareManger();
-        List<String> jobs = Arrays.asList("job1", "job2");
         AbstractExecutable job1 = Mockito.mock(AbstractExecutable.class);
         AbstractExecutable job2 = Mockito.mock(AbstractExecutable.class);
+        List<AbstractExecutable> jobs = Arrays.asList(job1, job2);
         Mockito.when(job1.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD);
         Mockito.when(job2.getJobType()).thenReturn(JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
-        Mockito.when(executableManager.getJobs()).thenReturn(jobs);
+        Mockito.when(executableManager.getExecutablesByJobType(Mockito.anySet())).thenReturn(jobs);
         Mockito.when(executableManager.getJob("job1")).thenReturn(job1);
         Mockito.when(executableManager.getJob("job2")).thenReturn(job2);
         Assert.assertEquals(2, SecondStorageUtil.findSecondStorageRelatedJobByProject("test").size());
