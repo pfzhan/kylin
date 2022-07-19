@@ -156,6 +156,9 @@
     SELECT lock_id
     FROM job_lock
     WHERE lock_node IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP
+    <if test="batchSize&gt;=0">
+      LIMIT #{batchSize,jdbcType=INTEGER}
+    </if>
   </select>
 
 </mapper>
