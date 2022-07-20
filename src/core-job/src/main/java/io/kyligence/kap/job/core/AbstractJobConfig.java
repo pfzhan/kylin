@@ -96,6 +96,10 @@ public abstract class AbstractJobConfig {
         return 5;
     }
 
+    public int getJobSchedulerSlaveLockBatchJobsWaitSec() {
+        return 60;
+    }
+
     public long getJobSchedulerSlavePollIntervalSec() {
         return jobSchedulerSlavePollIntervalSec;
     }
