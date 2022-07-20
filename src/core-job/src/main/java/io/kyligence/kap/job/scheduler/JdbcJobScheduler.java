@@ -106,7 +106,7 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     public Map<String, JobExecutor> getRunningJob() {
-        return runningJobMap;
+        return Collections.unmodifiableMap(runningJobMap);
     }
 
     @Override
@@ -237,18 +237,9 @@ public class JdbcJobScheduler implements JobScheduler {
             CountDownLatch countDownLatch = new CountDownLatch(jobIdList.size());
             // submit job
             jobIdList.forEach(jobId -> {
-                if (JobScheduler.MASTER_SCHEDULER.equals(jobId)) {
-                    countDownLatch.countDown();
-                    return;
-                }
-                JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                if (Objects.isNull(jobInfo)) {
-                    logger.warn("Job not found: {}", jobId);
-                    countDownLatch.countDown();
-                    return;
-                }
+                final JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
                 final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
-                if (!jobContext.getResourceAcquirer().tryAcquire(jobExecutable)) {
+                if (!canSubmitJob(jobId, jobInfo, jobExecutable, countDownLatch)) {
                     countDownLatch.countDown();
                     return;
                 }
@@ -258,8 +249,28 @@ public class JdbcJobScheduler implements JobScheduler {
         } catch (Exception e) {
             logger.error("Something's wrong when consuming job", e);
         } finally {
+            logger.info("{} running jobs in current scheduler", getRunningJob().size());
             slave.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
         }
+    }
+
+    private boolean canSubmitJob(String jobId, JobInfo jobInfo, AbstractJobExecutable jobExecutable, CountDownLatch countDownLatch) {
+        try {
+            if (JobScheduler.MASTER_SCHEDULER.equals(jobId)) {
+                return false;
+            }
+            if (Objects.isNull(jobInfo)) {
+                logger.warn("Job not found: {}", jobId);
+                return false;
+            }
+            if (!jobContext.getResourceAcquirer().tryAcquire(jobExecutable)) {
+                return false;
+            }
+        } catch (Throwable throwable) {
+            logger.error("Error when preparing to submit job: " + jobId, throwable);
+            return false;
+        }
+        return true;
     }
 
     private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo, CountDownLatch countDownLatch) {
