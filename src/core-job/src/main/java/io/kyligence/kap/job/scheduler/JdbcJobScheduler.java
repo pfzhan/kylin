@@ -235,23 +235,23 @@ public class JdbcJobScheduler implements JobScheduler {
                 Collections.shuffle(jobIdList);
             }
 
-            CountDownLatch countDownLatch = new CountDownLatch(jobIdList.size());
+            CountDownLatch jobLockCountDown = new CountDownLatch(jobIdList.size());
             // submit job
             jobIdList.forEach(jobId -> {
-                Pair<JobInfo, AbstractJobExecutable> job = fetchJob(jobId, countDownLatch);
+                Pair<JobInfo, AbstractJobExecutable> job = fetchJob(jobId);
                 if (null == job) {
-                    countDownLatch.countDown();
+                    jobLockCountDown.countDown();
                     return;
                 }
                 final JobInfo jobInfo = job.getFirst();
                 final AbstractJobExecutable jobExecutable = job.getSecond();
-                if (!canSubmitJob(jobId, jobInfo, jobExecutable, countDownLatch)) {
-                    countDownLatch.countDown();
+                if (!canSubmitJob(jobId, jobInfo, jobExecutable)) {
+                    jobLockCountDown.countDown();
                     return;
                 }
-                executorPool.execute(() -> executeJob(jobExecutable, jobInfo, countDownLatch));
+                executorPool.execute(() -> executeJob(jobExecutable, jobInfo, jobLockCountDown));
             });
-            countDownLatch.await();
+            jobLockCountDown.await();
         } catch (Exception e) {
             logger.error("Something's wrong when consuming job", e);
         } finally {
@@ -260,7 +260,7 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId, CountDownLatch countDownLatch) {
+    private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId) {
         try {
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
             AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
@@ -271,7 +271,7 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    private boolean canSubmitJob(String jobId, JobInfo jobInfo, AbstractJobExecutable jobExecutable, CountDownLatch countDownLatch) {
+    private boolean canSubmitJob(String jobId, JobInfo jobInfo, AbstractJobExecutable jobExecutable) {
         try {
             if (JobScheduler.MASTER_SCHEDULER.equals(jobId)) {
                 return false;
