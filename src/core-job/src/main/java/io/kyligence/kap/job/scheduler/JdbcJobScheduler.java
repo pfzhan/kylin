@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.runners.JobCheckUtil;
@@ -237,20 +238,36 @@ public class JdbcJobScheduler implements JobScheduler {
             CountDownLatch countDownLatch = new CountDownLatch(jobIdList.size());
             // submit job
             jobIdList.forEach(jobId -> {
-                final JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                final AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
+                Pair<JobInfo, AbstractJobExecutable> job = fetchJob(jobId, countDownLatch);
+                if (null == job) {
+                    countDownLatch.countDown();
+                    return;
+                }
+                final JobInfo jobInfo = job.getFirst();
+                final AbstractJobExecutable jobExecutable = job.getSecond();
                 if (!canSubmitJob(jobId, jobInfo, jobExecutable, countDownLatch)) {
                     countDownLatch.countDown();
                     return;
                 }
                 executorPool.execute(() -> executeJob(jobExecutable, jobInfo, countDownLatch));
             });
-            countDownLatch.await(jobContext.getJobConfig().getJobSchedulerSlaveLockBatchJobsWaitSec(), TimeUnit.SECONDS);
+            countDownLatch.await();
         } catch (Exception e) {
             logger.error("Something's wrong when consuming job", e);
         } finally {
             logger.info("{} running jobs in current scheduler", getRunningJob().size());
             slave.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
+        }
+    }
+
+    private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId, CountDownLatch countDownLatch) {
+        try {
+            JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+            AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
+            return new Pair<>(jobInfo, jobExecutable);
+        } catch (Throwable throwable) {
+            logger.error("Fetch job failed, job id: " + jobId, throwable);
+            return null;
         }
     }
 
@@ -275,11 +292,8 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo, CountDownLatch countDownLatch) {
         try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
-            JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
-                    jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
-                    jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
-                    new JobAcquireListener(jobExecutable));
-            if (!tryJobLock(jobLock, countDownLatch)) {
+            JdbcJobLock jobLock = tryJobLock(jobExecutable, countDownLatch);
+            if (null == jobLock) {
                 return;
             }
 
@@ -314,17 +328,20 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    private boolean tryJobLock(JdbcJobLock jobLock, CountDownLatch countDownLatch) throws LockException {
+    private JdbcJobLock tryJobLock(AbstractJobExecutable jobExecutable, CountDownLatch countDownLatch) throws LockException {
         try {
+            JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
+                    jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
+                    jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
+                    new JobAcquireListener(jobExecutable));
             if (!jobLock.tryAcquire()) {
                 logger.info("Acquire job lock failed.");
-                return false;
+                return null;
             }
-            return true;
+            return jobLock;
         } finally {
             countDownLatch.countDown();
         }
-
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {
