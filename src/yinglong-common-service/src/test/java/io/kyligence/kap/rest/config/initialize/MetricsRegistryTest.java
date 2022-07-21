@@ -107,6 +107,8 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         meterRegistry = new SimpleMeterRegistry();
 
         PowerMockito.mockStatic(SpringContext.class);
+        PowerMockito.mockStatic(SparderEnv.class);
+        PowerMockito.mockStatic(LoadCounter.class);
 
         JobContextUtil.cleanUp();
         JobContextUtil.getJobInfoDao(getTestConfig());
