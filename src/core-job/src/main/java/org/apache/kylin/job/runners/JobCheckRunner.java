@@ -89,6 +89,9 @@ public class JobCheckRunner implements Runnable {
             String project = jobExecutor.getJobExecutable().getProject();
             discardTimeoutJob(jobId, project, jobExecutor.getStartTime());
             stopJobIfStorageQuotaLimitReached(jobContext, jobId, project);
+            if (JobCheckUtil.markSuicideJob(jobId, jobContext)) {
+                logger.info("suicide job = {} on checker runner", jobId);
+            }
         }
     }
 

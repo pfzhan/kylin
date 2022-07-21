@@ -117,4 +117,8 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         getDelegate().stopBatchJob(project, tableDesc);
     }
 
+    public void clearJobsByProject(String project){
+        getDelegate().clearJobsByProject(project);
+    }
+
 }

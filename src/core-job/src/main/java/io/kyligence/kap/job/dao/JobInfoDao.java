@@ -162,7 +162,12 @@ public class JobInfoDao {
         } else if (JobTypeEnum.SECOND_STORAGE_NODE_CLEAN == executablePO.getJobType()) {
             subject = jobInfo.getProject();
         } else if (null != executablePO.getTargetModel() && null != executablePO.getProject()) {
-            subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
+            try {
+                // ignore if model is delete
+                subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
+            } catch (Exception e) {
+                logger.warn("can not get modelName for modelId {}, project {}", executablePO.getTargetModel(), executablePO.getProject());
+            }
         }
 
         jobInfo.setSubject(subject);
@@ -171,5 +176,10 @@ public class JobInfoDao {
         jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));
         jobInfo.setJobContent(JobInfoUtil.serializeExecutablePO(executablePO));
         return jobInfo;
+    }
+    
+    public void deleteJobsByProject(String project) {
+        int count = jobInfoMapper.deleteByProject(project);
+        logger.info("delete {} jobs for project {}", count, project);
     }
 }

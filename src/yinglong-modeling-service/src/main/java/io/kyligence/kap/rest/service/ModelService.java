@@ -1299,6 +1299,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
+
         dataModelManager.dropModel(dataModelDesc);
     }
 

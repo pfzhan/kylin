@@ -88,7 +88,7 @@ spring:
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
   job-datasource:
-    url: jdbc:mysql://hadoop-yinglong-0-mysql:3306/kylin
+    url: jdbc:mysql://yinglong-mysql:3306/kylin
     username: root
     password: kyligence
     driver-class-name: com.mysql.cj.jdbc.Driver

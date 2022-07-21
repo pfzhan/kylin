@@ -51,4 +51,6 @@ public interface JobMetadataContract {
 
     void stopBatchJob(String project, TableDesc tableDesc);
 
+    void clearJobsByProject(String project);
+
 }

@@ -135,6 +135,7 @@ public class JdbcJobScheduler implements JobScheduler {
         subscribeJob();
     }
 
+
     public void destroy() {
 
         if (Objects.nonNull(masterLock)) {
@@ -197,6 +198,11 @@ public class JdbcJobScheduler implements JobScheduler {
                     return;
                 }
 
+                if (JobCheckUtil.markSuicideJob(jobId, jobContext)){
+                    logger.info("suicide job = {} on produce", jobId);
+                    continue;
+                }
+
                 JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
                     int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
                     if (r > 0) {
@@ -204,6 +210,7 @@ public class JdbcJobScheduler implements JobScheduler {
                         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
                                 .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
                     }
+
                     return null;
                 });
             }
@@ -263,6 +270,11 @@ public class JdbcJobScheduler implements JobScheduler {
     private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId) {
         try {
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+            if (jobInfo == null){
+                logger.warn("can not find job info {}", jobId);
+                jobContext.getJobLockMapper().removeLock(jobId, null);
+                return null;
+            }
             AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
             return new Pair<>(jobInfo, jobExecutable);
         } catch (Throwable throwable) {

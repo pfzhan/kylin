@@ -189,6 +189,10 @@
     delete from job_info
     where job_id = #{jobId,jdbcType=BIGINT}
   </delete>
+  <delete id="deleteByProject" parameterType="java.lang.String">
+    delete from job_info
+    where project = #{project,jdbcType=VARCHAR}
+  </delete>
   <insert id="insertJobInfoSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
     insert into job_info
     <trim prefix="(" suffix=")" suffixOverrides=",">

@@ -36,6 +36,8 @@ import io.kyligence.kap.job.rest.JobMapperFilter;
 public interface JobInfoMapper {
     int deleteByPrimaryKey(Long id);
 
+    int deleteByProject(String project);
+
     int insert(JobInfo row);
 
     int insertSelective(JobInfo row);

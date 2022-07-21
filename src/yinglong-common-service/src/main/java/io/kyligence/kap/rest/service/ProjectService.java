@@ -59,6 +59,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -178,6 +179,9 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -774,6 +778,8 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
                 .map(executableManager::fromPO).filter(Objects::nonNull)
                 .filter(executable -> (executable.getStatusInMem().toJobStatus() == JobStatusEnum.RUNNING)
                         || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.PENDING)
+                        // yinglong dataloading-scheduler, READY --> READY
+                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.READY)
                         || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.STOPPED))
                 .map(AbstractExecutable::getId).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
@@ -790,6 +796,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
         NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
+        jobMetadataInvoker.clearJobsByProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }

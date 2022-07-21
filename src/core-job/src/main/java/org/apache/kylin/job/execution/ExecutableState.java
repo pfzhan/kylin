@@ -72,6 +72,7 @@ public enum ExecutableState {
 
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PENDING);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
 
         VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.READY);
         VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.RUNNING);

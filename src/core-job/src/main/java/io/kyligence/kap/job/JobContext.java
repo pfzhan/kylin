@@ -31,7 +31,6 @@ import java.util.Objects;
 import javax.annotation.Resource;
 
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.runners.JobCheckRunner;
 import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.runners.QuotaStorageCheckRunner;
@@ -231,7 +230,7 @@ public class JobContext implements InitializingBean, DisposableBean {
     public List<JobInfo> fetchAllRunningJobs(String project, List<String> jobNames, List<String> subjects) {
         JobMapperFilter mapperFilter = JobMapperFilter.builder()
                 .jobNames(jobNames)
-                .statuses(Lists.newArrayList(ExecutableState.READY.name(),
+                .statuses(Lists.newArrayList(JobStatusEnum.READY.name(),
                         JobStatusEnum.PENDING.name(),
                         JobStatusEnum.RUNNING.name()))
                 .subjects(subjects)

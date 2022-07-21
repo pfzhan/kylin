@@ -33,6 +33,7 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.ThreadUtils;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
@@ -96,6 +97,35 @@ public class JobCheckUtil {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} failed to pause", project, jobId, e);
         }
         return false;
+    }
+
+    public static boolean markSuicideJob(String jobId, JobContext jobContext) {
+        try {
+            if (checkSuicide(jobId, jobContext)) {
+                return JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
+                    if (checkSuicide(jobId, jobContext)) {
+                        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                                .suicideJob(jobId);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        } catch (Exception e) {
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED]  job {} should be suicidal but discard failed", jobId, e);
+        }
+        return false;
+    }
+
+    private static boolean checkSuicide(String jobId, JobContext jobContext) {
+        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+        AbstractExecutable job = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                .getJob(jobId);
+        if (job.getStatus().isFinalState()) {
+            return false;
+        }
+        return job.checkSuicide();
     }
 
 }

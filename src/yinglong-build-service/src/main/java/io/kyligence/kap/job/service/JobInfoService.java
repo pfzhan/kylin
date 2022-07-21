@@ -930,4 +930,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
                 throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
         }
     }
+
+    public void clearJobsByProject(String project){
+        jobInfoDao.deleteJobsByProject(project);
+    }
 }
