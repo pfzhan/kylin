@@ -68,6 +68,7 @@
         <Logger name="org.springframework.security" level="INFO"/>
         <Logger name="org.apache.spark.ContextCleaner" level="WARN"/>
         <Logger name="io.kyligence.kap.ext" level="INFO"/>
+        <Logger name="io.kyligence.kap.job.mapper" level="INFO"/>
         <!--  Query log  -->
         <Logger name="io.kyligence.kap.query" level="INFO"/>
         <Logger name="org.apache.kylin.query" level="INFO"/>
