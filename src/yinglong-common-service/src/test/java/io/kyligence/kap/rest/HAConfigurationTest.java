@@ -50,7 +50,7 @@ import io.kyligence.kap.tool.util.MetadataUtil;
 class HAConfigurationTest {
 
     @InjectMocks
-    HAConfiguration configuration = Mockito.spy(new HAConfiguration());
+    SessionConfig configuration = Mockito.spy(new SessionConfig());
 
     @Mock
     SessionProperties sessionProperties;

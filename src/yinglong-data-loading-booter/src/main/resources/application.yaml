@@ -84,7 +84,7 @@ spring:
   session:
     store-type: JDBC
     jdbc:
-      table-name: ${kylin.metadata.url.identifier}_session
+      table-name: ${kylin.metadata.url.identifier}_session_v2
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
   job-datasource:
