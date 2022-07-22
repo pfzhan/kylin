@@ -62,6 +62,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "src/main/resources")
 @TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
+@TestPropertySource(properties = {"spring.session.store-type = NONE"})
 @ActiveProfiles({ "custom", "test" })
 public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
 

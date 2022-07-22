@@ -94,6 +94,7 @@ import lombok.extern.slf4j.Slf4j;
         @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"}) })
 @WebAppConfiguration(value = "src/main/resources")
 @TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
+@TestPropertySource(properties = {"spring.session.store-type = NONE"})
 @ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
 

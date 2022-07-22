@@ -80,6 +80,7 @@ import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "../yinglong-common-service/src/main/resources")
 @TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
+@TestPropertySource(properties = {"spring.session.store-type = NONE"})
 @ActiveProfiles({ "testing", "test" })
 @PowerMockIgnore({ "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*", "org.apache.cxf.*" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {

@@ -30,6 +30,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.session.SessionProperties;
 import org.springframework.boot.autoconfigure.session.StoreType;
 import org.springframework.context.annotation.Configuration;
@@ -50,6 +51,7 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTable
 @Slf4j
 @Configuration
 @Profile("!dev")
+@ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
 
     @Autowired
