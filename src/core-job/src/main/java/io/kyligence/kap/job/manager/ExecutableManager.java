@@ -1020,6 +1020,11 @@ public class ExecutableManager {
         discardJob(jobId, getJob(jobId));
     }
 
+    @Transactional
+    public void deleteAllJobsOfProject() {
+        jobInfoDao.deleteJobsByProject(project);
+    }
+
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
         DataOutputStream dout = null;
         try {

@@ -932,6 +932,6 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     public void clearJobsByProject(String project){
-        jobInfoDao.deleteJobsByProject(project);
+        getManager(ExecutableManager.class, project).deleteAllJobsOfProject();
     }
 }

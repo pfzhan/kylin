@@ -113,12 +113,13 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         getDelegate().discardJob(project, jobId);
     }
 
-    public void stopBatchJob(String project, TableDesc tableDesc) {
-        getDelegate().stopBatchJob(project, tableDesc);
-    }
-
+    @Override
     public void clearJobsByProject(String project){
         getDelegate().clearJobsByProject(project);
+    }
+
+    public void stopBatchJob(String project, TableDesc tableDesc) {
+        getDelegate().stopBatchJob(project, tableDesc);
     }
 
 }

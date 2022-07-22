@@ -87,6 +87,10 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }
 
+    public void clearJobsByProject(String project){
+        jobMetadataBaseDelegate.clearJobsByProject(project);
+    }
+
     public void discardJob(String project, String jobId) {
         jobMetadataBaseDelegate.discardJob(project, jobId);
     }

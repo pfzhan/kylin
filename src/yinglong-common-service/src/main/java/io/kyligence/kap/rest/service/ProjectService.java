@@ -796,7 +796,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
         NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
-        jobMetadataInvoker.clearJobsByProject(project);
+        JobMetadataBaseInvoker.getInstance().clearJobsByProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }

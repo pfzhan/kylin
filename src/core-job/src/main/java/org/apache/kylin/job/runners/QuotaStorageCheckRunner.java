@@ -59,7 +59,6 @@ public class QuotaStorageCheckRunner implements Runnable {
             return;
         }
         logger.info("Start check all project storage quota.");
-        // context.setReachQuotaLimit(reachStorageQuota());
         NProjectManager nProjectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<ProjectInstance> projectInstanceList = nProjectManager.listAllProjects();
         for (ProjectInstance projectInstance : projectInstanceList) {

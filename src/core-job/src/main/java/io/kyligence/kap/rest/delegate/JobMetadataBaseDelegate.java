@@ -99,4 +99,8 @@ public class JobMetadataBaseDelegate {
     public void discardJob(String project, String jobId) {
         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
     }
+
+    public void clearJobsByProject(String project) {
+        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).deleteAllJobsOfProject();
+    }
 }

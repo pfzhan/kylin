@@ -78,6 +78,7 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.spark.sql.SparkSession;
 import org.eclipse.jetty.toolchain.test.SimpleRequest;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -439,6 +440,11 @@ public class SecondStorageLockTest implements JobWaiter {
                 return true;
             });
         }
+    }
+
+    @After
+    public void after() {
+        await().until(() -> JobContextUtil.getJobContext(getConfig()).getJobScheduler().getRunningJob().isEmpty());
     }
 
     @Test
