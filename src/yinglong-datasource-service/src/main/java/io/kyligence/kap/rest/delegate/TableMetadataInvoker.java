@@ -66,9 +66,8 @@ public class TableMetadataInvoker extends TableMetadataBaseInvoker {
     public void mergeAndUpdateTableExt(String project, MergeAndUpdateTableExtRequest request) {
         getDelegate().mergeAndUpdateTableExt(project, request);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        waitForSync(() -> NTableMetadataManager.getInstance(config, project)
-                .getOrCreateTableExt(request.getOrigin().getIdentity()).getJodID()
-                .equals(request.getOther().getJodID()));
+        waitForSync(() -> request.getOther().getJodID().equals(NTableMetadataManager.getInstance(config, project)
+                .getOrCreateTableExt(request.getOrigin().getIdentity()).getJodID()));
     }
 
     @Override
