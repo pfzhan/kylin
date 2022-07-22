@@ -109,7 +109,7 @@ public class JobMetadataDelegateController {
     }
 
 
-    @PostMapping(value = "/feign/clear_batch_jobs")
+    @PostMapping(value = "/feign/clear_project_jobs")
     @ResponseBody
     public void clearJobsByProject(@RequestParam("project") String project){
         jobMetadataDelegate.clearJobsByProject(project);

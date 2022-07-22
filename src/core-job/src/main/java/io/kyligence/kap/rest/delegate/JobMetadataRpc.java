@@ -67,6 +67,6 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "stop_batch_job")
     void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc);
 
-    @PostMapping(value = "clear_batch_jobs")
+    @PostMapping(value = "clear_project_jobs")
     void clearJobsByProject(@RequestParam("project") String project);
 }
