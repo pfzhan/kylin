@@ -32,6 +32,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.session.jdbc.config.annotation.SpringSessionDataSource;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import lombok.val;
@@ -42,6 +43,7 @@ import lombok.val;
 public class InitConfiguration {
 
     @Bean("defaultDataSource")
+    @SpringSessionDataSource
     public DataSource dataSource() throws Exception {
         val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
         val props = datasourceParameters(url);
