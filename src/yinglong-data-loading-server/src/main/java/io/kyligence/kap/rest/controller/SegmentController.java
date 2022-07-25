@@ -193,7 +193,7 @@ public class SegmentController extends BaseController {
         checkProjectName(project);
 
         if (purge) {
-            modelService.purgeModelManually(dataflowId, project);
+            modelMetadataInvoker.purgeModelManually(dataflowId, project);
         } else {
             checkSegmentParams(ids, names);
             String[] idsDeleted = modelService.convertSegmentIdWithName(dataflowId, project, ids, names);

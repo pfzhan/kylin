@@ -109,6 +109,9 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     NDataSegment mergeSegments(@RequestParam("project") String project,
                                @RequestBody MergeSegmentRequest mergeSegmentRequest);
 
+    @PostMapping(value = "/purge_model_manually")
+    void purgeModelManually(@RequestParam("dataflowId") String dataflowId, @RequestParam("project") String project);
+    
     @PostMapping(value = "/delete_segment_by_id")
     void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
                            @RequestBody String[] ids, @RequestParam("force") boolean force);

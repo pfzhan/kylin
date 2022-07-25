@@ -142,6 +142,10 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
         return segment;
     }
 
+    public void purgeModelManually(String dataflowId, String project) {
+        getDelegate().purgeModelManually(dataflowId, project);
+    }
+
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         getDelegate().deleteSegmentById(model, project, ids, force);
     }

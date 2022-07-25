@@ -65,6 +65,8 @@ public interface ModelMetadataContract {
 
     NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest);
 
+    void purgeModelManually(String dataflowId, String project);
+
     void deleteSegmentById(String model, String project, String[] ids, boolean force);
 
     void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,

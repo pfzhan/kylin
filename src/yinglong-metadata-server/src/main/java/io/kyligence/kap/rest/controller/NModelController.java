@@ -939,6 +939,12 @@ public class NModelController extends NBasicController {
         return modelService.mergeSegments(project, mergeSegmentRequest);
     }
 
+    @PostMapping(value = "/feign/purge_model_manually")
+    @ResponseBody
+    public void purgeModelManually(@RequestParam("dataflowId") String dataflowId, @RequestParam("project") String project) {
+        modelService.purgeModelManually(dataflowId, project);
+    }
+
     @PostMapping(value = "/feign/delete_segment_by_id")
     @ResponseBody
     public void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
