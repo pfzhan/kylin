@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 
@@ -46,6 +47,8 @@ public interface JobMetadataContract {
     List<ExecutablePO> getJobExecutablesPO(String project);
 
     List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes);
+
+    List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status);
 
     void discardJob(String project, String jobId);
 

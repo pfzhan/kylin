@@ -1218,7 +1218,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val dataflowManager = getManager(NDataflowManager.class, project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
-        val errorExecutables = getManager(ExecutableManager.class, project).getExecutablesByStatus(ExecutableState.ERROR);
+        val errorExecutablePOs = jobMetadataInvoker.getExecutablePOsByStatus(project, ExecutableState.ERROR);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
+        val errorExecutables = errorExecutablePOs.stream().map(executableManager::fromPO).collect(Collectors.toList());
         for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             val model = dataModelDesc.getUuid();

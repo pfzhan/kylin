@@ -31,6 +31,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.util.SpringContext;
@@ -106,6 +107,10 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     @Override
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
         return getDelegate().listExecPOByJobTypeAndStatus(project, state, jobTypes);
+    }
+
+    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status) {
+        return getDelegate().getExecutablePOsByStatus(project, status);
     }
 
     @Override

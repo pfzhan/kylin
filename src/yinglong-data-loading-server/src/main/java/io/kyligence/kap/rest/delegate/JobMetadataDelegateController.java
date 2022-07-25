@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +95,13 @@ public class JobMetadataDelegateController {
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
             @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes) {
         return jobMetadataDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
+    }
+
+    @PostMapping(value = "/feign/get_exec_by_status")
+    @ResponseBody
+    public List<ExecutablePO> getExecutablePOsByStatus(@RequestParam("project") String project,
+            @RequestParam("status") ExecutableState status) {
+        return jobMetadataDelegate.getExecutablePOsByStatus(project, status);
     }
 
     @PostMapping(value = "/feign/discard_job")

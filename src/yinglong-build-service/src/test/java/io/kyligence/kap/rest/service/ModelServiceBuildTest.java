@@ -199,6 +199,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
     private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     private StreamingJobListener eventListener = new StreamingJobListener();
+    
+    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
 
     @Before
     public void setup() {
@@ -234,9 +236,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
         JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
         ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker jobMetadataInvoker = new JobMetadataInvoker();
         JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-
         ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
         ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
 
@@ -845,9 +845,10 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
-        ExecutableManager executableManager = mock(ExecutableManager.class);
-        when(modelService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
-        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
+        List<AbstractExecutable> jobs = mockJobs();
+        List<ExecutablePO> executablePOS = jobs.stream().map(job -> ExecutableManager.toPO(job, "default"))
+                .collect(Collectors.toList());
+        when(jobMetadataInvoker.getExecutablePOsByStatus("default", ExecutableState.ERROR)).thenReturn(executablePOS);
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, responses.size());

@@ -1225,20 +1225,28 @@ public class ExecutableManager {
                 }).collect(Collectors.toList());
     }
 
-    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
+    public List<ExecutablePO> getExecutablePOsByStatus(List<String> jobIds, List<ExecutableState> statuses) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         if (CollectionUtils.isNotEmpty(jobIds)) {
             jobMapperFilter.setJobIds(jobIds);
         }
 
         if (CollectionUtils.isNotEmpty(statuses)) {
-            List<String> statusList = statuses.stream().map(executableState -> executableState.name())
+            List<String> statusList = statuses.stream().map(executableState -> executableState.toJobStatus().name())
                     .collect(Collectors.toList());
             jobMapperFilter.setStatuses(statusList);
         }
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
-        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).map(this::fromPO)
+        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
                 .collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> getExecutablePOsByStatus(List<ExecutableState> statuses) {
+        return getExecutablePOsByStatus(null, statuses);
+    }
+
+    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
+        return getExecutablePOsByStatus(jobIds, statuses).stream().map(this::fromPO).collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> getExecutablesByStatus(ExecutableState status) {

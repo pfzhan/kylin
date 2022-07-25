@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -60,6 +61,10 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "list_exec_by_job_type_and_status")
     List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
             @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes);
+
+    @PostMapping(value = "get_exec_by_status")
+    List<ExecutablePO> getExecutablePOsByStatus(@RequestParam("project") String project,
+            @RequestParam("status") ExecutableState status);
 
     @PostMapping(value = "discard_job")
     void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId);

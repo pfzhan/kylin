@@ -36,6 +36,7 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.job.execution.AbstractExecutable;
@@ -94,6 +95,11 @@ public class JobMetadataBaseDelegate {
         }
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .listExecPOByJobTypeAndStatus(predicate, jobTypes);
+    }
+
+    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getExecutablePOsByStatus(Lists.newArrayList(status));
     }
 
     public void discardJob(String project, String jobId) {
