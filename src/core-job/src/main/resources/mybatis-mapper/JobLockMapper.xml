@@ -15,18 +15,18 @@
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
     <include refid="Base_Column_List" />
-    from job_lock
+    from ${jobLockTable}
     where id = #{id,jdbcType=BIGINT}
   </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-    delete from job_lock
+    delete from ${jobLockTable}
     where id = #{id,jdbcType=BIGINT}
   </delete>
   <delete id="deleteAllJobLock">
-    delete from job_lock
+    delete from ${jobLockTable}
   </delete>
   <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobLock">
-    insert into job_lock (id, lock_id, lock_node, 
+    insert into ${jobLockTable} (id, lock_id, lock_node, 
       lock_expire_time, create_time, update_time
       )
     values (#{id,jdbcType=BIGINT}, #{lockId,jdbcType=VARCHAR}, #{lockNode,jdbcType=VARCHAR}, 
@@ -34,7 +34,7 @@
       )
   </insert>
   <insert id="insertSelective" parameterType="io.kyligence.kap.job.domain.JobLock">
-    insert into job_lock
+    insert into ${jobLockTable}
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="id != null">
         id,
@@ -77,7 +77,7 @@
     </trim>
   </insert>
   <update id="updateByPrimaryKeySelective" parameterType="io.kyligence.kap.job.domain.JobLock">
-    update job_lock
+    update ${jobLockTable}
     <set>
       <if test="lockId != null">
         lock_id = #{lockId,jdbcType=VARCHAR},
@@ -98,7 +98,7 @@
     where id = #{id,jdbcType=BIGINT}
   </update>
   <update id="updateByPrimaryKey" parameterType="io.kyligence.kap.job.domain.JobLock">
-    update job_lock
+    update ${jobLockTable}
     set lock_id = #{lockId,jdbcType=VARCHAR},
       lock_node = #{lockNode,jdbcType=VARCHAR},
       lock_expire_time = #{lockExpireTime,jdbcType=TIMESTAMP},
@@ -109,17 +109,17 @@
 
   <select id="findNodeByLockId" resultType="java.lang.String">
     SELECT lock_node
-    FROM job_lock
+    FROM ${jobLockTable}
     WHERE lock_id = #{lockId,jdbcType=VARCHAR}
   </select>
 
   <select id="findCount" resultType="int">
     SELECT count(1)
-    FROM job_lock
+    FROM ${jobLockTable}
   </select>
 
   <insert id="upsertLock">
-    insert into job_lock
+    insert into ${jobLockTable}
     <trim prefix="(" suffix=")" suffixOverrides=",">
       lock_id,
       <if test="lockNode != null">
@@ -145,7 +145,7 @@
   </insert>
 
   <delete id="removeLock">
-    delete from job_lock
+    delete from ${jobLockTable}
     where lock_id = #{lockId,jdbcType=VARCHAR}
     <if test="lockNode != null">
       AND lock_node = #{lockNode,jdbcType=VARCHAR}
@@ -154,7 +154,7 @@
 
   <select id="findNonLockIdList" resultType="java.lang.String">
     SELECT lock_id
-    FROM job_lock
+    FROM ${jobLockTable}
     WHERE lock_node IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP
     <if test="batchSize&gt;=0">
       LIMIT #{batchSize,jdbcType=INTEGER}

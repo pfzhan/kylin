@@ -49,6 +49,9 @@ public class JobInfo {
 
     private byte[] jobContent;
 
+    // placeholder for mybatis ${}
+    private String jobInfoTable;
+
     public Long getId() {
         return id;
     }
@@ -135,5 +138,13 @@ public class JobInfo {
 
     public void setJobContent(byte[] jobContent) {
         this.jobContent = jobContent;
+    }
+
+    public String getJobInfoTable() {
+        return jobInfoTable;
+    }
+
+    public void setJobInfoTable(String jobInfoTable) {
+        this.jobInfoTable = jobInfoTable;
     }
 }
