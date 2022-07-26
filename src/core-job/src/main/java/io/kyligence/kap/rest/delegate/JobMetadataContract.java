@@ -48,7 +48,9 @@ public interface JobMetadataContract {
 
     List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes);
 
-    List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status);
+    List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status);
+
+    void deleteJobByIdList(String project, List<String> jobIdList);
 
     void discardJob(String project, String jobId);
 

@@ -64,7 +64,10 @@ public interface JobMetadataRpc extends JobMetadataContract {
 
     @PostMapping(value = "get_exec_by_status")
     List<ExecutablePO> getExecutablePOsByStatus(@RequestParam("project") String project,
-            @RequestParam("status") ExecutableState status);
+            @RequestParam("status") ExecutableState... status);
+
+    @PostMapping(value = "delete_job_by_ids")
+    void deleteJobByIdList(@RequestParam("project") String project, @RequestParam("jobIdList") List<String> jobIdList);
 
     @PostMapping(value = "discard_job")
     void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId);

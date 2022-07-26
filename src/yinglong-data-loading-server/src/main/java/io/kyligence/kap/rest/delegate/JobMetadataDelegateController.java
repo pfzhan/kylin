@@ -100,7 +100,7 @@ public class JobMetadataDelegateController {
     @PostMapping(value = "/feign/get_exec_by_status")
     @ResponseBody
     public List<ExecutablePO> getExecutablePOsByStatus(@RequestParam("project") String project,
-            @RequestParam("status") ExecutableState status) {
+            @RequestParam("status") ExecutableState... status) {
         return jobMetadataDelegate.getExecutablePOsByStatus(project, status);
     }
 
@@ -108,6 +108,12 @@ public class JobMetadataDelegateController {
     @ResponseBody
     public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId) {
         jobMetadataDelegate.discardJob(project, jobId);
+    }
+
+    @PostMapping(value = "/feign/delete_job_by_ids")
+    @ResponseBody
+    public void deleteJobByIdList(@RequestParam("project") String project, @RequestParam("jobIdList") List<String> jobIdList) {
+        jobMetadataDelegate.deleteJobByIdList(project, jobIdList);
     }
 
     @PostMapping(value = "/feign/stop_batch_job")

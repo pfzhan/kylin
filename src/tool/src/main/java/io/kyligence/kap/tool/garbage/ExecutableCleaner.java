@@ -24,16 +24,19 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 
 
 public class ExecutableCleaner extends MetadataCleaner {
@@ -55,9 +58,12 @@ public class ExecutableCleaner extends MetadataCleaner {
 
         ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
 
-        List<AbstractExecutable> executables = executableManager.getAllExecutables();
-        List<AbstractExecutable> filteredExecutables = executables.stream().filter(job -> {
-            if ((System.currentTimeMillis() - job.getCreateTime()) < expirationTime) {
+        List<ExecutablePO> finalExecutablePOs = JobMetadataBaseInvoker.getInstance().getExecutablePOsByStatus(project,
+                ExecutableState.getFinalStates());
+
+        List<AbstractExecutable> filteredExecutables = finalExecutablePOs.stream().filter(executablePO -> {
+            AbstractExecutable job = executableManager.fromPO(executablePO);
+            if ((System.currentTimeMillis() - job.getCreateTime(job.getOutput(executablePO))) < expirationTime) {
                 return false;
             }
             ExecutableState state = job.getStatusInMem();
@@ -65,11 +71,17 @@ public class ExecutableCleaner extends MetadataCleaner {
                 return false;
             }
             return true;
-        }).collect(Collectors.toList());
+        }).map(executableManager::fromPO).collect(Collectors.toList());
 
+        List<String> jobsToBeDelete = new ArrayList<>();
         for (AbstractExecutable executable : filteredExecutables) {
-            executableManager.deleteJob(executable.getId());
+            jobsToBeDelete.add(executable.getJobId());
         }
+        if (jobsToBeDelete.isEmpty()) {
+            logger.info("No executables need to clean in project {}", project);
+            return;
+        }
+        JobMetadataBaseInvoker.getInstance().deleteJobByIdList(project, jobsToBeDelete);
         logger.info("Clean executable in project {} finished", project);
     }
 

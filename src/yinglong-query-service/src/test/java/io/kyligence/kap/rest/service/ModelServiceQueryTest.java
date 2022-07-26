@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import io.kyligence.kap.job.util.ExecutableUtils;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -53,6 +53,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.utils.ComputedColumnEvalUtil;
+import io.kyligence.kap.job.util.ExecutableUtils;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -64,6 +65,10 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseDelegate;
+import io.kyligence.kap.rest.delegate.JobMetadataContract;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataRequest;
 import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -110,6 +115,8 @@ public class ModelServiceQueryTest extends SourceTestCase {
 
     private StreamingJobListener eventListener = new StreamingJobListener();
 
+    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
+
     protected String getProject() {
         return "default";
     }
@@ -133,6 +140,8 @@ public class ModelServiceQueryTest extends SourceTestCase {
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
+        JobMetadataInvoker.setDelegate(new JobMetadataContractTest());
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
@@ -152,6 +161,19 @@ public class ModelServiceQueryTest extends SourceTestCase {
         EventBusFactory.getInstance().register(modelBrokenListener, false);
 
         ExecutableUtils.initJobFactory();
+    }
+
+    private class JobMetadataContractTest extends JobMetadataBaseDelegate implements JobMetadataContract {
+
+        @Override
+        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void stopBatchJob(String project, TableDesc tableDesc) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @After

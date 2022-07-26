@@ -1535,6 +1535,10 @@ public class ExecutableManager {
         jobInfoDao.dropJob(jobId);
     }
 
+    public void deleteJobByIdList(List<String> jobIdList) {
+        jobInfoDao.dropJobByIdList(jobIdList);
+    }
+
     //for ut
     @VisibleForTesting
     public void deleteAllJob() {

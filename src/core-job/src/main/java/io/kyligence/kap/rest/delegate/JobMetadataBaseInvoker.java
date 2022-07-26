@@ -88,8 +88,12 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }
 
-    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status) {
+    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {
         return jobMetadataBaseDelegate.getExecutablePOsByStatus(project, status);
+    }
+
+    public void deleteJobByIdList(String project, List<String> jobIds) {
+        jobMetadataBaseDelegate.deleteJobByIdList(project, jobIds);
     }
 
     public void clearJobsByProject(String project){

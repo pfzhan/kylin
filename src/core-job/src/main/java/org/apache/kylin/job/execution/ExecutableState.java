@@ -46,11 +46,13 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.apache.kylin.job.constant.JobStatusEnum;
+
 import com.google.common.base.Supplier;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import org.apache.kylin.job.constant.JobStatusEnum;
 
 /**
  */
@@ -101,12 +103,16 @@ public enum ExecutableState {
 
     }
 
+    public static ExecutableState[] getFinalStates() {
+        return new ExecutableState[] {SUCCEED, DISCARDED, SUICIDAL};
+    }
+
     public boolean isProgressing() {
         return this == READY || this == RUNNING || this == PENDING;
     }
 
     public boolean isFinalState() {
-        return this == SUCCEED || this == DISCARDED || this == SUICIDAL;
+        return Lists.newArrayList(getFinalStates()).contains(this);
     }
 
     public boolean isRunning() {

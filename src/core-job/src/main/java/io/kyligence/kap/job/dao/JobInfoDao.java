@@ -26,6 +26,7 @@ package io.kyligence.kap.job.dao;
 import static io.kyligence.kap.job.util.JobInfoUtil.JOB_SERIALIZER;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Predicate;
@@ -138,6 +139,11 @@ public class JobInfoDao {
 
     public void dropJob(String jobId) {
         jobInfoMapper.deleteByJobId(jobId);
+    }
+    
+    public void dropJobByIdList(List<String> jobIdList) {
+        jobInfoMapper.deleteByJobIdList(Arrays.stream(ExecutableState.getFinalStates())
+                .map(executableState -> executableState.toJobStatus().name()).collect(Collectors.toList()), jobIdList);
     }
 
     public void dropAllJobs() {

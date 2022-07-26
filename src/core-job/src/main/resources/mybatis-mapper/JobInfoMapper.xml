@@ -189,6 +189,16 @@
     delete from ${jobInfoTable}
     where job_id = #{jobId,jdbcType=BIGINT}
   </delete>
+  <delete id="deleteByJobIdList">
+    delete from job_info
+    where
+    <foreach close=")" collection="jobStatusList" index="index" item="item" open="job_status in (" separator=",">
+      #{item}
+    </foreach>
+    <foreach close=")" collection="jobIdList" index="index" item="item" open="AND job_id in (" separator=",">
+      #{item}
+    </foreach>
+  </delete>
   <delete id="deleteByProject" parameterType="java.lang.String">
     delete from ${jobInfoTable}
     where project = #{project,jdbcType=VARCHAR}

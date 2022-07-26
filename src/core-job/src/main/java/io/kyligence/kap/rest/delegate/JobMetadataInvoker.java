@@ -109,13 +109,18 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         return getDelegate().listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }
 
-    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status) {
+    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {
         return getDelegate().getExecutablePOsByStatus(project, status);
     }
 
     @Override
     public void discardJob(String project, String jobId) {
         getDelegate().discardJob(project, jobId);
+    }
+
+    @Override
+    public void deleteJobByIdList(String project, List<String> jobIds) {
+        getDelegate().deleteJobByIdList(project, jobIds);
     }
 
     @Override

@@ -97,9 +97,13 @@ public class JobMetadataBaseDelegate {
                 .listExecPOByJobTypeAndStatus(predicate, jobTypes);
     }
 
-    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState status) {
+    public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getExecutablePOsByStatus(Lists.newArrayList(status));
+    }
+
+    public void deleteJobByIdList(String project, List<String> jobIdList) {
+        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).deleteJobByIdList(jobIdList);
     }
 
     public void discardJob(String project, String jobId) {

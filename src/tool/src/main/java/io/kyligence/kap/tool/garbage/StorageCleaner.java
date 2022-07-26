@@ -61,6 +61,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.ISourceMetadataExplorer;
@@ -74,6 +75,7 @@ import io.kyligence.kap.common.persistence.TrashRecord;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.RateLimiter;
+import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -84,6 +86,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
 import io.kyligence.kap.tool.util.ProjectTemporaryTableCleanerHelper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -341,8 +344,8 @@ public class StorageCleaner {
 
         private void collectJobTmp(String project) {
             val config = KylinConfig.getInstanceFromEnv();
-            val executableManager = ExecutableManager.getInstance(config, project);
-            Set<String> activeJobs = executableManager.getAllExecutables().stream()
+            List<ExecutablePO> executablePOList = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project);
+            Set<String> activeJobs = executablePOList.stream()
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             for (StorageItem item : allFileSystems) {
                 item.getProject(project).getJobTmps().removeIf(node -> activeJobs.contains(node.getRelativePath()));
@@ -437,10 +440,12 @@ public class StorageCleaner {
 
         public void execute() {
             val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            Set<String> activeJobs = executableManager.getAllExecutables().stream()
-                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            List<AbstractExecutable> projectAllJobs = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project)
+                    .stream().map(executablePO -> executableManager.fromPO(executablePO)).collect(Collectors.toList());
+            Set<String> activeJobs = projectAllJobs.stream().map(e -> project + JOB_TMP_ROOT + "/" + e.getId())
+                    .collect(Collectors.toSet());
             List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();
-            Set<String> discardJobs = executableManager.getAllExecutables().stream()
+            Set<String> discardJobs = projectAllJobs.stream()
                     .filter(e -> e.getStatusInMem() == ExecutableState.DISCARDED)
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps, activeJobs, discardJobs));
