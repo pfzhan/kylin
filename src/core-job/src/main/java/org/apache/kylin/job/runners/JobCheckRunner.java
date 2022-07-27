@@ -87,21 +87,28 @@ public class JobCheckRunner implements Runnable {
             String jobId = entry.getKey();
             JobExecutor jobExecutor = entry.getValue();
             String project = jobExecutor.getJobExecutable().getProject();
-            discardTimeoutJob(jobId, project, jobExecutor.getStartTime());
-            stopJobIfStorageQuotaLimitReached(jobContext, jobId, project);
             if (JobCheckUtil.markSuicideJob(jobId, jobContext)) {
                 logger.info("suicide job = {} on checker runner", jobId);
+                continue;
+            }
+            if (discardTimeoutJob(jobId, project, jobExecutor.getStartTime())) {
+                logger.info("discardTimeoutJob job = {} on checker runner", jobId);
+                continue;
+            }
+            if (stopJobIfStorageQuotaLimitReached(jobContext, jobId, project)) {
+                logger.info("stopJobIfStorageQuotaLimitReached job = {} on checker runner", jobId);
+                continue;
             }
         }
     }
 
-    private void stopJobIfStorageQuotaLimitReached(JobContext jobContext, String jobId, String project) {
+    private boolean stopJobIfStorageQuotaLimitReached(JobContext jobContext, String jobId, String project) {
         if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
-            return;
+            return false;
         }
         val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         ExecutablePO executablePO = executableManager.getExecutablePO(jobId);
         AbstractExecutable jobExecutable = executableManager.fromPO(executablePO);
-        JobCheckUtil.stopJobIfStorageQuotaLimitReached(jobContext, executablePO, jobExecutable);
+        return JobCheckUtil.stopJobIfStorageQuotaLimitReached(jobContext, executablePO, jobExecutable);
     }
 }
