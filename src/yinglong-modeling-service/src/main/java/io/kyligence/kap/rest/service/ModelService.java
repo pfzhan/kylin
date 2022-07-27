@@ -3552,7 +3552,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val response = new PurgeModelAffectedResponse();
         val byteSize = getManager(NDataflowManager.class, project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
-        long jobSize = getManager(ExecutableManager.class, project).countByModelAndStatus(model, ExecutableState::isProgressing);
+        long jobSize = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, model, "isProgressing");
         response.setRelatedJobSize(jobSize);
         return response;
     }
