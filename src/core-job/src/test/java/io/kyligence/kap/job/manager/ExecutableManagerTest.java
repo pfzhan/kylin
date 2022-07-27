@@ -581,9 +581,9 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
         val executables2 = executableManager.getExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY));
         val executables21 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
-                path -> StringUtils.endsWith(path, "89af4ee2-2cdb-4b07-b39e-4c29856309gg"));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309gg");
         val executables22 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
-                path -> StringUtils.endsWith(path, "89af4ee2-2cdb-4b07-b39e-4c29856309gg12"));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309gg12");
         val executables3 = executableManager.getExecutablesByStatus(ExecutableState.READY);
         Assert.assertEquals(executables2.size(), executables3.size());
         Assert.assertEquals(executables2.size(), executables21.size());

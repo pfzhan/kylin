@@ -1115,7 +1115,7 @@ public class ExecutableManager {
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
-        return getPartialExecutables(path -> StringUtils.endsWith(path, model)).stream() //
+        return getPartialExecutables(model).stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model))
                 .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
@@ -1134,9 +1134,10 @@ public class ExecutableManager {
         return ret;
     }
 
-    public List<AbstractExecutable> getPartialExecutables(Predicate<String> predicate) {
+    public List<AbstractExecutable> getPartialExecutables(String modelId) {
         List<AbstractExecutable> ret = Lists.newArrayList();
-        for (ExecutablePO po : jobInfoDao.getPartialJobs(predicate, project)) {
+        List<ExecutablePO> executablePOList = getExecutablePOByModelId(project, modelId);
+        for (ExecutablePO po : executablePOList) {
             try {
                 AbstractExecutable ae = fromPO(po);
                 ret.add(ae);
@@ -1145,6 +1146,18 @@ public class ExecutableManager {
             }
         }
         return ret;
+    }
+    
+    private List<ExecutablePO> getExecutablePOByModelId(String project, String modelId) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        if (CollectionUtils.isEmpty(jobInfoList)) {
+            return Lists.newArrayList();
+        }
+        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
+                .collect(Collectors.toList());
     }
 
     public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
@@ -1173,8 +1186,8 @@ public class ExecutableManager {
     }
 
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                               JobTypeEnum... jobTypes) {
-        return listExecutablePOByModelAndStatus(model, predicate, jobInfoDao.getPartialJobs(path -> StringUtils.endsWith(path, model), project), jobTypes);
+            JobTypeEnum... jobTypes) {
+        return listExecutablePOByModelAndStatus(model, predicate, getExecutablePOByModelId(project, model), jobTypes);
     }
 
     public void setJobResumable(final String taskOrJobId) {
@@ -1199,8 +1212,7 @@ public class ExecutableManager {
 
     public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
-        return getPartialExecutables(path -> StringUtils.endsWith(path, model)).stream()
-                .filter(e -> e.getTargetSubject() != null) //
+        return getPartialExecutables(model).stream().filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
                 .filter(e -> predicate.test(e.getStatusInMem())) //
                 .filter(e -> {
@@ -1620,10 +1632,9 @@ public class ExecutableManager {
         return filterJobs.stream().map(this::fromPO).collect(Collectors.toList());
     }
 
-    public List<AbstractExecutable> getPartialExecutablesByStatusList(Set<ExecutableState> statusSet,
-                                                                      Predicate<String> predicate) {
+    public List<AbstractExecutable> getPartialExecutablesByStatusList(Set<ExecutableState> statusSet, String modelId) {
         Preconditions.checkNotNull(statusSet);
-        List<ExecutablePO> filterJobs = Lists.newArrayList(jobInfoDao.getPartialJobs(predicate, project));
+        List<ExecutablePO> filterJobs = getExecutablePOByModelId(project, modelId);
         if (CollectionUtils.isNotEmpty(statusSet)) {
             filterJobs.removeIf(job -> !statusSet.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
         }
@@ -1665,13 +1676,13 @@ public class ExecutableManager {
                 .max(Long::compareTo).orElse(0L);
     }
 
-    public List<AbstractExecutable> listPartialExec(Predicate<String> metaDataPathPredicate,
-                                                    Predicate<ExecutableState> predicate, JobTypeEnum... jobTypes) {
+    public List<AbstractExecutable> listPartialExec(String modelId, Predicate<ExecutableState> predicate,
+            JobTypeEnum... jobTypes) {
         if (jobTypes == null) {
             return Lists.newArrayList();
         }
         List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
-        return jobInfoDao.getPartialJobs(metaDataPathPredicate, project).stream() //
+        return getExecutablePOByModelId(project, modelId).stream() //
                 .filter(job -> job.getJobType() != null) //
                 .filter(job -> jobTypeList.contains(job.getJobType())) //
                 .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //

@@ -62,11 +62,10 @@ public class JobMetadataBaseDelegate {
 
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
         List<AbstractExecutable> runningJobList = ExecutableManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getPartialExecutablesByStatusList(
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getPartialExecutablesByStatusList(
                         Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,
                                 ExecutableState.PAUSED, ExecutableState.ERROR), //
-                        path -> StringUtils.endsWith(path, modelId));
+                        modelId);
 
         return runningJobList.stream()
                 .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))

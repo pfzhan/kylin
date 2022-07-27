@@ -88,11 +88,6 @@ public class JobInfoDao {
                 .collect(Collectors.toList());
     }
 
-    // TODO implement this
-    public List<ExecutablePO> getPartialJobs(Predicate<String> predicate, String project) {
-        return getJobs(project);
-    }
-
     public List<ExecutablePO> getJobs(String project, long timeStart, long timeEndExclusive) {
         return getJobs(project).stream()
                 .filter(x -> x.getLastModified() >= timeStart && x.getLastModified() < timeEndExclusive)
