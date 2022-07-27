@@ -39,9 +39,6 @@ public class JobLock {
 
     private Date updateTime;
 
-    // placeholder for mybatis ${}
-    private String jobLockTable;
-
     public Long getId() {
         return id;
     }
@@ -88,13 +85,5 @@ public class JobLock {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
-    }
-
-    public String getJobLockTable() {
-        return jobLockTable;
-    }
-
-    public void setJobLockTable(String jobLockTable) {
-        this.jobLockTable = jobLockTable;
     }
 }
