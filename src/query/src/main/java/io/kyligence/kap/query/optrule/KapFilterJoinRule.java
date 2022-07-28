@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package io.kyligence.kap.query.optrule;
@@ -31,7 +25,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.query.util.RexUtils;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -54,6 +47,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.mapping.Mappings;
+import org.apache.kylin.query.util.RexUtils;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -91,7 +85,6 @@ public class KapFilterJoinRule extends RelOptRule {
                 }
             }, RelOptRule.any()))), RelFactories.LOGICAL_BUILDER, false, "KapFilterJoinRule:filter-join-scan");
 
-
     private boolean needTranspose;
 
     private KapFilterJoinRule(RelOptRuleOperand relOptRuleOperand, RelBuilderFactory relBuilderFactory,
@@ -113,7 +106,7 @@ public class KapFilterJoinRule extends RelOptRule {
         RuleMatchHandler handler = new RuleMatchHandler(call);
         handler.perform();
     }
-    
+
     private class RuleMatchHandler {
         private Filter filterRel;
         private Join topJoinRel;
@@ -146,24 +139,25 @@ public class KapFilterJoinRule extends RelOptRule {
             if (!joinFilters.isEmpty() || filterRel == null) {
                 return;
             }
-    
+
             List<RexNode> aboveFilters = RelOptUtil.conjunctions(filterRel.getCondition());
             // replace filters with pattern cast(col1 as ...) = col2 with col1 = col2
             // to make such filters to be able to be pushed down to join conditions
-            aboveFilters = aboveFilters.stream().map(RexUtils::stripOffCastInColumnEqualPredicate).collect(Collectors.toList());
+            aboveFilters = aboveFilters.stream().map(RexUtils::stripOffCastInColumnEqualPredicate)
+                    .collect(Collectors.toList());
             final ImmutableList<RexNode> origAboveFilters = ImmutableList.copyOf(aboveFilters);
-    
+
             JoinRelType joinType = topJoinRel.getJoinType();
             List<RexNode> leftFilters = new ArrayList<>();
             List<RexNode> rightFilters = new ArrayList<>();
             boolean filterPushed = pushDownFilter(aboveFilters, leftFilters, rightFilters, joinFilters);
-    
+
             // if nothing actually got pushed and there is nothing leftover, then this rule is a no-op
             if ((!filterPushed && joinType == topJoinRel.getJoinType())
                     || (joinFilters.isEmpty() && leftFilters.isEmpty() && rightFilters.isEmpty())) {
                 return;
             }
-    
+
             // try transpose relNodes of joinRel to make as many relNodes be rewritten to inner join node as possible
             boolean isNeedProject = false;
             if (needTranspose && bottomJoin instanceof Join
@@ -171,7 +165,7 @@ public class KapFilterJoinRule extends RelOptRule {
                     && !(relA instanceof Aggregate)) {
                 final int originFilterSize = joinFilters.size();
                 final Join originTopJoin = topJoinRel.copy(topJoinRel.getTraitSet(), topJoinRel.getInputs());
-    
+
                 Filter newFilter = (Filter) transposeJoinRel();
                 // retry to push down new filters
                 List<RexNode> newLeftFilters = Lists.newArrayList();
@@ -190,12 +184,12 @@ public class KapFilterJoinRule extends RelOptRule {
                     topJoinRel = originTopJoin;
                 }
             }
-    
+
             // create Filters on top of the children if any filters were pushed to them
             final RexBuilder rexBuilder = topJoinRel.getCluster().getRexBuilder();
             final RelNode leftRel = relBuilder.push(topJoinRel.getLeft()).filter(leftFilters).build();
             final RelNode rightRel = relBuilder.push(topJoinRel.getRight()).filter(rightFilters).build();
-    
+
             // create the new join node referencing the new children and
             // containing its new join filters (if there are any)
             final ImmutableList<RelDataType> fieldTypes = ImmutableList.<RelDataType> builder()
@@ -203,14 +197,14 @@ public class KapFilterJoinRule extends RelOptRule {
                     .addAll(RelOptUtil.getFieldTypeList(rightRel.getRowType())).build();
             final RexNode joinFilter = RexUtil.composeConjunction(rexBuilder,
                     RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes), false);
-    
+
             // If nothing actually got pushed and there is nothing leftover,
             // then this rule is a no-op
             if (joinFilter.isAlwaysTrue() && leftFilters.isEmpty() && rightFilters.isEmpty()
                     && joinType == topJoinRel.getJoinType()) {
                 return;
             }
-    
+
             RelNode newJoinRel = topJoinRel.copy(topJoinRel.getTraitSet(), joinFilter, leftRel, rightRel, joinType,
                     topJoinRel.isSemiJoinDone());
             call.getPlanner().onCopy(topJoinRel, newJoinRel);
@@ -220,27 +214,28 @@ public class KapFilterJoinRule extends RelOptRule {
             if (!rightFilters.isEmpty()) {
                 call.getPlanner().onCopy(filterRel, rightRel);
             }
-    
+
             relBuilder.push(newJoinRel);
             // Create a project on top of the join if some of the columns have become
             // NOT NULL due to the join-type getting stricter.
             relBuilder.convert(topJoinRel.getRowType(), false);
             // create a FilterRel on top of the join if needed
-            relBuilder.filter(
-                    RexUtil.fixUp(rexBuilder, aboveFilters, RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
+            relBuilder.filter(RexUtil.fixUp(rexBuilder, aboveFilters,
+                    RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
             if (isNeedProject) {
                 final int aCount = relA.getRowType().getFieldCount();
                 final int bCount = relB.getRowType().getFieldCount();
                 final int cCount = relC.getRowType().getFieldCount();
-                final Mappings.TargetMapping originJoinFieldsToNew = Mappings.createShiftMapping(aCount + bCount + cCount,
-                        0, 0, cCount, cCount + aCount, cCount, bCount, cCount, cCount + bCount, aCount);
+                final Mappings.TargetMapping originJoinFieldsToNew = Mappings.createShiftMapping(
+                        aCount + bCount + cCount, 0, 0, cCount, cCount + aCount, cCount, bCount, cCount,
+                        cCount + bCount, aCount);
                 relBuilder.project(relBuilder.fields(originJoinFieldsToNew));
             }
             call.transformTo(relBuilder.build());
         }
-    
-        private boolean pushDownFilter(List<RexNode> aboveFilters, List<RexNode> leftFilters, List<RexNode> rightFilters,
-                List<RexNode> joinFilters) {
+
+        private boolean pushDownFilter(List<RexNode> aboveFilters, List<RexNode> leftFilters,
+                List<RexNode> rightFilters, List<RexNode> joinFilters) {
             // Try to push down above filters. These are typically where clause
             // filters. They can be pushed down if they are not on the NULL
             // generating side.
@@ -255,14 +250,14 @@ public class KapFilterJoinRule extends RelOptRule {
             pullUpNonEquiFilters(joinFilters, false, topJoinRel.getRowType().getFieldList(), aboveFilters);
             pullUpNonEquiFilters(leftFilters, false, topJoinRel.getInput(0).getRowType().getFieldList(), aboveFilters);
             pullUpNonEquiFilters(rightFilters, true, topJoinRel.getInput(1).getRowType().getFieldList(), aboveFilters);
-    
+
             // If no filter got pushed after validate, reset filterPushed flag
             if (leftFilters.isEmpty() && rightFilters.isEmpty() && joinFilters.size() == origJoinFilters.size()) {
                 if (Sets.newHashSet(joinFilters).equals(Sets.newHashSet(origJoinFilters))) {
                     filterPushed = false;
                 }
             }
-    
+
             // Try to push down filters in ON clause. A ON clause filter can only be
             // pushed down if it does not affect the non-matching set, i.e. it is
             // not on the side which is preserved.
@@ -272,15 +267,15 @@ public class KapFilterJoinRule extends RelOptRule {
             }
             return filterPushed;
         }
-    
+
         private RelNode transposeJoinRel() {
             final RexBuilder rexBuilder = topJoinRel.getCluster().getRexBuilder();
             final int aCount = relA.getRowType().getFieldCount();
             final int bCount = relB.getRowType().getFieldCount();
             final int cCount = relC.getRowType().getFieldCount();
-            final Mappings.TargetMapping originJoinFieldsToNew = Mappings.createShiftMapping(aCount + bCount + cCount, 0, 0,
-                    cCount, cCount + aCount, cCount, bCount, cCount, cCount + bCount, aCount);
-    
+            final Mappings.TargetMapping originJoinFieldsToNew = Mappings.createShiftMapping(aCount + bCount + cCount,
+                    0, 0, cCount, cCount + aCount, cCount, bCount, cCount, cCount + bCount, aCount);
+
             // 1. to transpose relA with relB, create new join rels
             //          filter                       filter
             //            |                           |
@@ -289,22 +284,22 @@ public class KapFilterJoinRule extends RelOptRule {
             //   bottomJoin   A              bottomJoin   B
             //      /   \                     /   \
             //    C      B                  C      A
-    
+
             final RelNode newRightRel = relBuilder.push(((Join) bottomJoin).getRight()).build();
             Join oldLeft = (Join) bottomJoin;
             final RelNode newLeftRel = oldLeft.copy(oldLeft.getTraitSet(), rexBuilder.makeLiteral(true),
                     relBuilder.push(oldLeft.getLeft()).build(), relBuilder.push(topJoinRel.getRight()).build(),
                     oldLeft.getJoinType(), oldLeft.isSemiJoinDone());
-            topJoinRel = topJoinRel.copy(topJoinRel.getTraitSet(), rexBuilder.makeLiteral(true), newLeftRel, newRightRel,
-                    topJoinRel.getJoinType(), topJoinRel.isSemiJoinDone());
-    
+            topJoinRel = topJoinRel.copy(topJoinRel.getTraitSet(), rexBuilder.makeLiteral(true), newLeftRel,
+                    newRightRel, topJoinRel.getJoinType(), topJoinRel.isSemiJoinDone());
+
             // 2. adjust new filter condition, for the fields of top-join changed
             List<RexNode> newFilterList = Lists.newArrayList();
             new RexPermuteInputsShuttle(originJoinFieldsToNew, topJoinRel)
                     .visitList(RelOptUtil.conjunctions(filterRel.getCondition()), newFilterList);
             return relBuilder.push(topJoinRel).filter(newFilterList).build();
         }
-    
+
         private void pullUpNonEquiFilters(List<RexNode> filters, boolean isFromRight, List<RelDataTypeField> srcFields,
                 List<RexNode> aboveFilters) {
             // Move filters up if filters are not eq-cols, e.g (colA > 23) should be move up
@@ -313,7 +308,7 @@ public class KapFilterJoinRule extends RelOptRule {
             for (int i = 0; i < srcFields.size(); i++) {
                 offsets[i] = isFromRight ? (topJoinRel.getRowType().getFieldCount() - srcFields.size()) : 0;
             }
-    
+
             Iterator<RexNode> itr = filters.iterator();
             while (itr.hasNext()) {
                 RexNode filter = itr.next();

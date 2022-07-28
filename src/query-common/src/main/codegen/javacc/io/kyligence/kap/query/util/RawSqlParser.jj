@@ -5,7 +5,7 @@ options {
 }
 
 PARSER_BEGIN(RawSqlParser)
-package io.kyligence.kap.query.util;
+package org.apache.kylin.query.util;
 
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import io.kyligence.kap.query.util.RawSql;
-import io.kyligence.kap.query.util.RawSqlBlock;
+import org.apache.kylin.query.util.RawSql;
+import org.apache.kylin.query.util.RawSqlBlock;
 
 public class RawSqlParser {
 

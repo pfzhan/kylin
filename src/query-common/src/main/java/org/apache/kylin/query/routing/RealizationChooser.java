@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -90,6 +84,21 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPContextProp;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.common.logging.SetLogCategory;
+import org.apache.kylin.metadata.MetadataExtension;
+import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
+import org.apache.kylin.metadata.cube.cuboid.NLookupCandidate;
+import org.apache.kylin.metadata.cube.model.LayoutEntity;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
+import org.apache.kylin.metadata.cube.realization.HybridRealization;
+import org.apache.kylin.metadata.model.FusionModelManager;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.project.NProjectLoader;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,31 +112,15 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.logging.SetLogCategory;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.realization.HybridRealization;
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectLoader;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.MetadataExtension;
 import lombok.val;
 
 public class RealizationChooser {
 
+    private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
     private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
             new SynchronousQueue<>(), new NamedThreadFactory("RealChooser"), new ThreadPoolExecutor.CallerRunsPolicy());
-
-    private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
     private RealizationChooser() {
     }
@@ -224,7 +217,8 @@ public class RealizationChooser {
         logger.info("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-            List<Candidate> candidate = selectRealizationFromModel(model, context, false, false, modelMap, model2AliasMap);
+            List<Candidate> candidate = selectRealizationFromModel(model, context, false, false, modelMap,
+                    model2AliasMap);
             if (candidate != null && !candidate.isEmpty()) {
                 candidates.addAll(candidate);
                 logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), true);
@@ -237,8 +231,8 @@ public class RealizationChooser {
         if (CollectionUtils.isEmpty(candidates) && (partialMatchInnerJoin() || partialMatchNonEquiJoin())) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-                List<Candidate> candidate = selectRealizationFromModel(model, context,
-                        partialMatchInnerJoin(), partialMatchNonEquiJoin(), modelMap, model2AliasMap);
+                List<Candidate> candidate = selectRealizationFromModel(model, context, partialMatchInnerJoin(),
+                        partialMatchNonEquiJoin(), modelMap, model2AliasMap);
                 if (candidate != null) {
                     candidates.addAll(candidate);
                 }
@@ -614,8 +608,8 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx,
-                                                 boolean partialMatch, boolean partialMatchNonEquiJoin) {
+    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx, boolean partialMatch,
+            boolean partialMatchNonEquiJoin) {
         Map<String, String> matchUp = Maps.newHashMap();
         TableRef firstTable = ctx.firstTableScan.getTableRef();
         boolean matched;
@@ -645,7 +639,8 @@ public class RealizationChooser {
                             "Query match join with join match optimization mode, trying to match with newly rewrite join graph.");
                     ctx.matchJoinWithFilterTransformation();
                     ctx.matchJoinWithEnhancementTransformation();
-                    matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch, partialMatchNonEquiJoin);
+                    matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch,
+                            partialMatchNonEquiJoin);
                     logger.info("Match result for match join with join match optimization mode is: {}", matched);
                 }
                 logger.debug("Context join graph missed model {}, model join graph {}", model, model.getJoinsGraph());
@@ -686,7 +681,8 @@ public class RealizationChooser {
                 continue;
             }
             // context is bound to a certain model (by model view)
-            if (context.getModelAlias() != null && !real.getModel().getAlias().equalsIgnoreCase(context.getModelAlias())) {
+            if (context.getModelAlias() != null
+                    && !real.getModel().getAlias().equalsIgnoreCase(context.getModelAlias())) {
                 continue;
             }
             if (!kylinConfig.streamingEnabled() && real.getModel().isFusionModel()) {

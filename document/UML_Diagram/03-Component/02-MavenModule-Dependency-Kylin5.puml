@@ -1,0 +1,103 @@
+@startuml
+note "颜色相同表示一类" as n1
+
+package api-module {
+    component [server]
+    component [server-base]
+    component [tool]
+}
+
+package basic-module {
+    component [core-common]
+    component [core-job]
+    component [core-metadata]
+    component [core-storage]
+}
+
+package engine-module {
+    component [engine-spark]
+    component [source-jdbc]
+    component [sparder]
+    component [spark-common]
+    component [spark-it]
+    component [query]
+}
+
+component [source-hive]
+
+package helper-module {
+    component [assembly]
+}
+
+package advanced-module {
+    component [smart]
+    component [second-storage]
+    component [streaming]
+    component [external-catalog]
+    component [datasource-sdk]
+}
+
+'=========================== Core的依赖关系 =============================
+[core-metadata] -down-> [core-common]
+[core-job] -down-> [core-metadata]
+[core-storage] -down-> [core-metadata]
+
+[assembly] -right-> [server-base]
+
+
+'=========================== REST的依赖关系 ===========================
+[server] -down-> [server-base]
+
+[server-base] -down-> [engine-spark]
+[server-base] -down-> [query]
+[server-base] -down-> [source-jdbc]
+[server-base] -down-> [tool]
+[server-base] -down-> [streaming]
+[server-base] -down-> [datasource-sdk]
+[server-base] -down-> [smart]
+
+
+[tool] -down-> [core-job]
+[tool] -down-> [engine-spark]
+[tool] -down-> [streaming]
+
+
+'=========================== 数据源的依赖关系 ===========================
+[source-hive] -down-> [core-job]
+
+[datasource-sdk] -down-> [core-metadata]
+[datasource-sdk] -down-> [source-hive]
+
+[source-jdbc] -down-> [datasource-sdk]
+
+
+'=========================== 构建的依赖关系 ===========================
+'[engine-spark] -down-> [core-job]
+[engine-spark] -down-> [core-storage]
+[engine-spark] -left-> [sparder]
+[engine-spark] -down-> [spark-common]
+
+[spark-common] -down-> [core-job]
+
+
+'=========================== 查询的依赖关系 ===========================
+[query] -down-> [core-storage]
+
+[sparder] -down-> [query]
+[sparder] -down-> [spark-common]
+[sparder] -down-> [second-storage]
+
+
+'=========================== 测试代码的依赖关系 ===========================
+[it] -left-> [server-base]
+
+[spark-it] -down-> [sparder]
+[spark-it] -down-> [engine-spark]
+
+
+'=========================== 商业版的依赖关系 ===========================
+[smart] -down-> [engine-spark]
+[smart] -down-> [query]
+
+
+@enduml

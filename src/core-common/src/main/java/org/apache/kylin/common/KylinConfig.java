@@ -1,28 +1,4 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -68,6 +44,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
+import org.apache.kylin.common.annotation.ThirdPartyDependencies;
+import org.apache.kylin.common.util.Unsafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +53,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.config.core.loader.IExternalConfigLoader;
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
-import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.Setter;
 
@@ -183,8 +159,9 @@ public class KylinConfig extends KylinConfigBase {
     // Only used in test cases!!!
     public static void setKylinConfigForLocalTest(String localMetaDir) {
         synchronized (KylinConfig.class) {
-            if (!new File(localMetaDir, "kylin.properties").exists())
+            if (!new File(localMetaDir, "kylin.properties").exists()) {
                 throw new IllegalArgumentException(localMetaDir + " is not a valid local meta dir");
+            }
 
             destroyInstance();
             logger.info("Setting KylinConfig to " + localMetaDir);
@@ -197,10 +174,12 @@ public class KylinConfig extends KylinConfigBase {
             File workingDir = new File(localMetaDir, "working-dir");
             workingDir.mkdirs();
             String path = workingDir.getAbsolutePath();
-            if (!path.startsWith("/"))
+            if (!path.startsWith("/")) {
                 path = "/" + path;
-            if (!path.endsWith("/"))
+            }
+            if (!path.endsWith("/")) {
                 path = path + "/";
+            }
             path = path.replace("\\", "/");
             config.setProperty("kylin.env.hdfs-working-dir", "file:" + path);
         }
@@ -330,7 +309,7 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     /**
-     * @deprecated use SetAndUnsetThreadLocalConfig instead.  
+     * @deprecated use SetAndUnsetThreadLocalConfig instead.
      */
     @Deprecated
     public static void setKylinConfigThreadLocal(KylinConfig config) {
@@ -380,8 +359,9 @@ public class KylinConfig extends KylinConfigBase {
         logger.debug("KYLIN_CONF property was not set, will seek KYLIN_HOME env variable");
 
         String kylinHome = getKylinHome();
-        if (StringUtils.isEmpty(kylinHome))
+        if (StringUtils.isEmpty(kylinHome)) {
             throw new KylinConfigCannotInitException("Didn't find KYLIN_CONF or KYLIN_HOME, please set one of them");
+        }
 
         String path = kylinHome + File.separator + "conf";
         return existFile(path);

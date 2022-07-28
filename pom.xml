@@ -1,46 +1,37 @@
 <!--
-/**
- * Copyright (C) 2020 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.kyligence.ke</groupId>
-    <artifactId>ke-open-core</artifactId>
+    <groupId>org.apache.kylin</groupId>
+    <artifactId>kylin</artifactId>
     <packaging>pom</packaging>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
 
-    <name>Kyligence Enterprise Open Core</name>
-    <url>https://kyligence.io</url>
+    <name>Apache Kylin 5</name>
+    <url>http://kylin.apache.org</url>
     <inceptionYear>2016</inceptionYear>
-    <description>Kyligence Enterprise YingLong Hatching</description>
+    <description>Apache Kylin 5</description>
 
     <organization>
-        <name>Kyligence Inc.</name>
-        <url>https://kyligence.io</url>
+        <name>Apache</name>
+        <url>http://kylin.apache.org</url>
     </organization>
 
     <properties>
@@ -66,7 +57,7 @@
         <kafka.version>2.8.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.2.0-kylin-4.x-r70</spark.version>
+        <spark.version>3.2.0-kylin-4.5.15.0</spark.version>
 
         <roaring.version>0.9.2-kylin-r4</roaring.version>
 
@@ -244,6 +235,7 @@
             **/io/kyligence/kap/rest/config/SwaggerCompatibilityConfig.java
         </sonar.coverage.exclusions>
         <sonar.organization>kyligence</sonar.organization>
+        <!--suppress UnresolvedMavenProperty -->
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../../${aggregate.report.dir}
         </sonar.coverage.jacoco.xmlReportPaths>
 
@@ -327,7 +319,6 @@
         <module>src/spark-project/engine-spark</module>
         <module>src/spark-project/source-jdbc</module>
         <module>src/spark-project/engine-build-sdk</module>
-        <!--        <module>src/spark-project/spark-it</module>-->
         <module>src/streaming</module>
         <module>src/assembly</module>
         <module>src/tool</module>
@@ -370,23 +361,23 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-engine-spark</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-engine-spark</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-source-jdbc</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-source-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-streaming</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-datasource-sdk</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-datasource-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -395,8 +386,8 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-external-catalog-sdk</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-external-catalog-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -431,49 +422,49 @@
                 <version>${external.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-sparder</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-sparder</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-spark-common</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-spark-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-engine-build-sdk</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-engine-build-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- second storage -->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-second-storage-clickhouse</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-second-storage-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-second-storage-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-common-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-build-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-data-loading-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-datasource-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-datasource-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -482,18 +473,18 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-job-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-job-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-modeling-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-modeling-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-query-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -502,8 +493,8 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-booter</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-common-booter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -512,33 +503,33 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-data-loading-server</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-data-loading-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-data-loading-booter</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-data-loading-booter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-query-server</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-query-booter</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query-booter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-server</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-common-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-metadata-server</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-metadata-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -547,18 +538,18 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-streaming-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-streaming-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-systools</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-systools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-integration-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-integration-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -576,6 +567,10 @@
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
                         <artifactId>log4j-to-slf4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -624,43 +619,43 @@
             </dependency>
 
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-common</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-metadata</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-job</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-storage</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-source-hive</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-source-hive</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-query-common</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-query</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-server-base</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-server-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--            <dependency>-->
@@ -679,8 +674,8 @@
             <!--                <version>${project.version}</version>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-tool</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -714,32 +709,32 @@
 
             <!--KAP test scope-->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-common</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-datasource-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-datasource-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-modeling-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-modeling-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-second-storage-clickhouse</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-metadata</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -750,44 +745,44 @@
             <!--                <type>test-jar</type>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-storage</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-storage</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-server-base</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-server-base</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-job</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-job</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-query</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-spark-common</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-spark-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-engine-spark</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-engine-spark</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-sparder</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-sparder</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -798,14 +793,14 @@
             <!--                <type>test-jar</type>-->
             <!--            </dependency>-->
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-common-service</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-common-service</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.yinglong</groupId>
-                <artifactId>yinglong-systools</artifactId>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-systools</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -2818,8 +2813,8 @@
                             <id>check-style</id>
                             <phase>validate</phase>
                             <configuration>
-                                <configLocation>dev-support/checkstyle.xml</configLocation>
-                                <suppressionsLocation>dev-support/checkstyle-suppressions.xml</suppressionsLocation>
+                                <configLocation>dev-support/checkstyle-apache.xml</configLocation>
+                                <suppressionsLocation>dev-support/checkstyle-apache-suppressions.xml</suppressionsLocation>
                                 <includeTestSourceDirectory>true</includeTestSourceDirectory>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
@@ -3046,7 +3041,7 @@
                 <repository>
                     <id>kyoffice</id>
                     <name>Central Repository</name>
-                    <url>http://mvn.ops.kylincorp.com/repository/maven-public/</url>
+                    <url>http://repo-ofs.kyligence.com:8081/repository/maven-public/</url>
                     <layout>default</layout>
                     <releases>
                         <enabled>true</enabled>

@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -52,11 +46,10 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.relnode.OLAPTableScan;
+import org.apache.kylin.metadata.model.NDataModel;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import io.kyligence.kap.metadata.model.NDataModel;
 
 public class RealizationCheck {
     private Map<NDataModel, List<IncapableReason>> modelIncapableReasons = Maps.newHashMap();
@@ -123,26 +116,25 @@ public class RealizationCheck {
         CUBE_NOT_READY, //cube not ready
         CUBE_NOT_CONTAIN_TABLE, // cube not contain table
         CUBE_NOT_CONTAIN_ALL_COLUMN, //
-        CUBE_NOT_CONTAIN_ALL_DIMENSION, // 
+        CUBE_NOT_CONTAIN_ALL_DIMENSION, //
         CUBE_NOT_CONTAIN_ALL_MEASURE, //
         CUBE_BLACK_OUT_REALIZATION, //
         CUBE_UN_SUPPORT_MASSIN, //
         CUBE_UN_SUPPORT_RAWQUERY, //
         CUBE_UNMATCHED_DIMENSION, //
         CUBE_LIMIT_PRECEDE_AGGR, //
-        CUBE_UNMATCHED_AGGREGATION, // 
+        CUBE_UNMATCHED_AGGREGATION, //
         CUBE_OTHER_CUBE_INCAPABLE, //
         TABLE_INDEX_NOT_CONTAIN_ALL_COLUMN, //
         // model
         MODEL_UNMATCHED_JOIN, //
-        MODEL_JOIN_TYPE_UNMATCHED, // 
-        MODEL_JOIN_CONDITION_UNMATCHED, // 
+        MODEL_JOIN_TYPE_UNMATCHED, //
+        MODEL_JOIN_CONDITION_UNMATCHED, //
         MODEL_JOIN_NOT_FOUND, //
-        MODEL_BAD_JOIN_SEQUENCE, // 
-        MODEL_FACT_TABLE_NOT_FOUND, // 
+        MODEL_BAD_JOIN_SEQUENCE, //
+        MODEL_FACT_TABLE_NOT_FOUND, //
         MODEL_OTHER_MODEL_INCAPABLE, //
-        FACT_TABLE_NOT_CONSISTENT_IN_MODEL_AND_QUERY,
-        MODEL_NOT_CONTAIN_ALL_COLUMN
+        FACT_TABLE_NOT_CONSISTENT_IN_MODEL_AND_QUERY, MODEL_NOT_CONTAIN_ALL_COLUMN
     }
 
     public static class IncapableReason {
@@ -212,60 +204,60 @@ public class RealizationCheck {
             return incapableReason;
         }
 
-        public void setIncapableType(IncapableType incapableType) {
-            this.incapableType = incapableType;
-        }
-
-        public void setUnmatchedDimensions(Collection<TblColRef> unmatchedDimensions) {
-            this.unmatchedDimensions = unmatchedDimensions;
-        }
-
-        public void setUnmatchedAggregations(Collection<FunctionDesc> unmatchedAggregations) {
-            this.unmatchedAggregations = unmatchedAggregations;
-        }
-
-        public void setNotFoundColumns(Collection<TblColRef> notFoundColumns) {
-            this.notFoundColumns = notFoundColumns;
-        }
-
-        public void setNotFoundTables(Collection<OLAPTableScan> notFoundTables) {
-            this.notFoundTables = notFoundTables;
+        public Collection<TblColRef> getNotFoundDimensions() {
+            return notFoundDimensions;
         }
 
         public void setNotFoundDimensions(Collection<TblColRef> notFoundDimensions) {
             this.notFoundDimensions = notFoundDimensions;
         }
 
-        public void setNotFoundMeasures(Collection<FunctionDesc> notFoundMeasures) {
-            this.notFoundMeasures = notFoundMeasures;
-        }
-
-        public Collection<TblColRef> getNotFoundDimensions() {
-            return notFoundDimensions;
-        }
-
         public Collection<FunctionDesc> getNotFoundMeasures() {
             return notFoundMeasures;
+        }
+
+        public void setNotFoundMeasures(Collection<FunctionDesc> notFoundMeasures) {
+            this.notFoundMeasures = notFoundMeasures;
         }
 
         public IncapableType getIncapableType() {
             return incapableType;
         }
 
+        public void setIncapableType(IncapableType incapableType) {
+            this.incapableType = incapableType;
+        }
+
         public Collection<TblColRef> getUnmatchedDimensions() {
             return unmatchedDimensions;
+        }
+
+        public void setUnmatchedDimensions(Collection<TblColRef> unmatchedDimensions) {
+            this.unmatchedDimensions = unmatchedDimensions;
         }
 
         public Collection<TblColRef> getNotFoundColumns() {
             return notFoundColumns;
         }
 
+        public void setNotFoundColumns(Collection<TblColRef> notFoundColumns) {
+            this.notFoundColumns = notFoundColumns;
+        }
+
         public Collection<FunctionDesc> getUnmatchedAggregations() {
             return unmatchedAggregations;
         }
 
+        public void setUnmatchedAggregations(Collection<FunctionDesc> unmatchedAggregations) {
+            this.unmatchedAggregations = unmatchedAggregations;
+        }
+
         public Collection<OLAPTableScan> getNotFoundTables() {
             return notFoundTables;
+        }
+
+        public void setNotFoundTables(Collection<OLAPTableScan> notFoundTables) {
+            this.notFoundTables = notFoundTables;
         }
 
         @Override

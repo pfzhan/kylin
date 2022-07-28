@@ -1,0 +1,321 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+
+page 5 x 2
+skinparam pageMargin 10
+skinparam pageExternalColor gray
+skinparam pageBorderColor black
+
+
+
+
+'together {
+
+    abstract class io.ke.BasicService {
+        getXXManager();
+    }
+
+    namespace io.ke.common.service #palegreen {
+
+        class ProjectService {
+
+        }
+
+        class EpochService {
+
+        }
+
+        class HealthService {
+
+        }
+
+        class SystemService {
+            void 诊断包()
+        }
+
+        class MetadataBackupService {
+            void 备份元数据()
+        }
+
+        class AsyncTaskService {
+            void 下载查询历史()
+            void 清理内存()
+        }
+
+        class JobService {
+
+        }
+
+        ProjectService *-- MetadataBackupService
+
+        ProjectService *-- AsyncTaskService
+
+        ProjectService *--> io.ke.acl.service.AccessService
+
+        ProjectService *--> io.ke.query.service.AsyncQueryService
+
+        ProjectService *-->  io.ke.smart.service.RawRecService
+
+        ProjectService *--> io.ke.smart.service.OptRecService
+
+        JobService *--> io.ke.modeling.service.ModelService
+
+        JobService *-- io.ke.common.service.ProjectService
+    }
+
+    namespace io.ke.source.service #aliceblue {
+
+
+        class TableService {
+
+        }
+
+        class TableExtService {
+
+        }
+
+        class KafkaService {
+
+        }
+
+        class SparkSourceService {
+
+        }
+
+
+        TableService *-- io.ke.modeling.service.ModelService
+
+        TableService *-- io.ke.modeling.service.FusionModelService
+
+        TableService *-- io.ke.modeling.service.IndexPlanService
+
+        TableService *-- io.ke.building.service.TableSamplingService
+
+
+        TableService *-- io.ke.common.service.JobService
+
+        TableService *-- io.ke.source.service.KafkaService
+
+        TableService *-- io.ke.enterprise.service.AclTCRService
+
+
+
+        TableExtService *-- TableService
+
+        StreamingTableService <|-- TableService
+    }
+
+    namespace io.ke.modeling.service #aliceblue {
+
+        class ModelService {
+            void 模型编辑()
+            void 构建刷新Segment()
+            void 推荐模型()
+        }
+
+        class MetaStoreService {
+            void 模型导入导出()
+        }
+
+
+        class IndexPlanService {
+
+
+        }
+
+        class ModelSemanticHelper {
+
+        }
+
+
+        class SegmentHelper {
+
+        }
+
+        class FusionModelService {
+
+        }
+
+        class FusionIndexService {
+
+        }
+
+
+        ModelService *-- IndexPlanService
+
+        ModelService *-- SegmentHelper
+
+        ModelService *-- ModelSemanticHelper
+
+        ModelService *-- io.ke.common.service.ProjectService
+
+        ModelService *-- io.ke.smart.service.RawRecService
+
+        ModelService *-- io.ke.smart.service.OptRecService
+
+        ModelService *-- io.ke.auth.service.AccessService
+
+        IndexPlanService *-- io.ke.modeling.service.ModelSemanticHelper
+
+        MetaStoreService *-- io.ke.modeling.service.ModelService
+
+        MetaStoreService *-- io.ke.modeling.service.IndexPlanService
+
+        MetaStoreService *-- io.ke.smart.service.OptRecService
+
+        FusionIndexService *-- io.ke.modeling.service.IndexPlanService
+
+        FusionModelService *-- io.ke.modeling.service.ModelService
+
+    }
+
+
+    namespace io.ke.building.service #aliceblue {
+
+        class SnapshotService {
+
+        }
+
+        class TableSamplingService {
+
+        }
+
+        SnapshotService *-- io.ke.source.service.TableService
+
+    }
+
+
+    namespace io.ke.query.service #aliceblue {
+
+        class QueryService {
+
+        }
+
+        class AsyncQueryService {
+
+        }
+
+        class QueryHistoryService {
+
+        }
+
+        QueryHistoryService *-- AsyncTaskService
+
+
+        QueryHistoryService *-- io.ke.modeling.service.ModelService
+
+
+        QueryService *-- io.ke.acl.service.AccessService
+
+
+        QueryService *--> io.ke.enterprise.service.AclTCRService
+
+
+        QueryService *-- QueryCacheManager
+
+
+    }
+
+
+    namespace io.ke.acl.service #aliceblue {
+
+        class AccessService {
+
+        }
+
+        AccessService *-- AclService
+
+        AccessService *-- UserService
+
+        AccessService *--> io.ke.enterprise.service.AclTCRService
+
+    }
+
+'}
+
+
+
+
+
+
+'=============================
+
+'together {
+
+    namespace io.ke.enterprise.service #deepskyblue {
+
+        class LicenseInfoService {
+
+        }
+
+        class LightningService {
+
+        }
+
+        class MaintenanceModeService {
+            void 进出维护状态()
+        }
+
+        class MonitorService {
+            // 收集各个状态节点
+        }
+
+        class ResourceGroupService {
+
+        }
+
+        class SecondStorageService {
+
+        }
+
+        class AclTCRService {
+
+        }
+
+
+
+        MonitorService *-- io.ke.common.service.ProjectService
+
+        SecondStorageService *-- io.ke.common.service.JobService
+
+        AclTCRService *-- io.ke.common.service.AccessService
+
+        AclTCRService *-- io.ke.common.service.ProjectService
+    }
+
+    namespace io.ke.smart.service #deepskyblue {
+
+        class RawRecService {
+
+        }
+
+
+        class OptRecService {
+
+
+        }
+
+        class FavoriteRuleService {
+
+        }
+
+
+        OptRecService *-- io.ke.modeling.service.ModelService
+
+        OptRecService *-- io.ke.modeling.service.IndexPlanService
+
+    }
+
+    namespace io.ke.streaming.service #deepskyblue {
+
+        class StreamingJobService {
+
+        }
+
+        StreamingJobService *-- io.ke.modeling.service.IndexPlanService
+    }
+
+'}
+
+@enduml

@@ -3,23 +3,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>kap-query-common</artifactId>
+    <artifactId>kylin-query-common</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Query Common</name>
-    <url>http://kyligence.io</url>
-    <description>Kyligence Query Engine</description>
+    <name>Kylin - Query Common</name>
+    <url>http://kylin.apache.org</url>
+    <description>Kylin  Query Engine</description>
 
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-metadata</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -34,8 +34,8 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-storage</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-storage</artifactId>
         </dependency>
     </dependencies>
     <build>

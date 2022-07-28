@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -42,11 +36,11 @@
 
 package org.apache.kylin.rest.service;
 
-import static io.kyligence.kap.rest.metrics.QueryMetricsContextTest.getInfluxdbFields;
 import static org.apache.kylin.common.QueryContext.PUSHDOWN_HIVE;
 import static org.apache.kylin.common.QueryTrace.EXECUTION;
 import static org.apache.kylin.common.QueryTrace.SPARK_JOB_EXECUTION;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.rest.metrics.QueryMetricsContextTest.getInfluxdbFields;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -83,24 +77,52 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.hystrix.NCircuitBreaker;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
+import org.apache.kylin.metadata.cube.model.IndexEntity;
+import org.apache.kylin.metadata.cube.model.LayoutEntity;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflow;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
+import org.apache.kylin.metadata.cube.realization.HybridRealization;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.ComputedColumnDesc;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.query.NativeQueryRealization;
+import org.apache.kylin.metadata.query.QueryHistory;
+import org.apache.kylin.metadata.query.QueryMetricsContext;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.query.blacklist.SQLBlacklistItem;
 import org.apache.kylin.query.blacklist.SQLBlacklistManager;
+import org.apache.kylin.query.engine.PrepareSqlStateParam;
+import org.apache.kylin.query.engine.QueryExec;
+import org.apache.kylin.query.engine.QueryRoutingEngine;
+import org.apache.kylin.query.engine.data.QueryResult;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.KapQueryUtil;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.query.util.RawSqlParser;
+import org.apache.kylin.rest.cluster.ClusterManager;
+import org.apache.kylin.rest.cluster.DefaultClusterManager;
+import org.apache.kylin.rest.config.AppConfig;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
@@ -135,37 +157,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.realization.HybridRealization;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryMetricsContext;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.engine.QueryRoutingEngine;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.query.util.RawSqlParser;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.cluster.DefaultClusterManager;
-import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.service.AclTCRService;
-import io.kyligence.kap.rest.service.NUserGroupService;
-import io.kyligence.kap.rest.service.QueryCacheManager;
 import lombok.val;
 
 /**
@@ -179,30 +170,22 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private final QueryCacheManager queryCacheManager = new QueryCacheManager();
 
     private final ClusterManager clusterManager = new DefaultClusterManager(8080);
-
-    @Mock
-    private QueryService queryService;
-
     @InjectMocks
     private final AppConfig appConfig = Mockito.spy(new AppConfig());
-
     @Rule
     public ExpectedException thrown = ExpectedException.none();
-
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
-
     @Mock
     protected AccessService accessService = Mockito.spy(AccessService.class);
-
     @Mock
     protected UserService userService = Mockito.spy(KylinUserService.class);
-
     @Mock
     protected AclService aclService = Mockito.spy(AclService.class);
-
     @Mock
     protected AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+    @Mock
+    private QueryService queryService;
 
     @Before
     public void setup() throws Exception {
@@ -1836,7 +1819,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTableauIntercept() throws Exception {
-        List<String> sqlList = Files.walk(Paths.get("../kap-it/src/test/resources/query/tableau_probing"))
+        List<String> sqlList = Files.walk(Paths.get("../../../kyligence/src/kap-it/src/test/resources/query/tableau_probing"))
                 .filter(file -> Files.isRegularFile(file)).map(path -> {
                     try {
                         String sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
@@ -1911,7 +1894,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryWithParamWhenTransformWithToSubQuery() {
         overwriteSystemProp("kylin.query.transformers",
-                "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.util.WithToSubQueryTransformer");
+                "org.apache.kylin.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,org.apache.kylin.query.util.EscapeTransformer,org.apache.kylin.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,org.apache.kylin.query.security.RowFilter,org.apache.kylin.query.util.WithToSubQueryTransformer");
         PrepareSqlStateParam[] params1 = new PrepareSqlStateParam[2];
         params1[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.1");
         params1[1] = new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123");

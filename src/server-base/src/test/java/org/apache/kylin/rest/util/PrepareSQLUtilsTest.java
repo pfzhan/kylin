@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.kylin.rest.util;
@@ -28,7 +22,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
+import org.apache.kylin.query.engine.PrepareSqlStateParam;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -57,19 +51,17 @@ public class PrepareSQLUtilsTest {
                 "select * from (select \"a\", '?' as q from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?) join (select \"b\" from z where x = ?)",
                 new String[] { "123", "d'2019-01-01'", "abcdef" },
                 "select * from (select \"a\", '?' as q from \"b\" where \"c\" = '123' and \"e\" = 'abc' and d = 'd'2019-01-01'') join (select \"b\" from z where x = 'abcdef')");
-        verifyPrepareResult("select a from b where c = ? and d = ? and e = ? and f = ? and g = ? and h = ? and i = ? and j = ? and k = ?",
-                new PrepareSqlStateParam[] {
-                        new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123"),
+        verifyPrepareResult(
+                "select a from b where c = ? and d = ? and e = ? and f = ? and g = ? and h = ? and i = ? and j = ? and k = ?",
+                new PrepareSqlStateParam[] { new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123"),
                         new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.0"),
                         new PrepareSqlStateParam(String.class.getCanonicalName(), "a string"),
                         new PrepareSqlStateParam(Date.class.getCanonicalName(), "2019-01-01"),
-                        new PrepareSqlStateParam(Timestamp.class.getCanonicalName(),
-                                "2019-01-01 00:12:34.123"),
+                        new PrepareSqlStateParam(Timestamp.class.getCanonicalName(), "2019-01-01 00:12:34.123"),
                         new PrepareSqlStateParam(Short.class.getCanonicalName(), "-128"),
                         new PrepareSqlStateParam(Long.class.getCanonicalName(), "-2147483648"),
                         new PrepareSqlStateParam(Boolean.class.getCanonicalName(), "true"),
-                        new PrepareSqlStateParam(BigDecimal.class.getCanonicalName(), "-9223372036854775"),
-                },
+                        new PrepareSqlStateParam(BigDecimal.class.getCanonicalName(), "-9223372036854775"), },
                 "select a from b where c = 123 and d = 123.0 and e = 'a string' and f = date'2019-01-01' and g = timestamp'2019-01-01 00:12:34.123' "
                         + "and h = -128 and i = -2147483648 and j = true and k = -9223372036854775");
     }

@@ -1,0 +1,20 @@
+@startmindmap
+
+* ModelService
+
+** Basic Function/CRUD
+*** Join Relation
+*** Dimension
+*** Measure
+*** Computed Column
+*** Status: Online/Offline
+*** Modify Name
+*** Modify Owner
+
+*** Clone
+*** Drop
+*** Purge
+
+
+
+@endmindmap

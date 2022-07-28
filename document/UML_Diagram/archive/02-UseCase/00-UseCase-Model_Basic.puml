@@ -1,0 +1,57 @@
+@startuml
+
+
+skinparam actorStyle awesome
+
+
+"Data Analyst" as Analyst
+"Kylin Modeller" as Modeller
+"Kylin Expert" as Expert
+"Kylin Admin" as Admin
+
+Modeller <|-- Admin
+Modeller <|-- Expert
+Analyst <|.. Modeller
+
+
+package TableService {
+    usecase "Load Table Meta" as U_T_0
+    usecase "Reload Table Meta" as U_T_1
+    usecase "Delete Table Meta" as U_T_2
+}
+
+package ModelService_Basic {
+    usecase "Modify Join Relation" as U_M_0
+    usecase "Modify Dimension" as U_M_1
+    usecase "Modify Measure" as U_M_2
+    usecase "Modify Computed Column" as U_M_3
+
+
+    usecase "Online/offline Model" as U_M_4
+    usecase "Modify Partition Column" as U_M_5
+
+
+    usecase "Drop Model" as U_M_6
+}
+
+package ModelService_Advanced {
+' 多级分区
+' 异构 Segment
+'
+}
+
+
+Modeller -> U_M_0
+Modeller --> U_M_1
+Modeller --> U_M_2
+Modeller --> U_M_3
+'Modeller --> U_M_4
+'Modeller -> U_M_5
+'Modeller -> U_M_6
+
+
+'---------------------- Relation between Use Cases ----------------------
+
+
+@enduml
+

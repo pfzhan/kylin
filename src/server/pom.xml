@@ -1,83 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-/**
- * Copyright (C) 2020 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORResourceDetectBeforeCubingJobTestS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
--->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kap-server</artifactId>
+    <artifactId>kylin-server</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - REST Server</name>
-    <url>http://kyligence.io</url>
+    <name>Kylin - REST Server</name>
+    <url>http://kylin.apache.org</url>
     <description>REST Service and RPC Server</description>
 
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <!--Add dependencies of KAP extensions-->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-server-base</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-server-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-data-loading-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-data-loading-server</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-query-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-query-server</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-metadata-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-common-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-metadata-server</artifactId>
         </dependency>
 <!--        <dependency>-->
-<!--            <groupId>io.kyligence.ke</groupId>-->
+<!--            <groupId>org.apache.kylin</groupId>-->
 <!--            <artifactId>kap-license-service</artifactId>-->
 <!--        </dependency>-->
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-common-server</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-clickhouse</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-ui</artifactId>
         </dependency>
 
@@ -196,7 +178,8 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <version>1.4.197</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- mysql -->
@@ -272,11 +255,30 @@
             <artifactId>junit-vintage-engine</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-client</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-common</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -290,7 +292,7 @@
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
                             <useUniqueVersions>false</useUniqueVersions>
-                            <mainClass>io.kyligence.kap.rest.BootstrapServer</mainClass>
+                            <mainClass>org.apache.kylin.rest.BootstrapServer</mainClass>
                         </manifest>
                     </archive>
                     <outputDirectory>${project.build.directory}</outputDirectory>

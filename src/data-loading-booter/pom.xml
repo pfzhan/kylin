@@ -3,16 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>YingLong - Data loading Booter</name>
-    <groupId>io.kyligence.yinglong</groupId>
-    <artifactId>yinglong-data-loading-booter</artifactId>
+    <name>Kylin - Data loading Booter</name>
+    <groupId>org.apache.kylin</groupId>
+    <artifactId>kylin-data-loading-booter</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -22,8 +22,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-data-loading-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-data-loading-server</artifactId>
         </dependency>
 
         <dependency>
@@ -35,12 +35,12 @@
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-data-loading-service</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-job-service</artifactId>
         </dependency>
 
         <!-- mysql -->
@@ -186,7 +186,7 @@
                                 <descriptor>src/main/resources/assembly.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <finalName>yinglong-data-loading-${project.version}</finalName>
+                            <finalName>data-loading-${project.version}</finalName>
                         </configuration>
                         <executions>
                             <execution>

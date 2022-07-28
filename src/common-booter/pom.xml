@@ -3,16 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>YingLong - Common Booter</name>
-    <groupId>io.kyligence.yinglong</groupId>
-    <artifactId>yinglong-common-booter</artifactId>
+    <name>Kylin - Common Booter</name>
+    <groupId>org.apache.kylin</groupId>
+    <artifactId>kylin-common-booter</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -30,17 +30,17 @@
         </dependency>
 
 <!--        <dependency>-->
-<!--            <groupId>io.kyligence.ke</groupId>-->
+<!--            <groupId>org.apache.kylin</groupId>-->
 <!--            <artifactId>kap-license-service</artifactId>-->
 <!--            <version>${project.version}</version>-->
 <!--        </dependency>-->
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-common-server</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-metadata-server</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-metadata-server</artifactId>
         </dependency>
 
         <!-- spark -->
@@ -179,7 +179,7 @@
                                 <descriptor>src/main/resources/assembly.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <finalName>yinglong-common-${project.version}</finalName>
+                            <finalName>common-${project.version}</finalName>
                         </configuration>
                         <executions>
                             <execution>

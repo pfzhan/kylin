@@ -1,31 +1,30 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.kylin.measure.corr;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_SUM;
+import static org.apache.kylin.metadata.model.FunctionDesc.PARAMETER_TYPE_MATH_EXPRESSION;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.kylin.measure.MeasureAggregator;
 import org.apache.kylin.measure.MeasureIngester;
 import org.apache.kylin.measure.MeasureType;
@@ -35,12 +34,8 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_SUM;
-import static org.apache.kylin.metadata.model.FunctionDesc.PARAMETER_TYPE_MATH_EXPRESSION;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 public class CorrMeasureType extends MeasureType {
 
@@ -71,7 +66,6 @@ public class CorrMeasureType extends MeasureType {
         }
     }
 
-
     @Override
     public MeasureIngester newIngester() {
         return null;
@@ -87,8 +81,7 @@ public class CorrMeasureType extends MeasureType {
         return true;
     }
 
-    private static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(
-            FUNC_CORR, CorrAggFunc.class);
+    private static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(FUNC_CORR, CorrAggFunc.class);
 
     @Override
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {
@@ -116,8 +109,8 @@ public class CorrMeasureType extends MeasureType {
             for (int j = i; j < parameterDescList.size(); j++) {
                 ParameterDesc newParam = new ParameterDesc();
                 newParam.setType(PARAMETER_TYPE_MATH_EXPRESSION);
-                newParam.setValue(
-                        String.format(Locale.ROOT, "%s * %s", parameterDescList.get(i).getValue(), parameterDescList.get(j).getValue()));
+                newParam.setValue(String.format(Locale.ROOT, "%s * %s", parameterDescList.get(i).getValue(),
+                        parameterDescList.get(j).getValue()));
                 descs.add(newParam);
             }
         }

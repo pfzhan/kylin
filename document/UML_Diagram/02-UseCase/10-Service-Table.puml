@@ -1,0 +1,11 @@
+@startmindmap
+
+* TableService
+
+** Load table metadata
+** Reload table metadata
+** Unload table metadata
+** Calculate table statistics
+
+
+@endmindmap

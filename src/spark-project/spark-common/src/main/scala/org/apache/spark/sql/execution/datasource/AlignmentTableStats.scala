@@ -20,7 +20,7 @@ package org.apache.spark.sql.execution.datasource
 import org.apache.spark.sql.catalyst.catalog.{CatalogStatistics, HiveTableRelation}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import io.kyligence.kap.engine.spark.job.TableMetaManager
+import org.apache.kylin.engine.spark.job.TableMetaManager
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.command.DDLUtils
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}

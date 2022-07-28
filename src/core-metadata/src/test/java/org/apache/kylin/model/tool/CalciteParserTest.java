@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -45,7 +39,6 @@ package org.apache.kylin.model.tool;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -56,6 +49,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -64,8 +59,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class CalciteParserTest extends NLocalFileMetadataTestCase {
 
@@ -209,6 +202,7 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
         String expr = "`ABC`.`CBA` + 1";
         Assert.assertEquals(expr.replace("`", "\""), CalciteParser.transformDoubleQuote(expr));
     }
+
     @Test
     public void testRowExpression() {
         String sql = "SELECT 'LO_LINENUMBER', 'LO_SUPPKEY' FROM \"SSB\".\"P_LINEORDER\" WHERE ROW('LO_ORDERKEY', 'LO_CUSTKEY') IN (ROW(123, 234), ROW(321, 432)) GROUP BY 'LO_LINENUMBER', 'LO_SUPPKEY'";
@@ -223,9 +217,10 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
     public void testQueryParseCaseSensitive() throws Throwable {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
-        final String[] select_sqls = { "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
-                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL"};
-        final String[] select_columns = {"account_buyer_level", "ACCOUNT_BUYER_LEVEL"};
+        final String[] select_sqls = {
+                "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
+                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL" };
+        final String[] select_columns = { "account_buyer_level", "ACCOUNT_BUYER_LEVEL" };
         for (int i = 0; i < select_sqls.length; i++) {
             SqlNode sqlNode = CalciteParser.parse(select_sqls[i]);
             Assert.assertEquals(true, sqlNode.toString().contains(select_columns[i]));
@@ -235,12 +230,13 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryParseProjectCaseSensitive() throws Throwable {
         final String project = "default";
-        KylinConfig config = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(project).getConfig();
+        KylinConfig config = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
+                .getConfig();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
-        final String[] select_sqls = { "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
-                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL"};
-        final String[] select_columns = {"account_buyer_level", "ACCOUNT_BUYER_LEVEL"};
+        final String[] select_sqls = {
+                "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
+                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL" };
+        final String[] select_columns = { "account_buyer_level", "ACCOUNT_BUYER_LEVEL" };
         for (int i = 0; i < select_sqls.length; i++) {
             SqlNode sqlNode = CalciteParser.parse(select_sqls[i]);
             Assert.assertEquals(true, sqlNode.toString().contains(select_columns[i]));
@@ -249,9 +245,10 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryParseCaseNotSensitive() throws Throwable {
-        final String[] select_sqls = { "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
-                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL"};
-        final String[] select_columns = {"ACCOUNT_BUYER_LEVEL", "ACCOUNT_BUYER_LEVEL"};
+        final String[] select_sqls = {
+                "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
+                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL" };
+        final String[] select_columns = { "ACCOUNT_BUYER_LEVEL", "ACCOUNT_BUYER_LEVEL" };
         for (int i = 0; i < select_sqls.length; i++) {
             SqlNode sqlNode = CalciteParser.parse(select_sqls[i]);
             Assert.assertEquals(true, sqlNode.toString().contains(select_columns[i]));

@@ -24,9 +24,9 @@ package org.apache.spark.utils
 
 import java.util.{Map => JMap}
 
-import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
-import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, SparkJobConstants}
-import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
+import org.apache.kylin.cluster.{AvailableResource, IClusterManager, ResourceInfo}
+import org.apache.kylin.engine.spark.job.{KylinBuildEnv, SparkJobConstants}
+import org.apache.kylin.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.application.NoRetryException
 import org.apache.spark.internal.Logging

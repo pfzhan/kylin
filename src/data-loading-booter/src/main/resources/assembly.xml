@@ -39,12 +39,12 @@
     </fileSets>
     <files>
         <file>
-            <source>../yinglong-data-loading-booter/target/yinglong-data-loading-booter-${project.version}.jar</source>
+            <source>../data-loading-booter/target/data-loading-booter-${project.version}.jar</source>
             <outputDirectory>server/</outputDirectory>
             <destName>newten.jar</destName>
         </file>
         <file>
-            <source>../assembly/target/kap-assembly-${project.version}-job.jar</source>
+            <source>../assembly/target/kylin-assembly-${project.version}-job.jar</source>
             <outputDirectory>lib/</outputDirectory>
             <destName>newten-job.jar</destName>
         </file>
@@ -65,14 +65,14 @@
         <dependencySet>
             <outputDirectory>server/jars/</outputDirectory>
             <excludes>
-                <exclude>io.kyligence.yinglong:yinglong-data-loading-booter</exclude>
+                <exclude>org.apache.kylin:data-loading-booter</exclude>
             </excludes>
         </dependencySet>
         <dependencySet>
             <outputDirectory>spark/jars/</outputDirectory>
             <includes>
                 <include>*:log4j-*</include>
-                <include>*:kap-sparder*</include>
+                <include>*:kylin-sparder*</include>
             </includes>
         </dependencySet>
     </dependencySets>

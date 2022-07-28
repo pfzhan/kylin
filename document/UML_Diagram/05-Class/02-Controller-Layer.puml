@@ -1,0 +1,10 @@
+@startuml
+class ModelController
+
+class TableController
+
+class MetastoreController
+
+
+
+@enduml

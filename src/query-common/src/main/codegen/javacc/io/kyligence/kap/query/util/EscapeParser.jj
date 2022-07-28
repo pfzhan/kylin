@@ -5,7 +5,7 @@ options {
 }
 
 PARSER_BEGIN(EscapeParser)
-package io.kyligence.kap.query.util;
+package org.apache.kylin.query.util;
 
 import java.io.StringReader;
 import java.nio.charset.Charset;
@@ -703,7 +703,7 @@ String EscapeFunction() :
 {
     < FN >< FUNCTION_NAME >
     {
-        functionName = getToken(0).image; 
+        functionName = getToken(0).image;
     }
     < LPAREN > (<SPACE>)*
     (

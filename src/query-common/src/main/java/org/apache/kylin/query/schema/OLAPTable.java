@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -87,6 +81,12 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.common.util.CollectionUtil;
+import org.apache.kylin.metadata.model.ComputedColumnDesc;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.query.QueryExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,12 +95,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.util.CollectionUtil;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.QueryExtension;
 import lombok.val;
 
 /**
@@ -147,6 +141,46 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         this.modelsMap = modelsMap;
     }
 
+    public static RelDataType createSqlType(RelDataTypeFactory typeFactory, DataType dataType, boolean isNullable) {
+        SqlTypeName sqlTypeName = SQLTYPE_MAPPING.get(dataType.getName());
+        if (sqlTypeName == null) {
+            for (String reg : REGEX_SQLTYPE_MAPPING.keySet()) {
+                Pattern pattern = Pattern.compile(reg);
+                if (pattern.matcher(dataType.getName()).matches()) {
+                    sqlTypeName = REGEX_SQLTYPE_MAPPING.get(reg);
+                    break;
+                }
+            }
+        }
+
+        if (sqlTypeName == null)
+            throw new IllegalArgumentException("Unrecognized data type " + dataType);
+
+        int precision = dataType.getPrecision();
+        int scale = dataType.getScale();
+
+        RelDataType result;
+        if (sqlTypeName == SqlTypeName.ARRAY) {
+            String innerTypeName = dataType.getName().split("<|>")[1];
+            result = typeFactory.createArrayType(createSqlType(typeFactory, DataType.getType(innerTypeName), false),
+                    -1);
+        } else if (precision >= 0 && scale >= 0)
+            result = typeFactory.createSqlType(sqlTypeName, precision, scale);
+        else if (precision >= 0)
+            result = typeFactory.createSqlType(sqlTypeName, precision);
+        else
+            result = typeFactory.createSqlType(sqlTypeName);
+
+        // due to left join and uncertain data quality, dimension value can be null
+        if (isNullable) {
+            result = typeFactory.createTypeWithNullability(result, true);
+        } else {
+            result = typeFactory.createTypeWithNullability(result, false);
+        }
+
+        return result;
+    }
+
     public OLAPSchema getSchema() {
         return this.olapSchema;
     }
@@ -188,11 +222,13 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, kylinRelDataTypeFactory);
             typeList.add(sqlType);
             String project = this.sourceTable != null ? this.sourceTable.getProject() : null;
-            KylinConfig projectKylinConfig = StringUtils.isNotEmpty(project) ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(project).getConfig() : KylinConfig.getInstanceFromEnv();
+            KylinConfig projectKylinConfig = StringUtils.isNotEmpty(project)
+                    ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).getConfig()
+                    : KylinConfig.getInstanceFromEnv();
             String columnName = projectKylinConfig.getSourceNameCaseSensitiveEnabled()
                     ? StringUtils.isNotEmpty(column.getCaseSensitiveName()) ? column.getCaseSensitiveName()
-                    : column.getName() : column.getName();
+                            : column.getName()
+                    : column.getName();
             if (column.isComputedColumn()) {
                 fieldNameList.add(columnName);
                 colTypes.add(KylinRelDataTypeFieldImpl.ColumnType.CC_FIELD);
@@ -202,46 +238,6 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             }
         }
         return kylinRelDataTypeFactory.createStructType(StructKind.FULLY_QUALIFIED, typeList, fieldNameList, colTypes);
-    }
-
-    public static RelDataType createSqlType(RelDataTypeFactory typeFactory, DataType dataType, boolean isNullable) {
-        SqlTypeName sqlTypeName = SQLTYPE_MAPPING.get(dataType.getName());
-        if (sqlTypeName == null) {
-            for (String reg : REGEX_SQLTYPE_MAPPING.keySet()) {
-                Pattern pattern = Pattern.compile(reg);
-                if (pattern.matcher(dataType.getName()).matches()) {
-                    sqlTypeName = REGEX_SQLTYPE_MAPPING.get(reg);
-                    break;
-                }
-            }
-        }
-
-        if (sqlTypeName == null)
-            throw new IllegalArgumentException("Unrecognized data type " + dataType);
-
-        int precision = dataType.getPrecision();
-        int scale = dataType.getScale();
-
-        RelDataType result;
-        if (sqlTypeName == SqlTypeName.ARRAY) {
-            String innerTypeName = dataType.getName().split("<|>")[1];
-            result = typeFactory.createArrayType(createSqlType(typeFactory, DataType.getType(innerTypeName), false),
-                    -1);
-        } else if (precision >= 0 && scale >= 0)
-            result = typeFactory.createSqlType(sqlTypeName, precision, scale);
-        else if (precision >= 0)
-            result = typeFactory.createSqlType(sqlTypeName, precision);
-        else
-            result = typeFactory.createSqlType(sqlTypeName);
-
-        // due to left join and uncertain data quality, dimension value can be null
-        if (isNullable) {
-            result = typeFactory.createTypeWithNullability(result, true);
-        } else {
-            result = typeFactory.createTypeWithNullability(result, false);
-        }
-
-        return result;
     }
 
     private List<ColumnDesc> listSourceColumns() {
@@ -300,15 +296,13 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     private List<ComputedColumnDesc> getAuthorizedCC() {
         if (isACLDisabledOrAdmin()) {
             return removeDuplicatedNamedComputedCols(modelsMap.get(sourceTable.getIdentity()).stream()
-                    .map(NDataModel::getComputedColumnDescs)
-                    .flatMap(List::stream)
-                    .collect(Collectors.toList()));
+                    .map(NDataModel::getComputedColumnDescs).flatMap(List::stream).collect(Collectors.toList()));
         }
 
-        val authorizedCC = Lists.<ComputedColumnDesc>newArrayList();
-        val checkedCC = Sets.<ComputedColumnDesc>newHashSet();
+        val authorizedCC = Lists.<ComputedColumnDesc> newArrayList();
+        val checkedCC = Sets.<ComputedColumnDesc> newHashSet();
         for (NDataModel model : modelsMap.get(sourceTable.getIdentity())) {
-            val ccUsedColsMap = Maps.<String, Set<String>>newHashMap();
+            val ccUsedColsMap = Maps.<String, Set<String>> newHashMap();
             for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
                 if (checkedCC.contains(cc))
                     continue;
@@ -320,7 +314,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
                 if (checkedCC.contains(cc))
                     continue;
-                val ccUsedSourceCols = Sets.<String>newHashSet();
+                val ccUsedSourceCols = Sets.<String> newHashSet();
                 collectCCUsedSourceCols(cc.getColumnName(), ccUsedColsMap, ccUsedSourceCols);
                 if (isColumnAuthorized(ccUsedSourceCols)) {
                     authorizedCC.add(cc);
@@ -332,7 +326,8 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         return removeDuplicatedNamedComputedCols(authorizedCC);
     }
 
-    private void collectCCUsedSourceCols(String ccColName, Map<String, Set<String>> ccUsedColsMap, Set<String> ccUsedSourceCols) {
+    private void collectCCUsedSourceCols(String ccColName, Map<String, Set<String>> ccUsedColsMap,
+            Set<String> ccUsedSourceCols) {
         if (!ccUsedColsMap.containsKey(ccColName)) {
             ccUsedSourceCols.add(ccColName);
             return;
@@ -359,8 +354,8 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         String userName = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
-        return QueryExtension.getFactory().getTableColumnAuthExtension()
-                .isColumnsAuthorized(olapSchema.getConfig(), olapSchema.getProjectName(), userName, groups, ccSourceCols);
+        return QueryExtension.getFactory().getTableColumnAuthExtension().isColumnsAuthorized(olapSchema.getConfig(),
+                olapSchema.getProjectName(), userName, groups, ccSourceCols);
     }
 
     @Override

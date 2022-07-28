@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.kylin.rest.cache;
@@ -34,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.kyligence.kap.rest.service.CommonQueryCacheSupporter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -42,6 +35,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.CompressionUtils;
 import org.apache.kylin.rest.util.SerializeUtil;
+import org.apache.kylin.common.util.EncryptUtil;
+import org.apache.kylin.common.util.ThrowableUtils;
+import org.apache.kylin.rest.service.CommonQueryCacheSupporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,8 +47,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.util.EncryptUtil;
-import io.kyligence.kap.common.util.ThrowableUtils;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
@@ -178,7 +172,8 @@ public class RedisCache implements KylinCache {
         }
         String[] hostAndPorts = redisHosts.split(",");
         if (hostAndPorts == null || hostAndPorts.length < 1) {
-            throw new RuntimeException("redis client init failed because there are some errors in kylin.properties for 'kylin.cache.redis.hosts'");
+            throw new RuntimeException(
+                    "redis client init failed because there are some errors in kylin.properties for 'kylin.cache.redis.hosts'");
         }
         logger.info("The 'kylin.cache.redis.cluster-enabled' is {}", redisClusterEnabled);
         if (kylinConfig.isRedisClusterEnabled()) {
@@ -195,9 +190,11 @@ public class RedisCache implements KylinCache {
             config.setMinIdle(kylinConfig.getRedisMinIdle());
             config.setMaxWaitMillis(kylinConfig.getMaxWaitMillis());
             if (StringUtils.isNotBlank(redisPassword)) {
-                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), redisPassword, config);
+                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(),
+                        kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), redisPassword, config);
             } else {
-                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), config);
+                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(),
+                        kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), config);
             }
             logger.warn("jedis cluster is not support ping");
         } else {
@@ -210,7 +207,8 @@ public class RedisCache implements KylinCache {
             config.setMinIdle(kylinConfig.getRedisMinIdle());
             config.setTestOnBorrow(true);
             if (!StringUtils.isEmpty(redisPassword)) {
-                this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout(), redisPassword);
+                this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout(),
+                        redisPassword);
             } else {
                 this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout());
             }
@@ -308,9 +306,9 @@ public class RedisCache implements KylinCache {
             params.px(expireTime); // expire time in microsecond
         }
         if (ifExist.equals(NX)) {
-            params.nx();  // Only set the key if it does not already exist.
+            params.nx(); // Only set the key if it does not already exist.
         } else {
-            params.xx();  // Only set the key if it already exist.
+            params.xx(); // Only set the key if it already exist.
         }
         return params;
     }

@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package io.kyligence.kap.query.optrule;
@@ -58,10 +52,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-
 public class CorrReduceFunctionRule extends RelOptRule {
-    public static final CorrReduceFunctionRule INSTANCE = new CorrReduceFunctionRule(
-            operand(Aggregate.class, any()), RelFactories.LOGICAL_BUILDER, "CorrReduceFunctionRule");
+    public static final CorrReduceFunctionRule INSTANCE = new CorrReduceFunctionRule(operand(Aggregate.class, any()),
+            RelFactories.LOGICAL_BUILDER, "CorrReduceFunctionRule");
 
     public CorrReduceFunctionRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String discription) {
         super(operand, relBuilderFactory, discription);
@@ -128,7 +121,7 @@ public class CorrReduceFunctionRule extends RelOptRule {
     }
 
     private RexNode reduceAgg(Aggregate oldAggRel, AggregateCall oldCall, List<AggregateCall> newCalls,
-                              Map<AggregateCall, RexNode> aggCallMapping, List<RexNode> inputExprs) {
+            Map<AggregateCall, RexNode> aggCallMapping, List<RexNode> inputExprs) {
         if (CorrMeasureType.FUNC_CORR.equals(oldCall.getAggregation().getName())) {
             return reduceCORR(oldAggRel, oldCall, newCalls, aggCallMapping, inputExprs);
         } else {
@@ -151,7 +144,7 @@ public class CorrReduceFunctionRule extends RelOptRule {
      *        0.5)
      */
     private RexNode reduceCORR(Aggregate oldAggRel, AggregateCall oldCall, List<AggregateCall> newCalls,
-                               Map<AggregateCall, RexNode> aggCallMapping, List<RexNode> inputExprs) {
+            Map<AggregateCall, RexNode> aggCallMapping, List<RexNode> inputExprs) {
         final int oldNGroups = oldAggRel.getGroupCount();
         RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
 
@@ -170,13 +163,13 @@ public class CorrReduceFunctionRule extends RelOptRule {
         final AggregateCall sumXCall = AggregateCall.create(SqlStdOperatorTable.SUM, oldCall.isDistinct(),
                 ImmutableIntList.of(iInputX), oldCall.filterArg, oldAggRel.getGroupCount(), oldAggRel.getInput(), null,
                 null);
-        final RexNode sumX = castToDouble.apply(rexBuilder.addAggCall(sumXCall, oldNGroups, oldAggRel.indicator, newCalls, aggCallMapping,
-                ImmutableList.of(inputExprs.get(iInputX).getType())));
+        final RexNode sumX = castToDouble.apply(rexBuilder.addAggCall(sumXCall, oldNGroups, oldAggRel.indicator,
+                newCalls, aggCallMapping, ImmutableList.of(inputExprs.get(iInputX).getType())));
         final AggregateCall sumYCall = AggregateCall.create(SqlStdOperatorTable.SUM, oldCall.isDistinct(),
                 ImmutableIntList.of(iInputY), oldCall.filterArg, oldAggRel.getGroupCount(), oldAggRel.getInput(), null,
                 null);
-        final RexNode sumY = castToDouble.apply(rexBuilder.addAggCall(sumYCall, oldNGroups, oldAggRel.indicator, newCalls, aggCallMapping,
-                ImmutableList.of(inputExprs.get(iInputY).getType())));
+        final RexNode sumY = castToDouble.apply(rexBuilder.addAggCall(sumYCall, oldNGroups, oldAggRel.indicator,
+                newCalls, aggCallMapping, ImmutableList.of(inputExprs.get(iInputY).getType())));
 
         // build RexNode of sum(x) * sum(x), sum(x) * sum(y) and sum(y) * sum(y)
         final RexNode sumNodeXSquared = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumX, sumX);
@@ -184,12 +177,12 @@ public class CorrReduceFunctionRule extends RelOptRule {
         final RexNode sumNodeYSquared = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumY, sumY);
 
         // build RexNode of sum(x * x), sum(y * y) and sum(x * y)
-        final RexNode sumArgXSquared = castToDouble.apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping,
-                argX, argX));
-        final RexNode sumArgYSquared = castToDouble.apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping,
-                argY, argY));
-        final RexNode sumArgXY = castToDouble.apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping, argX,
-                argY));
+        final RexNode sumArgXSquared = castToDouble
+                .apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping, argX, argX));
+        final RexNode sumArgYSquared = castToDouble
+                .apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping, argY, argY));
+        final RexNode sumArgXY = castToDouble
+                .apply(buildMultiplyRexNode(oldAggRel, oldCall, inputExprs, newCalls, aggCallMapping, argX, argY));
 
         // build count()
         final AggregateCall countAggCall = AggregateCall.create(SqlStdOperatorTable.COUNT, oldCall.isDistinct(),
@@ -213,9 +206,11 @@ public class CorrReduceFunctionRule extends RelOptRule {
         // to be consistant with spark
         // count = 0 -> null
         // correlation = 0 -> null
-        final RexNode corr = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, castToDouble.apply(covNode), castToDouble.apply(divisor));
+        final RexNode corr = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, castToDouble.apply(covNode),
+                castToDouble.apply(divisor));
         final List<RexNode> caseWhenArgs = new LinkedList<>();
-        caseWhenArgs.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, countArg, rexBuilder.makeZeroLiteral(divisor.getType())));
+        caseWhenArgs.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, countArg,
+                rexBuilder.makeZeroLiteral(divisor.getType())));
         caseWhenArgs.add(rexBuilder.makeNullLiteral(DOUBLE_TYPE));
         caseWhenArgs.add(corr);
         final RexNode corrWithCountChecking = rexBuilder.makeCall(DOUBLE_TYPE, SqlStdOperatorTable.CASE, caseWhenArgs);
@@ -238,10 +233,11 @@ public class CorrReduceFunctionRule extends RelOptRule {
     }
 
     private RexNode buildMultiplyRexNode(Aggregate oldAggRel, AggregateCall oldCall, List<RexNode> inputExprs,
-                                         List<AggregateCall> newCalls, Map<AggregateCall, RexNode> aggCallMapping, RexNode rexNodeX,
-                                         RexNode rexNodeY) {
+            List<AggregateCall> newCalls, Map<AggregateCall, RexNode> aggCallMapping, RexNode rexNodeX,
+            RexNode rexNodeY) {
         final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
-        final RexNode rexNodeXY = rexBuilder.makeCall(resultType(), SqlStdOperatorTable.MULTIPLY, Lists.<RexNode> newArrayList(rexNodeX, rexNodeY));
+        final RexNode rexNodeXY = rexBuilder.makeCall(resultType(), SqlStdOperatorTable.MULTIPLY,
+                Lists.<RexNode> newArrayList(rexNodeX, rexNodeY));
         final int argXYSquaredOrdinal = lookupOrAdd(inputExprs, rexNodeXY);
         final int nGroups = oldAggRel.getGroupCount();
 
@@ -255,8 +251,8 @@ public class CorrReduceFunctionRule extends RelOptRule {
                 ImmutableList.of(inputExprs.get(argXYSquaredOrdinal).getType()));
     }
 
-    private static final RelDataType DOUBLE_TYPE =
-            new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT).createSqlType(SqlTypeName.DOUBLE);
+    private static final RelDataType DOUBLE_TYPE = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT)
+            .createSqlType(SqlTypeName.DOUBLE);
 
     private RelDataType resultType() {
         return DOUBLE_TYPE;

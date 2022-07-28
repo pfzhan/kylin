@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -89,6 +83,15 @@ import org.apache.kylin.rest.security.ExternalAclProvider;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.apache.kylin.common.persistence.transaction.AccessBatchGrantEventNotifier;
+import org.apache.kylin.common.persistence.transaction.AccessGrantEventNotifier;
+import org.apache.kylin.common.persistence.transaction.AccessRevokeEventNotifier;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.user.ManagedUser;
+import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.request.AccessRequest;
+import org.apache.kylin.rest.response.AclTCRResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,16 +120,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.AccessBatchGrantEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.AccessGrantEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.AccessRevokeEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.aspect.Transaction;
-import io.kyligence.kap.rest.request.AccessRequest;
-import io.kyligence.kap.rest.response.AclTCRResponse;
-import io.kyligence.kap.rest.service.AclTCRServiceSupporter;
 import lombok.val;
 
 @Component("accessService")
@@ -710,17 +703,14 @@ public class AccessService extends BasicService {
     public Set<String> getProjectAdminUsers(String project) throws IOException {
         MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
         Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(acl);
-        return userService.listUsers().parallelStream().filter(
-                user -> {
-                    Set<String> userGroupsInProject = user.getAuthorities().stream()
-                            .map(SimpleGrantedAuthority::getAuthority).filter(groupsInProject::contains)
-                            .collect(Collectors.toSet());
+        return userService.listUsers().parallelStream().filter(user -> {
+            Set<String> userGroupsInProject = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority)
+                    .filter(groupsInProject::contains).collect(Collectors.toSet());
 
-                    return user.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                            .anyMatch(ROLE_ADMIN::equals)
-                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
-                                    ADMINISTRATION, acl);
-                }).map(ManagedUser::getUsername).collect(Collectors.toSet());
+            return user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+                    || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                            ADMINISTRATION, acl);
+        }).map(ManagedUser::getUsername).collect(Collectors.toSet());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -728,25 +718,16 @@ public class AccessService extends BasicService {
         MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
         Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(acl);
         AclPermissionUtil.filterGroupsInProject(acl);
-        return userService.listUsers().parallelStream().filter(
-                user -> {
-                    Set<String> userGroupsInProject = user.getAuthorities()
-                            .stream()
-                            .map(SimpleGrantedAuthority::getAuthority)
-                            .filter(groupsInProject::contains)
-                            .collect(Collectors.toSet());
+        return userService.listUsers().parallelStream().filter(user -> {
+            Set<String> userGroupsInProject = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority)
+                    .filter(groupsInProject::contains).collect(Collectors.toSet());
 
-                    return user.getAuthorities()
-                            .stream()
-                            .map(GrantedAuthority::getAuthority)
-                            .anyMatch(ROLE_ADMIN::equals)
-                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
-                                    ADMINISTRATION, acl)
-                            || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
-                                    AclPermission.MANAGEMENT, acl);
-                })
-                .map(ManagedUser::getUsername)
-                .collect(Collectors.toSet());
+            return user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+                    || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                            ADMINISTRATION, acl)
+                    || AclPermissionUtil.isSpecificPermissionInProject(user.getUsername(), userGroupsInProject,
+                            AclPermission.MANAGEMENT, acl);
+        }).map(ManagedUser::getUsername).collect(Collectors.toSet());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")

@@ -1,28 +1,21 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,16 +36,17 @@
 
 package org.apache.kylin.measure.hllc;
 
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
-import org.apache.kylin.common.util.BytesUtil;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
+
+import org.apache.kylin.common.util.BytesUtil;
+
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 
 @SuppressWarnings("serial")
 public class HLLCounter implements Serializable, Comparable<HLLCounter> {
@@ -124,7 +118,7 @@ public class HLLCounter implements Serializable, Comparable<HLLCounter> {
         add(hashFunc.hashBytes(value, offset, length).asLong());
     }
 
-    public void addHashDirectly(long hash){
+    public void addHashDirectly(long hash) {
         add(hash);
     }
 
@@ -166,36 +160,36 @@ public class HLLCounter implements Serializable, Comparable<HLLCounter> {
         assert this.p == another.p;
         assert this.hashFunc == another.hashFunc;
         switch (register.getRegisterType()) {
+        case SINGLE_VALUE:
+            switch (another.getRegisterType()) {
             case SINGLE_VALUE:
-                switch (another.getRegisterType()) {
-                    case SINGLE_VALUE:
-                        if (register.getSize() > 0 && another.register.getSize() > 0) {
-                            register = ((SingleValueRegister) register).toSparse();
-                        } else {
-                            SingleValueRegister sr = (SingleValueRegister) another.register;
-                            if (sr.getSize() > 0)
-                                register.set(sr.getSingleValuePos(), sr.getValue());
-                            return;
-                        }
-                        break;
-                    case SPARSE:
-                        register = ((SingleValueRegister) register).toSparse();
-                        break;
-                    case DENSE:
-                        register = ((SingleValueRegister) register).toDense(this.p);
-                        break;
-                    default:
-                        break;
+                if (register.getSize() > 0 && another.register.getSize() > 0) {
+                    register = ((SingleValueRegister) register).toSparse();
+                } else {
+                    SingleValueRegister sr = (SingleValueRegister) another.register;
+                    if (sr.getSize() > 0)
+                        register.set(sr.getSingleValuePos(), sr.getValue());
+                    return;
                 }
-
                 break;
             case SPARSE:
-                if (another.getRegisterType() == RegisterType.DENSE) {
-                    register = ((SparseRegister) register).toDense(p);
-                }
+                register = ((SingleValueRegister) register).toSparse();
+                break;
+            case DENSE:
+                register = ((SingleValueRegister) register).toDense(this.p);
                 break;
             default:
                 break;
+            }
+
+            break;
+        case SPARSE:
+            if (another.getRegisterType() == RegisterType.DENSE) {
+                register = ((SparseRegister) register).toDense(p);
+            }
+            break;
+        default:
+            break;
         }
         register.merge(another.register);
         toDenseIfNeeded();
@@ -277,7 +271,8 @@ public class HLLCounter implements Serializable, Comparable<HLLCounter> {
             double er2 = Math.round(rate * 2 * 10000) / 100D;
             double er3 = Math.round(rate * 3 * 10000) / 100D;
             long size = Math.round(Math.pow(2, p));
-            System.out.println("HLLC" + p + ",\t" + size + " bytes,\t68% err<" + er + "%" + ",\t95% err<" + er2 + "%" + ",\t99.7% err<" + er3 + "%");
+            System.out.println("HLLC" + p + ",\t" + size + " bytes,\t68% err<" + er + "%" + ",\t95% err<" + er2 + "%"
+                    + ",\t99.7% err<" + er3 + "%");
         }
     }
 

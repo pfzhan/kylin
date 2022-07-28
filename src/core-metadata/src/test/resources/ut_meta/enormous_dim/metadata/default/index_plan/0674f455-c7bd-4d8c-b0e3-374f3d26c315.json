@@ -319,14 +319,13 @@
           ],
           "joint_dims": []
         }
-
       }
     ],
     "storage_type": 20
   },
   "override_properties": {},
-  "next_aggregation_index_id" : 12000,
-  "next_table_index_id" : 20000000000,
+  "next_aggregation_index_id": 12000,
+  "next_table_index_id": 20000000000,
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

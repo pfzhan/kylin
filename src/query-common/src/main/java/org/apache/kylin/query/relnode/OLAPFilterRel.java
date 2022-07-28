@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -94,107 +88,8 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
         REVERSE_OP_MAP.put(SqlKind.OR, SqlKind.AND);
     }
 
-    protected static class FilterVisitor extends RexVisitorImpl<Void> {
-
-        final ColumnRowType inputRowType;
-        final Set<TblColRef> filterColumns;
-        final Stack<TblColRef.FilterColEnum> tmpLevels;
-        final Stack<Boolean> reverses;
-
-        public FilterVisitor(ColumnRowType inputRowType, Set<TblColRef> filterColumns) {
-            super(true);
-            this.inputRowType = inputRowType;
-            this.filterColumns = filterColumns;
-            this.tmpLevels = new Stack<>();
-            this.tmpLevels.add(TblColRef.FilterColEnum.NONE);
-            this.reverses = new Stack<>();
-            this.reverses.add(false);
-        }
-
-        @Override
-        public Void visitCall(RexCall call) {
-            SqlOperator op = call.getOperator();
-            SqlKind kind = op.getKind();
-            if (kind == SqlKind.CAST || kind == SqlKind.REINTERPRET) {
-                for (RexNode operand : call.operands) {
-                    operand.accept(this);
-                }
-                return null;
-            }
-            if (op.getKind() == SqlKind.NOT) {
-                reverses.add(!reverses.peek());
-            } else {
-                if (reverses.peek()) {
-                    kind = REVERSE_OP_MAP.get(kind);
-                    if (kind == SqlKind.AND || kind == SqlKind.OR) {
-                        reverses.add(true);
-                    } else {
-                        reverses.add(false);
-                    }
-                } else {
-                    reverses.add(false);
-                }
-            }
-            TblColRef.FilterColEnum tmpLevel = TblColRef.FilterColEnum.NONE;
-            if (kind == SqlKind.EQUALS) {
-                tmpLevel = TblColRef.FilterColEnum.EQUAL_FILTER;
-            } else if (kind == SqlKind.IS_NULL) {
-                tmpLevel = TblColRef.FilterColEnum.INFERIOR_EQUAL_FILTER;
-            } else if (isRangeFilter(kind)) {
-                tmpLevel = TblColRef.FilterColEnum.RANGE_FILTER;
-            } else if (kind == SqlKind.LIKE) {
-                tmpLevel = TblColRef.FilterColEnum.LIKE_FILTER;
-            } else {
-                tmpLevel = TblColRef.FilterColEnum.OTHER_FILTER;
-            }
-            tmpLevels.add(tmpLevel);
-            for (RexNode operand : call.operands) {
-                operand.accept(this);
-            }
-            tmpLevels.pop();
-            reverses.pop();
-            return null;
-        }
-
-        boolean isRangeFilter(SqlKind sqlKind) {
-            return sqlKind == SqlKind.NOT_EQUALS || sqlKind == SqlKind.GREATER_THAN || sqlKind == SqlKind.LESS_THAN
-                    || sqlKind == SqlKind.GREATER_THAN_OR_EQUAL || sqlKind == SqlKind.LESS_THAN_OR_EQUAL
-                    || sqlKind == SqlKind.IS_NOT_NULL;
-        }
-
-        @Override
-        public Void visitInputRef(RexInputRef inputRef) {
-            TblColRef column = inputRowType.getColumnByIndex(inputRef.getIndex());
-            TblColRef.FilterColEnum tmpLevel = tmpLevels.peek();
-            collect(column, tmpLevel);
-            return null;
-        }
-
-        private void collect(TblColRef column, TblColRef.FilterColEnum tmpLevel) {
-            if (!column.isInnerColumn()) {
-                filterColumns.add(column);
-                if (tmpLevel.getPriority() > column.getFilterLevel().getPriority()) {
-                    column.setFilterLevel(tmpLevel);
-                }
-                return;
-            }
-            if (column.isAggregationColumn()) {
-                return;
-            }
-            List<TblColRef> children = column.getOperands();
-            if (children == null) {
-                return;
-            }
-            for (TblColRef child : children) {
-                collect(child, tmpLevel);
-            }
-
-        }
-    }
-
     protected ColumnRowType columnRowType;
     protected OLAPContext context;
-
     public OLAPFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
         super(cluster, traits, child, condition);
         Preconditions.checkArgument(getConvention() == CONVENTION);
@@ -298,5 +193,103 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
     public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw).item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+    }
+
+    protected static class FilterVisitor extends RexVisitorImpl<Void> {
+
+        final ColumnRowType inputRowType;
+        final Set<TblColRef> filterColumns;
+        final Stack<TblColRef.FilterColEnum> tmpLevels;
+        final Stack<Boolean> reverses;
+
+        public FilterVisitor(ColumnRowType inputRowType, Set<TblColRef> filterColumns) {
+            super(true);
+            this.inputRowType = inputRowType;
+            this.filterColumns = filterColumns;
+            this.tmpLevels = new Stack<>();
+            this.tmpLevels.add(TblColRef.FilterColEnum.NONE);
+            this.reverses = new Stack<>();
+            this.reverses.add(false);
+        }
+
+        @Override
+        public Void visitCall(RexCall call) {
+            SqlOperator op = call.getOperator();
+            SqlKind kind = op.getKind();
+            if (kind == SqlKind.CAST || kind == SqlKind.REINTERPRET) {
+                for (RexNode operand : call.operands) {
+                    operand.accept(this);
+                }
+                return null;
+            }
+            if (op.getKind() == SqlKind.NOT) {
+                reverses.add(!reverses.peek());
+            } else {
+                if (reverses.peek()) {
+                    kind = REVERSE_OP_MAP.get(kind);
+                    if (kind == SqlKind.AND || kind == SqlKind.OR) {
+                        reverses.add(true);
+                    } else {
+                        reverses.add(false);
+                    }
+                } else {
+                    reverses.add(false);
+                }
+            }
+            TblColRef.FilterColEnum tmpLevel = TblColRef.FilterColEnum.NONE;
+            if (kind == SqlKind.EQUALS) {
+                tmpLevel = TblColRef.FilterColEnum.EQUAL_FILTER;
+            } else if (kind == SqlKind.IS_NULL) {
+                tmpLevel = TblColRef.FilterColEnum.INFERIOR_EQUAL_FILTER;
+            } else if (isRangeFilter(kind)) {
+                tmpLevel = TblColRef.FilterColEnum.RANGE_FILTER;
+            } else if (kind == SqlKind.LIKE) {
+                tmpLevel = TblColRef.FilterColEnum.LIKE_FILTER;
+            } else {
+                tmpLevel = TblColRef.FilterColEnum.OTHER_FILTER;
+            }
+            tmpLevels.add(tmpLevel);
+            for (RexNode operand : call.operands) {
+                operand.accept(this);
+            }
+            tmpLevels.pop();
+            reverses.pop();
+            return null;
+        }
+
+        boolean isRangeFilter(SqlKind sqlKind) {
+            return sqlKind == SqlKind.NOT_EQUALS || sqlKind == SqlKind.GREATER_THAN || sqlKind == SqlKind.LESS_THAN
+                    || sqlKind == SqlKind.GREATER_THAN_OR_EQUAL || sqlKind == SqlKind.LESS_THAN_OR_EQUAL
+                    || sqlKind == SqlKind.IS_NOT_NULL;
+        }
+
+        @Override
+        public Void visitInputRef(RexInputRef inputRef) {
+            TblColRef column = inputRowType.getColumnByIndex(inputRef.getIndex());
+            TblColRef.FilterColEnum tmpLevel = tmpLevels.peek();
+            collect(column, tmpLevel);
+            return null;
+        }
+
+        private void collect(TblColRef column, TblColRef.FilterColEnum tmpLevel) {
+            if (!column.isInnerColumn()) {
+                filterColumns.add(column);
+                if (tmpLevel.getPriority() > column.getFilterLevel().getPriority()) {
+                    column.setFilterLevel(tmpLevel);
+                }
+                return;
+            }
+            if (column.isAggregationColumn()) {
+                return;
+            }
+            List<TblColRef> children = column.getOperands();
+            if (children == null) {
+                return;
+            }
+            for (TblColRef child : children) {
+                collect(child, tmpLevel);
+            }
+
+        }
     }
 }

@@ -130,7 +130,7 @@
       "id" : 9,
       "values" : [ "un" ]
     } ],
-    "partition_condition_builder" : "io.kyligence.kap.metadata.model.MultiPartitionDesc$DefaultMultiPartitionConditionBuilder",
+    "partition_condition_builder" : "org.apache.kylin.metadata.model.MultiPartitionDesc$DefaultMultiPartitionConditionBuilder",
     "max_partition_id" : 9
   },
   "multi_partition_key_mapping" : null

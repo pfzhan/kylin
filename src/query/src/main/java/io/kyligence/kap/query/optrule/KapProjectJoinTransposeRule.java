@@ -1,28 +1,20 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
-
 
 package io.kyligence.kap.query.optrule;
 
@@ -53,9 +45,8 @@ public class KapProjectJoinTransposeRule extends RelOptRule {
         }
     }
 
-    public static final KapProjectJoinTransposeRule INSTANCE =
-            new KapProjectJoinTransposeRule(new SkipOverConidtion(),
-                    RelFactories.LOGICAL_BUILDER);
+    public static final KapProjectJoinTransposeRule INSTANCE = new KapProjectJoinTransposeRule(new SkipOverConidtion(),
+            RelFactories.LOGICAL_BUILDER);
 
     public static final String KY = "_KY_";
 
@@ -74,13 +65,9 @@ public class KapProjectJoinTransposeRule extends RelOptRule {
      * @param preserveExprCondition Condition for expressions that should be
      *                              preserved in the projection
      */
-    public KapProjectJoinTransposeRule(
-            PushProjector.ExprCondition preserveExprCondition,
+    public KapProjectJoinTransposeRule(PushProjector.ExprCondition preserveExprCondition,
             RelBuilderFactory relFactory) {
-        super(
-                operand(Project.class,
-                        operand(Join.class, any())),
-                relFactory, null);
+        super(operand(Project.class, operand(Join.class, any())), relFactory, null);
         this.preserveExprCondition = preserveExprCondition;
     }
 
@@ -128,62 +115,35 @@ public class KapProjectJoinTransposeRule extends RelOptRule {
         // determine which inputs are referenced in the projection and
         // join condition; if all fields are being referenced and there are no
         // special expressions, no point in proceeding any further
-        PushProjector pushProject =
-                new PushProjector(
-                        origProj,
-                        join.getCondition(),
-                        join,
-                        preserveExprCondition,
-                        call.builder());
+        PushProjector pushProject = new PushProjector(origProj, join.getCondition(), join, preserveExprCondition,
+                call.builder());
         if (pushProject.locateAllRefs()) {
             return;
         }
 
         // create left and right projections, projecting only those
         // fields referenced on each side
-        RelNode leftProjRel =
-                pushProject.createProjectRefsAndExprs(
-                        join.getLeft(),
-                        true,
-                        false);
-        RelNode rightProjRel =
-                pushProject.createProjectRefsAndExprs(
-                        join.getRight(),
-                        true,
-                        true);
+        RelNode leftProjRel = pushProject.createProjectRefsAndExprs(join.getLeft(), true, false);
+        RelNode rightProjRel = pushProject.createProjectRefsAndExprs(join.getRight(), true, true);
 
         // convert the join condition to reference the projected columns
         RexNode newJoinFilter = null;
         int[] adjustments = pushProject.getAdjustments();
         if (join.getCondition() != null) {
             List<RelDataTypeField> projJoinFieldList = new ArrayList<>();
-            projJoinFieldList.addAll(
-                    join.getSystemFieldList());
-            projJoinFieldList.addAll(
-                    leftProjRel.getRowType().getFieldList());
-            projJoinFieldList.addAll(
-                    rightProjRel.getRowType().getFieldList());
-            newJoinFilter =
-                    pushProject.convertRefsAndExprs(
-                            join.getCondition(),
-                            projJoinFieldList,
-                            adjustments);
+            projJoinFieldList.addAll(join.getSystemFieldList());
+            projJoinFieldList.addAll(leftProjRel.getRowType().getFieldList());
+            projJoinFieldList.addAll(rightProjRel.getRowType().getFieldList());
+            newJoinFilter = pushProject.convertRefsAndExprs(join.getCondition(), projJoinFieldList, adjustments);
         }
 
         // create a new join with the projected children
-        Join newJoinRel =
-                join.copy(
-                        join.getTraitSet(),
-                        newJoinFilter,
-                        leftProjRel,
-                        rightProjRel,
-                        join.getJoinType(),
-                        join.isSemiJoinDone());
+        Join newJoinRel = join.copy(join.getTraitSet(), newJoinFilter, leftProjRel, rightProjRel, join.getJoinType(),
+                join.isSemiJoinDone());
 
         // put the original project on top of the join, converting it to
         // reference the modified projection list
-        RelNode topProject =
-                pushProject.createNewProject(newJoinRel, adjustments);
+        RelNode topProject = pushProject.createNewProject(newJoinRel, adjustments);
 
         call.transformTo(topProject);
     }

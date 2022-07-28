@@ -1,28 +1,21 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,7 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -58,10 +50,12 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.metadata.tuple.TupleInfo;
 
+import com.google.common.collect.Lists;
+
 /**
- * MeasureType captures how a kind of aggregation is defined, how it is calculated 
+ * MeasureType captures how a kind of aggregation is defined, how it is calculated
  * during cube build, and how it is involved in query and storage scan.
- * 
+ *
  * @param <T> the Java type of aggregation data object, e.g. HLLCounter
  */
 abstract public class MeasureType<T> implements java.io.Serializable {
@@ -76,8 +70,8 @@ abstract public class MeasureType<T> implements java.io.Serializable {
         return;
     }
 
-    /** Although most aggregated object takes only 8 bytes like long or double, 
-     * some advanced aggregation like HyperLogLog or TopN can consume more than 10 KB for 
+    /** Although most aggregated object takes only 8 bytes like long or double,
+     * some advanced aggregation like HyperLogLog or TopN can consume more than 10 KB for
      * each object, which requires special care on memory allocation. */
     public boolean isMemoryHungry() {
         return false;
@@ -108,20 +102,21 @@ abstract public class MeasureType<T> implements java.io.Serializable {
      * ---------------------------------------------------------------------------- */
 
     /**
-     * Some special measures hold columns which are usually treated as dimensions (or vice-versa). 
+     * Some special measures hold columns which are usually treated as dimensions (or vice-versa).
      * This is where they override to influence cube capability check.
-     * 
+     *
      * A SQLDigest contains dimensions and measures extracted from a query. After comparing to
      * cube definition, the matched dimensions and measures are crossed out, and what's left is
      * the <code>unmatchedDimensions</code> and <code>unmatchedAggregations</code>.
-     * 
+     *
      * Each measure type on the cube is then called on this method to check if any of the unmatched
      * can be fulfilled. If a measure type cannot fulfill any of the unmatched, it simply return null.
      * Or otherwise, <code>unmatchedDimensions</code> and <code>unmatchedAggregations</code> must
      * be modified to drop the satisfied dimension or measure, and a CapabilityInfluence object
      * must be returned to mark the contribution of this measure type.
      */
-    public CapabilityInfluence influenceCapabilityCheck(Collection<TblColRef> unmatchedDimensions, Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, MeasureDesc measureDesc) {
+    public CapabilityInfluence influenceCapabilityCheck(Collection<TblColRef> unmatchedDimensions,
+            Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, MeasureDesc measureDesc) {
         return null;
     }
 
@@ -150,7 +145,7 @@ abstract public class MeasureType<T> implements java.io.Serializable {
      * ---------------------------------------------------------------------------- */
 
     /**
-     * Some special measures hold columns which are usually treated as dimensions (or vice-versa). 
+     * Some special measures hold columns which are usually treated as dimensions (or vice-versa).
      * They need to adjust dimensions and measures in <code>sqlDigest</code> before scanning,
      * such that correct cuboid and measures can be selected by storage.
      */
@@ -168,7 +163,8 @@ abstract public class MeasureType<T> implements java.io.Serializable {
     }
 
     /** The advanced filling mode, multiple tuples per storage record. */
-    public IAdvMeasureFiller getAdvancedTupleFiller(FunctionDesc function, TupleInfo returnTupleInfo, Map<TblColRef, Dictionary<String>> dictionaryMap) {
+    public IAdvMeasureFiller getAdvancedTupleFiller(FunctionDesc function, TupleInfo returnTupleInfo,
+            Map<TblColRef, Dictionary<String>> dictionaryMap) {
         throw new UnsupportedOperationException();
     }
 

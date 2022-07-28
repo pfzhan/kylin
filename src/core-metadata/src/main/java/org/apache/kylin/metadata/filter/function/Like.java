@@ -1,28 +1,21 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,7 +45,10 @@ package org.apache.kylin.metadata.filter.function;
 public class Like {
     private static final String JAVA_REGEX_SPECIALS = "[]()|^-+*?{}$\\";
     private static final String SQL_SIMILAR_SPECIALS = "[]()|^-+*_%?{}";
-    private static final String[] REG_CHAR_CLASSES = { "[:ALPHA:]", "\\p{Alpha}", "[:alpha:]", "\\p{Alpha}", "[:UPPER:]", "\\p{Upper}", "[:upper:]", "\\p{Upper}", "[:LOWER:]", "\\p{Lower}", "[:lower:]", "\\p{Lower}", "[:DIGIT:]", "\\d", "[:digit:]", "\\d", "[:SPACE:]", " ", "[:space:]", " ", "[:WHITESPACE:]", "\\s", "[:whitespace:]", "\\s", "[:ALNUM:]", "\\p{Alnum}", "[:alnum:]", "\\p{Alnum}" };
+    private static final String[] REG_CHAR_CLASSES = { "[:ALPHA:]", "\\p{Alpha}", "[:alpha:]", "\\p{Alpha}",
+            "[:UPPER:]", "\\p{Upper}", "[:upper:]", "\\p{Upper}", "[:LOWER:]", "\\p{Lower}", "[:lower:]", "\\p{Lower}",
+            "[:DIGIT:]", "\\d", "[:digit:]", "\\d", "[:SPACE:]", " ", "[:space:]", " ", "[:WHITESPACE:]", "\\s",
+            "[:whitespace:]", "\\s", "[:ALNUM:]", "\\p{Alnum}", "[:alnum:]", "\\p{Alnum}" };
 
     private Like() {
     }
@@ -154,7 +150,8 @@ public class Like {
         return new RuntimeException("Invalid regular expression '" + pattern + "'");
     }
 
-    private static int sqlSimilarRewriteCharEnumeration(String sqlPattern, StringBuilder javaPattern, int pos, char escapeChar) {
+    private static int sqlSimilarRewriteCharEnumeration(String sqlPattern, StringBuilder javaPattern, int pos,
+            char escapeChar) {
         int i;
         for (i = pos + 1; i < sqlPattern.length(); i++) {
             char c = sqlPattern.charAt(i);

@@ -3,16 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>YingLong - Query Server</name>
-    <groupId>io.kyligence.yinglong</groupId>
-    <artifactId>yinglong-query-server</artifactId>
+    <name>Kylin - Query Server</name>
+    <groupId>org.apache.kylin</groupId>
+    <artifactId>kylin-query-server</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -24,38 +24,38 @@
         <!--Add dependencies of KAP extensions-->
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-common-service</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-query-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-query-service</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-build-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-data-loading-service</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-job-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-job-service</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-common</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-common</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-systools</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-systools</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-integration-service</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-integration-service</artifactId>
         </dependency>
 
         <!--Env & Test-->

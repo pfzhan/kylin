@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -91,21 +85,38 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.NewQueryRefuseException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.hystrix.NCircuitBreaker;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.scheduler.EventBusFactory;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.acl.AclTCR;
+import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.query.BigQueryThresholdUpdater;
+import org.apache.kylin.metadata.query.NativeQueryRealization;
+import org.apache.kylin.metadata.query.QueryHistory;
+import org.apache.kylin.metadata.query.QueryHistorySql;
+import org.apache.kylin.metadata.query.QueryHistorySqlParam;
+import org.apache.kylin.metadata.query.QueryMetricsContext;
+import org.apache.kylin.metadata.query.StructField;
+import org.apache.kylin.metadata.query.util.QueryHistoryUtil;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -117,11 +128,27 @@ import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.blacklist.SQLBlacklistItem;
 import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.calcite.KEDialect;
+import org.apache.kylin.query.engine.AsyncQueryJob;
+import org.apache.kylin.query.engine.PrepareSqlStateParam;
+import org.apache.kylin.query.engine.QueryExec;
+import org.apache.kylin.query.engine.QueryRoutingEngine;
+import org.apache.kylin.query.engine.SchemaMetaData;
+import org.apache.kylin.query.engine.data.QueryResult;
+import org.apache.kylin.query.engine.data.TableSchema;
+import org.apache.kylin.query.exception.NotSupportedSQLException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.KapQueryUtil;
 import org.apache.kylin.query.util.QueryLimiter;
+import org.apache.kylin.query.util.QueryModelPriorities;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.query.util.RawSql;
+import org.apache.kylin.query.util.RawSqlParser;
+import org.apache.kylin.query.util.TokenMgrError;
+import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.cluster.ClusterManager;
+import org.apache.kylin.rest.config.AppConfig;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -159,42 +186,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.gson.Gson;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.logging.SetLogCategory;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.metadata.acl.AclTCR;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.BigQueryThresholdUpdater;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistorySql;
-import io.kyligence.kap.metadata.query.QueryHistorySqlParam;
-import io.kyligence.kap.metadata.query.QueryMetricsContext;
-import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
-import io.kyligence.kap.query.engine.AsyncQueryJob;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.engine.QueryRoutingEngine;
-import io.kyligence.kap.query.engine.SchemaMetaData;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.engine.data.TableSchema;
-import io.kyligence.kap.query.exception.NotSupportedSQLException;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.query.util.QueryModelPriorities;
-import io.kyligence.kap.query.util.RawSql;
-import io.kyligence.kap.query.util.RawSqlParser;
-import io.kyligence.kap.query.util.TokenMgrError;
-import io.kyligence.kap.rest.aspect.Transaction;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.service.AclTCRServiceSupporter;
-import io.kyligence.kap.rest.service.QueryCacheManager;
-import io.kyligence.kap.rest.service.QueryHistoryScheduler;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -509,7 +500,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());
         }
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId());
-                SetLogCategory ignored2 = new SetLogCategory("query")) {
+             SetLogCategory ignored2 = new SetLogCategory("query")) {
             if (sqlRequest.getExecuteAs() != null)
                 sqlRequest.setUsername(sqlRequest.getExecuteAs());
             else
@@ -1091,7 +1082,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
 
                 if (!colmnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
                         && (targetModelColumns == null || targetModelColumns.contains(colmnMeta.getTABLE_SCHEM() + "."
-                                + colmnMeta.getTABLE_NAME() + "." + colmnMeta.getCOLUMN_NAME()))) {
+                        + colmnMeta.getTABLE_NAME() + "." + colmnMeta.getCOLUMN_NAME()))) {
                     tblMeta.addColumn(colmnMeta);
                 }
             }
@@ -1177,15 +1168,15 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
     private List<String> getTargetModelColumns(String targetModelName, List<NDataModel> models) {
         return targetModelName == null ? null
                 : models.stream()
-                        .flatMap(
-                                m -> m.getEffectiveCols().values().stream().map(TblColRef::getColumnWithTableAndSchema))
-                        .collect(Collectors.toList());
+                .flatMap(
+                        m -> m.getEffectiveCols().values().stream().map(TblColRef::getColumnWithTableAndSchema))
+                .collect(Collectors.toList());
     }
 
     private List<String> getTargetModelTables(String targetModelName, List<NDataModel> models) {
         return targetModelName == null ? null
                 : models.stream().flatMap(m -> m.getAllTableRefs().stream().map(TableRef::getTableIdentity))
-                        .collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     private List<NDataModel> getModels(String project, String targetModelName) {
@@ -1233,7 +1224,7 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(columnMeta.getTABLE_SCHEM())
                         && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
                         && (targetModelColumns == null || targetModelColumns.contains(columnMeta.getTABLE_SCHEM() + "."
-                                + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
+                        + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
                     columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
                             + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }

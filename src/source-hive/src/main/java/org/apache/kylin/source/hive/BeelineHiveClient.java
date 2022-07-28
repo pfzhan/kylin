@@ -1,29 +1,4 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
- 
-/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -85,6 +60,16 @@ public class BeelineHiveClient implements IHiveClient {
         this.init(url, username, password);
     }
 
+    public static void main(String[] args) throws SQLException {
+
+        BeelineHiveClient loader = new BeelineHiveClient(
+                "-n root --hiveconf hive.security.authorization.sqlstd.confwhitelist.append='mapreduce.job.*|dfs.*' -u 'jdbc:hive2://sandbox:10000'");
+        //BeelineHiveClient loader = new BeelineHiveClient(StringUtils.join(args, " "));
+        HiveTableMeta hiveTableMeta = loader.getHiveTableMeta("default", "test_kylin_fact_part");
+        System.out.println(hiveTableMeta);
+        loader.close();
+    }
+
     private void init(String url, String username, String password) {
         try {
             Class.forName("org.apache.hive.jdbc.HiveDriver");
@@ -140,7 +125,7 @@ public class BeelineHiveClient implements IHiveClient {
         }
         return count;
     }
-    
+
     @Override
     public void executeHQL(String hql) throws CommandNeedRetryException, IOException {
         throw new UnsupportedOperationException();
@@ -158,7 +143,8 @@ public class BeelineHiveClient implements IHiveClient {
 
         List<HiveTableMeta.HiveTableColumnMeta> allColumns = Lists.newArrayList();
         while (columns.next()) {
-            allColumns.add(new HiveTableMeta.HiveTableColumnMeta(columns.getString(4), columns.getString(6), columns.getString(12)));
+            allColumns.add(new HiveTableMeta.HiveTableColumnMeta(columns.getString(4), columns.getString(6),
+                    columns.getString(12)));
         }
         builder.setAllColumns(allColumns);
         DBUtils.closeQuietly(columns);
@@ -182,7 +168,8 @@ public class BeelineHiveClient implements IHiveClient {
                     if ("".equals(resultSet.getString(1).trim())) {
                         break;
                     }
-                    partitionColumns.add(new HiveTableMeta.HiveTableColumnMeta(resultSet.getString(1).trim(), resultSet.getString(2).trim(), resultSet.getString(3).trim()));
+                    partitionColumns.add(new HiveTableMeta.HiveTableColumnMeta(resultSet.getString(1).trim(),
+                            resultSet.getString(2).trim(), resultSet.getString(3).trim()));
                 }
                 builder.setPartitionColumns(partitionColumns);
             }
@@ -235,14 +222,5 @@ public class BeelineHiveClient implements IHiveClient {
     public void close() {
         DBUtils.closeQuietly(stmt);
         DBUtils.closeQuietly(cnct);
-    }
-
-    public static void main(String[] args) throws SQLException {
-
-        BeelineHiveClient loader = new BeelineHiveClient("-n root --hiveconf hive.security.authorization.sqlstd.confwhitelist.append='mapreduce.job.*|dfs.*' -u 'jdbc:hive2://sandbox:10000'");
-        //BeelineHiveClient loader = new BeelineHiveClient(StringUtils.join(args, " "));
-        HiveTableMeta hiveTableMeta = loader.getHiveTableMeta("default", "test_kylin_fact_part");
-        System.out.println(hiveTableMeta);
-        loader.close();
     }
 }

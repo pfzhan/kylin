@@ -1,34 +1,28 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.kylin.job.execution;
 
-import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DATA_RANGE_END;
-import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DATA_RANGE_START;
 import static org.apache.kylin.job.execution.AbstractExecutable.NOTIFY_LIST;
 import static org.apache.kylin.job.execution.AbstractExecutable.PARENT_ID;
 import static org.apache.kylin.job.execution.AbstractExecutable.SPARK_YARN_QUEUE;
 import static org.apache.kylin.job.execution.AbstractExecutable.SUBMITTER;
+import static org.apache.kylin.metadata.cube.model.NBatchConstants.P_DATA_RANGE_END;
+import static org.apache.kylin.metadata.cube.model.NBatchConstants.P_DATA_RANGE_START;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -45,6 +39,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MailHelper;
+import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.job.JobBucket;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -52,8 +48,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -146,7 +140,8 @@ public class ExecutableParams {
 
     public Set<Long> getLayoutIds() {
         if (getParam(NBatchConstants.P_LAYOUT_IDS) != null) {
-            return Sets.newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_LAYOUT_IDS), ","))
+            return Sets
+                    .newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_LAYOUT_IDS), ","))
                     .stream().map(Long::parseLong).collect(Collectors.toSet());
         } else {
             return null;
@@ -155,7 +150,8 @@ public class ExecutableParams {
 
     public Set<String> getSegmentIds() {
         if (getParam(NBatchConstants.P_SEGMENT_IDS) != null) {
-            return Sets.newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ","));
+            return Sets.newHashSet(
+                    org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ","));
         } else {
             return null;
         }

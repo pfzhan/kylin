@@ -4,16 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
 
     <artifactId>kap-second-storage-core</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Second Storage</name>
-    <url>http://kyligence.io</url>
+    <name>Kylin - Second Storage</name>
+    <url>http://kylin.apache.org</url>
     <description>KAP Second Storage Core</description>
 
     <properties>
@@ -23,8 +23,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-job</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-job</artifactId>
         </dependency>
         <!--
          Disable lombok for scala and java mixed project.
@@ -33,8 +33,8 @@
          details
         -->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-metadata</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-metadata</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.projectlombok</groupId>
@@ -43,8 +43,8 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-spark-common</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-spark-common</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.projectlombok</groupId>
@@ -81,8 +81,8 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-spark-common</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-spark-common</artifactId>
             <type>test-jar</type>
         </dependency>
         <dependency>

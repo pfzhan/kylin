@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -75,6 +69,12 @@ import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
+import org.apache.kylin.metadata.cube.realization.HybridRealization;
+import org.apache.kylin.metadata.model.ExcludedLookupChecker;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.query.NativeQueryRealization;
+import org.apache.kylin.metadata.query.QueryMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,13 +82,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.realization.HybridRealization;
-import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryMetrics;
-import io.kyligence.kap.query.relnode.KapRel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -97,13 +90,119 @@ import lombok.val;
  */
 public class OLAPContext {
 
-    private static final Logger logger = LoggerFactory.getLogger(OLAPContext.class);
-
     public static final String PRM_ACCEPT_PARTIAL_RESULT = "AcceptPartialResult";
-
     static final ThreadLocal<Map<String, String>> _localPrarameters = new ThreadLocal<>();
-
     static final ThreadLocal<Map<Integer, OLAPContext>> _localContexts = new ThreadLocal<>();
+    private static final Logger logger = LoggerFactory.getLogger(OLAPContext.class);
+    public final int id;
+    public final StorageContext storageContext;
+    // query info
+    public OLAPSchema olapSchema = null;
+    public OLAPTableScan firstTableScan = null; // to be fact table scan except "select * from lookupTable"
+    public Set<OLAPTableScan> allTableScans = new HashSet<>();
+    public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
+    public Set<MeasureDesc> involvedMeasure = new HashSet<>();
+    public TupleInfo returnTupleInfo = null;
+    public boolean afterAggregate = false;
+    public boolean afterHavingClauseFilter = false;
+    public boolean afterLimit = false;
+    public boolean limitPrecedesAggr = false;
+    public boolean hasWindow = false;
+    // cube metadata
+    public IRealization realization;
+    public RealizationCheck realizationCheck = new RealizationCheck();
+    public Set<TblColRef> allColumns = new HashSet<>();
+    public Set<TblColRef> metricsColumns = new HashSet<>();
+    public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
+    public Set<TblColRef> filterColumns = new LinkedHashSet<>();
+    public List<JoinDesc> joins = new LinkedList<>();
+    // rewrite info
+    public Map<String, RelDataType> rewriteFields = new HashMap<>();
+    // hive query
+    public String sql = "";
+    protected boolean isExactlyAggregate = false;
+    @Getter
+    protected boolean hasBitmapMeasure = false;
+    protected boolean isExactlyFastBitmap = false;
+    boolean afterTopJoin = false;
+    boolean fixedModel;
+    List<SQLDigest.OrderEnum> sortOrders;
+    SQLDigest sqlDigest;
+    @Setter
+    @Getter
+    private OLAPRel topNode = null; // the context's toppest node
+    @Setter
+    @Getter
+    private RelNode parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
+    @Setter
+    @Getter
+    private int limit = Integer.MAX_VALUE;
+    @Setter
+    @Getter
+    private boolean hasJoin = false;
+    @Setter
+    @Getter
+    private boolean hasPreCalcJoin = false;
+    @Setter
+    @Getter
+    private boolean hasAgg = false;
+    @Getter
+    @Setter
+    private boolean hasSelected = false;
+    @Setter
+    @Getter
+    private Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
+    // collect inner columns in group keys
+    // this filed is used by CC proposer only
+    private Set<TableColRefWithRel> innerGroupByColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
+    // collect inner columns in filter
+    // this filed is used by CC proposer only
+    private Set<TblColRef> innerFilterColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
+    private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    @Setter
+    @Getter
+    private Set<TblColRef> outerJoinParticipants = new HashSet<>();// join keys in the direct outer join (without agg, union etc in between)
+    @Setter
+    @Getter
+    private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
+    @Getter
+    private List<RexNode> expandedFilterConditions = new LinkedList<>();
+    @Getter
+    private Set<TableRef> notNullTables = new HashSet<>(); // tables which have not null filter(s), can be used in join-match-optimization
+    @Getter
+    @Setter
+    private JoinsGraph joinsGraph;
+    @Getter
+    @Setter
+    private List<TblColRef> sortColumns;
+    @Setter
+    @Getter
+    private Set<String> containedNotSupportedFunc = Sets.newHashSet();
+    @Getter
+    @Setter
+    private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>();
+    @Getter
+    @Setter
+    private boolean hasAdminPermission = false;
+    @Setter
+    @Getter
+    private boolean needToManyDerived;
+    @Setter
+    @Getter
+    private String modelAlias;
+
+    public OLAPContext(int seq) {
+        this.id = seq;
+        this.storageContext = new StorageContext(seq);
+        this.sortColumns = Lists.newArrayList();
+        this.sortOrders = Lists.newArrayList();
+    }
 
     public static void setParameters(Map<String, String> parameters) {
         _localPrarameters.set(parameters);
@@ -139,157 +238,6 @@ public class OLAPContext {
         Map<Integer, OLAPContext> map = _localContexts.get();
         map.remove(id);
         _localContexts.set(map);
-    }
-
-    public OLAPContext(int seq) {
-        this.id = seq;
-        this.storageContext = new StorageContext(seq);
-        this.sortColumns = Lists.newArrayList();
-        this.sortOrders = Lists.newArrayList();
-    }
-
-    public final int id;
-    public final StorageContext storageContext;
-
-    // query info
-    public OLAPSchema olapSchema = null;
-    public OLAPTableScan firstTableScan = null; // to be fact table scan except "select * from lookupTable"
-    @Setter
-    @Getter
-    private OLAPRel topNode = null; // the context's toppest node
-    @Setter
-    @Getter
-    private RelNode parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
-    public Set<OLAPTableScan> allTableScans = new HashSet<>();
-    public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
-    public Set<MeasureDesc> involvedMeasure = new HashSet<>();
-    public TupleInfo returnTupleInfo = null;
-    public boolean afterAggregate = false;
-    public boolean afterHavingClauseFilter = false;
-    public boolean afterLimit = false;
-    @Setter
-    @Getter
-    private int limit = Integer.MAX_VALUE;
-    public boolean limitPrecedesAggr = false;
-    boolean afterTopJoin = false;
-    @Setter
-    @Getter
-    private boolean hasJoin = false;
-    @Setter
-    @Getter
-    private boolean hasPreCalcJoin = false;
-    @Setter
-    @Getter
-    private boolean hasAgg = false;
-    public boolean hasWindow = false;
-
-    // cube metadata
-    public IRealization realization;
-    public RealizationCheck realizationCheck = new RealizationCheck();
-    boolean fixedModel;
-
-    @Getter
-    @Setter
-    private boolean hasSelected = false;
-    public Set<TblColRef> allColumns = new HashSet<>();
-    @Setter
-    @Getter
-    private Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
-    @Setter
-    @Getter
-    // collect inner columns in group keys
-    // this filed is used by CC proposer only
-    private Set<TableColRefWithRel> innerGroupByColumns = Sets.newLinkedHashSet();
-    @Setter
-    @Getter
-    // collect inner columns in filter
-    // this filed is used by CC proposer only
-    private Set<TblColRef> innerFilterColumns = Sets.newLinkedHashSet();
-    @Setter
-    @Getter
-    private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
-    @Setter
-    @Getter
-    private Set<TblColRef> outerJoinParticipants = new HashSet<>();// join keys in the direct outer join (without agg, union etc in between)
-    public Set<TblColRef> metricsColumns = new HashSet<>();
-
-    public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
-    @Setter
-    @Getter
-    private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
-    public Set<TblColRef> filterColumns = new LinkedHashSet<>();
-    @Getter
-    private List<RexNode> expandedFilterConditions = new LinkedList<>();
-    @Getter
-    private Set<TableRef> notNullTables = new HashSet<>(); // tables which have not null filter(s), can be used in join-match-optimization
-    public List<JoinDesc> joins = new LinkedList<>();
-    @Getter
-    @Setter
-    private JoinsGraph joinsGraph;
-    @Getter
-    @Setter
-    private List<TblColRef> sortColumns;
-    List<SQLDigest.OrderEnum> sortOrders;
-    @Setter
-    @Getter
-    private Set<String> containedNotSupportedFunc = Sets.newHashSet();
-
-    // rewrite info
-    public Map<String, RelDataType> rewriteFields = new HashMap<>();
-
-    @Getter
-    @Setter
-    private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>();
-
-    // hive query
-    public String sql = "";
-
-    @Getter
-    @Setter
-    private boolean hasAdminPermission = false;
-
-    @Setter
-    @Getter
-    private boolean needToManyDerived;
-
-    protected boolean isExactlyAggregate = false;
-
-    @Getter
-    protected boolean hasBitmapMeasure = false;
-
-    protected boolean isExactlyFastBitmap = false;
-
-    @Setter
-    @Getter
-    private String modelAlias;
-
-    public boolean isExactlyAggregate() {
-        return isExactlyAggregate;
-    }
-
-    public void setExactlyAggregate(boolean exactlyAggregate) {
-        isExactlyAggregate = exactlyAggregate;
-    }
-
-    public boolean isExactlyFastBitmap() {
-        return isExactlyFastBitmap;
-    }
-
-    public void setExactlyFastBitmap(boolean isExactlyFastBitmap) {
-        this.isExactlyFastBitmap = isExactlyFastBitmap;
-    }
-
-    public void setHasBitmapMeasure(boolean bitmapMeasure) {
-        hasBitmapMeasure = bitmapMeasure;
-    }
-
-    public boolean isConstantQuery() {
-        return allColumns.isEmpty() && aggregations.isEmpty();
-    }
-
-    public boolean isConstantQueryWithAggregations() {
-        // deal with probing query like select min(2+2), max(2) from Table
-        return allColumns.isEmpty() && aggregations.isEmpty() && !constantAggregations.isEmpty();
     }
 
     public static List<NativeQueryRealization> getNativeRealizations() {
@@ -368,7 +316,50 @@ public class OLAPContext {
         tableSets.addAll(ctx.storageContext.getCandidate().getDerivedTableSnapshots());
     }
 
-    SQLDigest sqlDigest;
+    public static RexInputRef createUniqueInputRefAmongTables(OLAPTableScan table, int columnIdx,
+            Collection<OLAPTableScan> tables) {
+        List<TableScan> sorted = new ArrayList<>(tables);
+        sorted.sort(Comparator.comparingInt(AbstractRelNode::getId));
+        int offset = 0;
+        for (TableScan tableScan : sorted) {
+            if (tableScan == table) {
+                return new RexInputRef(
+                        table.getTableName() + "." + table.getRowType().getFieldList().get(columnIdx).getName(),
+                        offset + columnIdx, table.getRowType().getFieldList().get(columnIdx).getType());
+            }
+            offset += tableScan.getRowType().getFieldCount();
+        }
+        return null;
+    }
+
+    public boolean isExactlyAggregate() {
+        return isExactlyAggregate;
+    }
+
+    public void setExactlyAggregate(boolean exactlyAggregate) {
+        isExactlyAggregate = exactlyAggregate;
+    }
+
+    public boolean isExactlyFastBitmap() {
+        return isExactlyFastBitmap;
+    }
+
+    public void setExactlyFastBitmap(boolean isExactlyFastBitmap) {
+        this.isExactlyFastBitmap = isExactlyFastBitmap;
+    }
+
+    public void setHasBitmapMeasure(boolean bitmapMeasure) {
+        hasBitmapMeasure = bitmapMeasure;
+    }
+
+    public boolean isConstantQuery() {
+        return allColumns.isEmpty() && aggregations.isEmpty();
+    }
+
+    public boolean isConstantQueryWithAggregations() {
+        // deal with probing query like select min(2+2), max(2) from Table
+        return allColumns.isEmpty() && aggregations.isEmpty() && !constantAggregations.isEmpty();
+    }
 
     public SQLDigest getSQLDigest() {
         if (sqlDigest == null) {
@@ -490,10 +481,6 @@ public class OLAPContext {
         this.getConstantAggregations().clear();
     }
 
-    public interface IAccessController {
-        void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);
-    }
-
     public void addInnerGroupColumns(KapRel rel, Collection<TblColRef> innerGroupColumns) {
         Set<TblColRef> innerGroupColumnsSet = new HashSet<>(innerGroupColumns);
         for (TblColRef tblColRef : innerGroupColumnsSet) {
@@ -509,7 +496,8 @@ public class OLAPContext {
         } else {
             candidate = this.storageContext.getCandidate();
         }
-        return candidate != null && !candidate.isEmptyCandidate() && candidate.getLayoutEntity().getIndex().isTableIndex();
+        return candidate != null && !candidate.isEmptyCandidate()
+                && candidate.getLayoutEntity().getIndex().isTableIndex();
     }
 
     /**
@@ -560,22 +548,6 @@ public class OLAPContext {
         this.setJoinsGraph(JoinsGraph.normalizeJoinGraph(joinsGraph));
     }
 
-    public static RexInputRef createUniqueInputRefAmongTables(OLAPTableScan table, int columnIdx,
-            Collection<OLAPTableScan> tables) {
-        List<TableScan> sorted = new ArrayList<>(tables);
-        sorted.sort(Comparator.comparingInt(AbstractRelNode::getId));
-        int offset = 0;
-        for (TableScan tableScan : sorted) {
-            if (tableScan == table) {
-                return new RexInputRef(
-                        table.getTableName() + "." + table.getRowType().getFieldList().get(columnIdx).getName(),
-                        offset + columnIdx, table.getRowType().getFieldList().get(columnIdx).getType());
-            }
-            offset += tableScan.getRowType().getFieldCount();
-        }
-        return null;
-    }
-
     public RexInputRef createUniqueInputRefContextTables(OLAPTableScan table, int columnIdx) {
         return createUniqueInputRefAmongTables(table, columnIdx, allTableScans);
     }
@@ -596,5 +568,9 @@ public class OLAPContext {
         });
 
         return fKAsDimensionMap;
+    }
+
+    public interface IAccessController {
+        void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);
     }
 }

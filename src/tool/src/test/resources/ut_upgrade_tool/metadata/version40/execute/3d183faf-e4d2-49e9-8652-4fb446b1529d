@@ -11,7 +11,7 @@
     "version" : "4.0.0.0",
     "name" : "Detect Resource",
     "tasks" : null,
-    "type" : "io.kyligence.kap.engine.spark.job.NResourceDetectStep",
+    "type" : "org.apache.kylin.engine.spark.job.NResourceDetectStep",
     "params" : {
       "distMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/3d183faf-e4d2-49e9-8652-4fb446b1529d/00/meta",
       "submitter" : "ADMIN",
@@ -20,7 +20,7 @@
       "targetModel" : "b1d8d2b9-1d14-4148-bd42-8142e00beb76",
       "dataRangeStart" : "0",
       "project" : "version40",
-      "className" : "io.kyligence.kap.engine.spark.job.ResourceDetectBeforeCubingJob",
+      "className" : "org.apache.kylin.engine.spark.job.ResourceDetectBeforeCubingJob",
       "parentId" : "3d183faf-e4d2-49e9-8652-4fb446b1529d",
       "jobId" : "3d183faf-e4d2-49e9-8652-4fb446b1529d",
       "outputMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/3d183faf-e4d2-49e9-8652-4fb446b1529d/00/meta_output",
@@ -54,7 +54,7 @@
     "version" : "4.0.0.0",
     "name" : "Load Data To Index",
     "tasks" : null,
-    "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingStep",
+    "type" : "org.apache.kylin.engine.spark.job.NSparkCubingStep",
     "params" : {
       "distMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/3d183faf-e4d2-49e9-8652-4fb446b1529d/01/meta",
       "submitter" : "ADMIN",
@@ -63,7 +63,7 @@
       "targetModel" : "b1d8d2b9-1d14-4148-bd42-8142e00beb76",
       "dataRangeStart" : "0",
       "project" : "version40",
-      "className" : "io.kyligence.kap.engine.spark.job.DFBuildJob",
+      "className" : "org.apache.kylin.engine.spark.job.DFBuildJob",
       "parentId" : "3d183faf-e4d2-49e9-8652-4fb446b1529d",
       "jobId" : "3d183faf-e4d2-49e9-8652-4fb446b1529d",
       "outputMetaUrl" : "xf_rename_resource_tool@hdfs,path=hdfs://hdp26.hadoop.com:8020/quard_newten/xf_rename_resource_tool/version40/job_tmp/3d183faf-e4d2-49e9-8652-4fb446b1529d/01/meta_output",
@@ -93,7 +93,7 @@
       "wait_time" : 0
     }
   } ],
-  "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingJob",
+  "type" : "org.apache.kylin.engine.spark.job.NSparkCubingJob",
   "params" : {
     "submitter" : "ADMIN",
     "jobId" : "3d183faf-e4d2-49e9-8652-4fb446b1529d",

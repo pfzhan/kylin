@@ -76,7 +76,11 @@
               5
             ]
           ],
-          "mandatory_dims": [0, 1, 2],
+          "mandatory_dims": [
+            0,
+            1,
+            2
+          ],
           "joint_dims": [
             [
               7,
@@ -126,7 +130,8 @@
             ]
           ],
           "mandatory_dims": [
-            0, 6
+            0,
+            6
           ],
           "joint_dims": [
             [
@@ -174,7 +179,10 @@
             ]
           ],
           "mandatory_dims": [
-            0, 1, 2, 3
+            0,
+            1,
+            2,
+            3
           ],
           "joint_dims": [
             [
@@ -233,7 +241,9 @@
         ],
         "select_rule": {
           "hierarchy_dims": [],
-          "mandatory_dims": [16],
+          "mandatory_dims": [
+            16
+          ],
           "joint_dims": [
             [
               19,
@@ -264,7 +274,9 @@
               18
             ]
           ],
-          "mandatory_dims": [ 19 ],
+          "mandatory_dims": [
+            19
+          ],
           "joint_dims": []
         }
       }
@@ -272,8 +284,8 @@
     "storage_type": 20
   },
   "override_properties": {},
-  "next_aggregation_index_id" : 12000,
-  "next_table_index_id" : 20000000000,
+  "next_aggregation_index_id": 12000,
+  "next_table_index_id": 20000000000,
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

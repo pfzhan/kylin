@@ -1,0 +1,384 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+
+skinparam class {
+    ArrowColor Red
+    BackgroundColor<<Bad>> Wheat
+    BorderColor<<Bad>> Red
+}
+
+
+note "蓝色表示非开源部分，白色和绿色表示开源部分" as N1
+
+'together {
+
+    namespace io.ke.common.service #palegreen {
+
+        class ProjectService <<Bad>> {
+            //
+        }
+
+        class EpochService {
+            // 主节点 HA
+        }
+
+        class HealthService {
+
+        }
+
+        class SystemService {
+            void 诊断包()
+        }
+
+        class MetadataBackupService {
+            void 备份元数据()
+        }
+
+        class AsyncTaskService {
+            void 下载查询历史()
+            void 清理内存()
+        }
+
+        class JobService <<Bad>> {
+
+        }
+
+        class AccessService <<Bad>> {
+
+        }
+
+
+
+        ProjectService *-[hidden]- MetadataBackupService
+
+        ProjectService *-[hidden]- AsyncTaskService
+
+        ProjectService *-[hidden]-> io.ke.common.service.AccessService
+
+        ProjectService *--> io.ke.query.service.AsyncQueryService
+
+        ProjectService *-->  io.ke.smart.service.RawRecService
+
+        ProjectService *--> io.ke.smart.service.OptRecService
+
+        JobService *--> io.ke.modeling.service.ModelService
+
+        JobService *-- io.ke.common.service.ProjectService
+
+
+        AccessService *-[hidden]- AclService
+
+        AccessService *-[hidden]- UserService
+
+        AccessService *--> io.ke.enterprise.service.AclTCRService
+    }
+
+    namespace io.ke.source.service #aliceblue {
+
+
+        class TableService <<Bad>> {
+
+        }
+
+        class TableExtService {
+
+        }
+
+        class KafkaService {
+
+        }
+
+        class SparkSourceService {
+
+        }
+
+        class StreamingTableService <<Bad>> {
+
+        }
+
+
+        TableService *-- io.ke.modeling.service.ModelService
+
+        TableService *-- io.ke.modeling.service.FusionModelService
+
+        TableService *-- io.ke.modeling.service.IndexPlanService
+
+        TableService *-- io.ke.building.service.TableSamplingService
+
+
+        TableService *-- io.ke.common.service.JobService
+
+        TableService *-[hidden]- io.ke.source.service.KafkaService
+
+        TableService *-- io.ke.enterprise.service.AclTCRService
+
+
+
+        TableExtService *-[hidden]- TableService
+
+        TableService <|-- StreamingTableService
+    }
+
+    namespace io.ke.modeling.service #aliceblue {
+
+        class ModelService <<Bad>> {
+            void 模型编辑()
+            void 构建刷新Segment()
+            void 推荐模型()
+        }
+
+        class MetaStoreService <<Bad>> {
+            void 模型导入导出()
+        }
+
+
+        class IndexPlanService {
+
+
+        }
+
+        class ModelSemanticHelper {
+
+        }
+
+
+        class SegmentHelper {
+
+        }
+
+        class FusionModelService {
+
+        }
+
+        class FusionIndexService {
+
+        }
+
+
+        ModelService *-[hidden]- IndexPlanService
+
+        ModelService *-[hidden]- SegmentHelper
+
+        ModelService *-[hidden]- ModelSemanticHelper
+
+        ModelService *-[hidden]- io.ke.common.service.ProjectService
+
+        ModelService *-- io.ke.smart.service.RawRecService
+
+        ModelService *-- io.ke.smart.service.OptRecService
+
+        ModelService *-[hidden]- io.ke.common.service.AccessService
+
+        IndexPlanService *-[hidden]- ModelSemanticHelper
+
+        MetaStoreService *-[hidden]- ModelService
+
+        MetaStoreService *-[hidden]- IndexPlanService
+
+        MetaStoreService *-- io.ke.smart.service.OptRecService
+
+        FusionIndexService *-[hidden]- IndexPlanService
+
+        FusionModelService *-[hidden]- ModelService
+
+    }
+
+
+    namespace io.ke.building.service #aliceblue {
+
+        class SnapshotService {
+
+        }
+
+        class TableSamplingService {
+
+        }
+
+        SnapshotService *-[hidden]- io.ke.source.service.TableService
+
+    }
+
+
+    namespace io.ke.query.service #aliceblue {
+
+        class QueryService <<Bad>> {
+
+        }
+
+        class AsyncQueryService {
+
+        }
+
+        class QueryHistoryService {
+
+        }
+
+        QueryHistoryService *-[hidden]- AsyncTaskService
+
+
+        QueryHistoryService *-[hidden]- io.ke.modeling.service.ModelService
+
+
+        QueryService *-[hidden]- io.ke.common.service.AccessService
+
+
+        QueryService *--> io.ke.enterprise.service.AclTCRService
+
+
+        QueryService *-[hidden]- QueryCacheManager
+
+
+    }
+
+
+'=============================
+
+'together {
+
+    namespace io.ke.enterprise.service #deepskyblue {
+
+        class LicenseInfoService {
+
+        }
+
+        class LightningService {
+
+        }
+
+        class MaintenanceModeService {
+            void 进出维护状态()
+        }
+
+        class MonitorService {
+            // 收集各个状态节点
+        }
+
+        class ResourceGroupService {
+
+        }
+
+        class SecondStorageService {
+
+        }
+
+        class AclTCRService {
+
+        }
+
+
+
+        MonitorService *-[hidden]- io.ke.common.service.ProjectService
+
+        SecondStorageService *-[hidden]- io.ke.common.service.JobService
+
+        AclTCRService *-[hidden]- io.ke.common.service.AccessService
+
+        AclTCRService *-[hidden]- io.ke.common.service.ProjectService
+    }
+
+    namespace io.ke.smart.service #deepskyblue {
+
+        class RawRecService {
+
+        }
+
+
+        class OptRecService {
+
+
+        }
+
+        class FavoriteRuleService {
+
+        }
+
+
+        OptRecService *-[hidden]- io.ke.modeling.service.ModelService
+
+        OptRecService *-[hidden]- io.ke.modeling.service.IndexPlanService
+
+    }
+
+    namespace io.ke.streaming.service #deepskyblue {
+
+        class StreamingJobService {
+
+        }
+
+        StreamingJobService *-[hidden]- io.ke.modeling.service.IndexPlanService
+    }
+
+'}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+' Following is DAO layer
+'---------------------------------------------------------------------------------
+
+'namespace io.ke.modeling.dao #66bbdd {
+'
+'    class NDataflowManager {
+'
+'
+'    }
+'
+'
+'    class NIndexPlanManager {
+'
+'
+'    }
+'
+'    class NDataModelManager {
+'
+'    }
+'
+'}
+'
+'
+'namespace io.ke.source.dao #66bbdd {
+'
+'    class NTableMetadataManager {
+'
+'    }
+'}
+'
+'
+'namespace io.ke.smart.dao {
+'
+'    class OptRecManagerV2 {
+'
+'    }
+'}
+
+
+
+
+
+
+@enduml

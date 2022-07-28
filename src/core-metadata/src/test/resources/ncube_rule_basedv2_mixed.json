@@ -5,19 +5,38 @@
   "indexes": [
     {
       "id": 30000,
-      "dimensions": [ 2, 3, 5],
-      "measures": [ 100000, 100001 ],
+      "dimensions": [
+        2,
+        3,
+        5
+      ],
+      "measures": [
+        100000,
+        100001
+      ],
       "layouts": [
         {
           "id": 30001,
           "auto": true,
-          "col_order": [ 2, 3, 5, 100000, 100001 ],
+          "col_order": [
+            2,
+            3,
+            5,
+            100000,
+            100001
+          ],
           "storage_type": 20
         },
         {
           "id": 30002,
           "auto": true,
-          "col_order": [ 5, 3, 2, 100000, 100001 ],
+          "col_order": [
+            5,
+            3,
+            2,
+            100000,
+            100001
+          ],
           "storage_type": 20
         }
       ],
@@ -25,13 +44,26 @@
     },
     {
       "id": 40000,
-      "dimensions": [ 1, 2, 5],
-      "measures": [ 100000, 100001 ],
+      "dimensions": [
+        1,
+        2,
+        5
+      ],
+      "measures": [
+        100000,
+        100001
+      ],
       "layouts": [
         {
           "id": 40001,
           "auto": true,
-          "col_order": [ 2, 1, 5, 100000, 100001 ],
+          "col_order": [
+            2,
+            1,
+            5,
+            100000,
+            100001
+          ],
           "storage_type": 20
         }
       ],

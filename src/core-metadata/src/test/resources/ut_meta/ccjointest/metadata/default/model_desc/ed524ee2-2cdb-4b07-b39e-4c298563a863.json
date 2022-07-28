@@ -178,10 +178,12 @@
       "name": "TRANS_CNT",
       "function": {
         "expression": "COUNT",
-        "parameters": [{
-          "type": "constant",
-          "value": "1"
-        }],
+        "parameters": [
+          {
+            "type": "constant",
+            "value": "1"
+          }
+        ],
         "returntype": "bigint"
       }
     },
@@ -190,10 +192,12 @@
       "name": "GMV_SUM",
       "function": {
         "expression": "SUM",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.PRICE"
+          }
+        ],
         "returntype": "decimal(19,4)"
       }
     },
@@ -202,10 +206,12 @@
       "name": "GMV_MIN",
       "function": {
         "expression": "MIN",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.PRICE"
+          }
+        ],
         "returntype": "decimal(19,4)"
       }
     },
@@ -214,10 +220,12 @@
       "name": "GMV_MAX",
       "function": {
         "expression": "MAX",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.PRICE"
+          }
+        ],
         "returntype": "decimal(19,4)"
       }
     },
@@ -226,10 +234,12 @@
       "name": "ITEM_COUNT_SUM",
       "function": {
         "expression": "SUM",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.ITEM_COUNT"
+          }
+        ],
         "returntype": "bigint"
       }
     },
@@ -238,10 +248,12 @@
       "name": "ITEM_COUNT_MAX",
       "function": {
         "expression": "MAX",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.ITEM_COUNT"
+          }
+        ],
         "returntype": "bigint"
       }
     },
@@ -251,10 +263,12 @@
       "tomb": true,
       "function": {
         "expression": "MIN",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.ITEM_COUNT"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.ITEM_COUNT"
+          }
+        ],
         "returntype": "bigint"
       }
     },
@@ -263,10 +277,12 @@
       "name": "SELLER_HLL",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.SELLER_ID"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.SELLER_ID"
+          }
+        ],
         "returntype": "hllc(10)"
       }
     },
@@ -275,10 +291,12 @@
       "name": "COUNT_DISTINCT",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
+          }
+        ],
         "returntype": "hllc(10)"
       }
     },
@@ -287,8 +305,11 @@
       "name": "TOP_SELLER",
       "function": {
         "expression": "TOP_N",
-        "parameters": [{"type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE"},
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.PRICE"
+          },
           {
             "type": "column",
             "value": "TEST_KYLIN_FACT.SELLER_ID"
@@ -305,22 +326,26 @@
       "name": "TEST_COUNT_DISTINCT_BITMAP",
       "function": {
         "expression": "COUNT_DISTINCT",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
+          }
+        ],
         "returntype": "bitmap"
       }
     },
     {
-      "id":1011,
+      "id": 1011,
       "name": "GVM_PERCENTILE",
       "function": {
         "expression": "PERCENTILE",
-        "parameters": [{
-          "type": "column",
-          "value": "TEST_KYLIN_FACT.PRICE"
-        }],
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.PRICE"
+          }
+        ],
         "returntype": "percentile(100)"
       }
     }

@@ -1,27 +1,18 @@
 <!--
-/**
- * Copyright (C) 2020 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -80,8 +71,8 @@
     </bean>
 
     <beans profile="ldap,saml">
-        <bean id="userService" class="io.kyligence.kap.rest.service.LdapUserService"/>
-        <bean id="userGroupService" class="io.kyligence.kap.rest.service.LdapUserGroupService"/>
+        <bean id="userService" class="org.apache.kylin.rest.service.LdapUserService"/>
+        <bean id="userGroupService" class="org.apache.kylin.rest.service.LdapUserGroupService"/>
 
         <bean id="ldapSource"
               class="org.springframework.security.ldap.DefaultSpringSecurityContextSource">
@@ -113,7 +104,7 @@
             <property name="searchScope" value="2"/>
         </bean>
 
-        <bean id="ldapUserPopulator" class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
+        <bean id="ldapUserPopulator" class="org.apache.kylin.rest.security.LdapAuthoritiesPopulator">
             <constructor-arg index="0" ref="ldapSource"/>
             <constructor-arg index="1"
                              value="${kylin.security.ldap.user-group-search-base}"/>
@@ -128,7 +119,7 @@
         </bean>
 
         <bean id="userAuthProvider"
-              class="io.kyligence.kap.rest.security.LdapAuthenticationProvider">
+              class="org.apache.kylin.rest.security.LdapAuthenticationProvider">
             <constructor-arg>
                 <bean id="ldapUserAuthProvider"
                       class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
@@ -152,7 +143,7 @@
             <constructor-arg index="2" ref="ldapSource"/>
         </bean>
 
-        <bean id="ldapServicePopulator" class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
+        <bean id="ldapServicePopulator" class="org.apache.kylin.rest.security.LdapAuthoritiesPopulator">
             <constructor-arg index="0" ref="ldapSource"/>
             <constructor-arg index="1"
                              value="${kylin.security.ldap.service-group-search-base}"/>
@@ -163,7 +154,7 @@
         </bean>
 
         <bean id="serviceAuthProvider"
-              class="io.kyligence.kap.rest.security.LdapAuthenticationProvider">
+              class="org.apache.kylin.rest.security.LdapAuthenticationProvider">
             <constructor-arg>
                 <bean id="ldapServiceAuthProvider"
                       class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
@@ -229,8 +220,8 @@
         </bean>
         <!-- user auth -->
         <bean id="userService" class="org.apache.kylin.rest.service.KylinUserService"/>
-        <bean id="userGroupService" class="io.kyligence.kap.rest.service.NUserGroupService"/>
-        <bean id="authProvider" class="io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider">
+        <bean id="userGroupService" class="org.apache.kylin.rest.service.NUserGroupService"/>
+        <bean id="authProvider" class="org.apache.kylin.rest.security.LimitLoginAuthenticationProvider">
             <property name="userDetailsService" ref="userService"/>
             <property name="passwordEncoder" ref="passwordEncoder"/>
         </bean>
@@ -240,8 +231,8 @@
     </beans>
 
     <beans profile="case-insensitive-service">
-        <bean id="userService" class="io.kyligence.kap.rest.service.CaseInsensitiveKylinUserService"/>
-        <bean id="userGroupService" class="io.kyligence.kap.rest.service.CaseInsensitiveUserGroupService"/>
+        <bean id="userService" class="org.apache.kylin.rest.service.CaseInsensitiveKylinUserService"/>
+        <bean id="userGroupService" class="org.apache.kylin.rest.service.CaseInsensitiveUserGroupService"/>
     </beans>
 
     <beans profile="testing,ldap,custom">
@@ -485,7 +476,7 @@
             <property name="searchScope" value="2"/>
         </bean>
 
-        <bean id="ldapUserPopulator" class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
+        <bean id="ldapUserPopulator" class="org.apache.kylin.rest.security.LdapAuthoritiesPopulator">
             <constructor-arg index="0" ref="ldapSource"/>
             <constructor-arg index="1" value="${kylin.security.ldap.user-group-search-base}"/>
             <constructor-arg index="2" value="${kylin.security.acl.admin-role}"/>
@@ -513,7 +504,7 @@
         </bean>
 
         <bean id="kylinSAMLAuthenticationProvider"
-              class="io.kyligence.kap.rest.security.LdapAuthenticationProvider">
+              class="org.apache.kylin.rest.security.LdapAuthenticationProvider">
             <constructor-arg>
                 <!-- SAML Authentication Provider responsible for validating of received SAML messages -->
                 <bean id="samlAuthenticationProvider"

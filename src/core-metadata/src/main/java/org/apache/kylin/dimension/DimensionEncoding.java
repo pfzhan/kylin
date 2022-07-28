@@ -1,28 +1,21 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,11 +43,11 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
 /**
  * Dimension encoding maps a dimension (String) to bytes of fixed length.
- * 
+ *
  * It is similar to Dictionary in 1) the bytes is fixed length; 2) bi-way mapping;
- * 3) the mapping preserves order, but is also different to Dictionary as the target 
- * bytes can be very long while dictionary ID is 4 bytes at most. This means it is 
- * hard to enumerate all values of a encoding, thus TupleFilterDictionaryTranslater 
+ * 3) the mapping preserves order, but is also different to Dictionary as the target
+ * bytes can be very long while dictionary ID is 4 bytes at most. This means it is
+ * hard to enumerate all values of a encoding, thus TupleFilterDictionaryTranslater
  * cannot work on DimensionEncoding.
  */
 public abstract class DimensionEncoding implements Externalizable {
@@ -83,7 +76,8 @@ public abstract class DimensionEncoding implements Externalizable {
 
         final String encodingName = parts[0];
         final String[] encodingArgs = parts[parts.length - 1].isEmpty() //
-                ? StringUtil.subArray(parts, 1, parts.length - 1) : StringUtil.subArray(parts, 1, parts.length);
+                ? StringUtil.subArray(parts, 1, parts.length - 1)
+                : StringUtil.subArray(parts, 1, parts.length);
 
         return new Object[] { encodingName, encodingArgs };
     }

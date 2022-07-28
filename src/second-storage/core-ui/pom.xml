@@ -3,17 +3,17 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>ke-open-core</artifactId>
-        <groupId>io.kyligence.ke</groupId>
-        <version>4.0.0-SNAPSHOT</version>
+        <artifactId>kylin</artifactId>
+        <groupId>org.apache.kylin</groupId>
+        <version>5.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>kap-second-storage-ui</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Second Storage UI</name>
-    <url>http://kyligence.io</url>
+    <name>Kylin - Second Storage UI</name>
+    <url>http://kylin.apache.org</url>
     <description>KAP Clickhouse</description>
 
     <properties>
@@ -23,7 +23,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-core</artifactId>
         </dependency>
         <dependency>
@@ -63,20 +63,20 @@
 
         <!--server-->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-server-base</artifactId>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-server-base</artifactId>
             <scope>provided</scope>
         </dependency>
 
 
         <!--test-->
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-clickhouse</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-clickhouse</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

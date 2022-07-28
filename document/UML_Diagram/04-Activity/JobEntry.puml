@@ -1,0 +1,34 @@
+@startuml
+' https://plantuml.com/activity-diagram-beta
+
+
+
+start
+: 开始创建 Job ;
+: JobManager.addJob(JobParam jobParam, AbstractJobHandler handler);
+: START createJobHandler(jobParam);
+
+switch (jobParam.getJobTypeEnum ? )
+    case ( \nINC_BUILD )
+      : -> AddSegmentHandler;
+    case ( INDEX_MERGE )
+      : -> MergeSegmentHandler;
+    case ( INDEX_BUILD & SUB_PARTITION_BUILD )
+      : -> AddIndexHandler;
+    case ( \nINDEX_REFRESH & SUB_PARTITION_REFRESH )
+      : -> RefreshSegmentHandler;
+endswitch
+: END createJobHandler;
+
+: JobHandler.doHandle;
+: ExecutablePO po = JobHandler.createJob;
+
+
+
+: NExecutableManager.addJob(po);
+
+
+stop
+@enduml
+
+

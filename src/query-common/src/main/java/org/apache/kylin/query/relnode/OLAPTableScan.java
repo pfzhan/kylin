@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -80,10 +74,9 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.query.schema.OLAPTable;
+import org.apache.kylin.metadata.model.NDataModel;
 
 import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.metadata.model.NDataModel;
 
 /**
  */
@@ -92,11 +85,11 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     protected OLAPTable olapTable;
     protected String tableName;
     protected int[] fields;
-    private String alias;
-    private String backupAlias;
     protected ColumnRowType columnRowType;
     protected OLAPContext context;
     protected KylinConfig kylinConfig;
+    private String alias;
+    private String backupAlias;
 
     public OLAPTableScan(RelOptCluster cluster, RelOptTable table, OLAPTable olapTable, int[] fields) {
         super(cluster, cluster.traitSetOf(CONVENTION), table);
@@ -105,6 +98,12 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         this.tableName = olapTable.getTableName();
         this.rowType = getRowType();
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
+    }
+
+    private static RelOptCluster emptyCluster() {
+        VolcanoPlanner emptyPlanner = new VolcanoPlanner();
+        RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        return RelOptCluster.create(emptyPlanner, new RexBuilder(typeFactory));
     }
 
     public OLAPTable getOlapTable() {
@@ -314,6 +313,10 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return columnRowType;
     }
 
+    public void setColumnRowType(ColumnRowType columnRowType) {
+        this.columnRowType = columnRowType;
+    }
+
     @Override
     public void implementRewrite(RewriteImplementor implementor) {
         Map<String, RelDataType> rewriteFields = this.context.rewriteFields;
@@ -337,16 +340,6 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         RelTraitSet oldTraitSet = this.traitSet;
         this.traitSet = this.traitSet.replace(trait);
         return oldTraitSet;
-    }
-
-    public void setColumnRowType(ColumnRowType columnRowType) {
-        this.columnRowType = columnRowType;
-    }
-
-    private static RelOptCluster emptyCluster() {
-        VolcanoPlanner emptyPlanner = new VolcanoPlanner();
-        RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-        return RelOptCluster.create(emptyPlanner, new RexBuilder(typeFactory));
     }
 
     public OLAPTableScan cleanRelOptCluster() {

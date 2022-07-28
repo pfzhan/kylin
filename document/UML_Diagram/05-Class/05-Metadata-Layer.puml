@@ -1,0 +1,167 @@
+@startuml
+
+
+namespace org.apache.kylin.core {
+
+    abstract class RootPersistentEntity #white {
+        protected String uuid
+        protected long lastModified
+        protected long createTime
+
+        // 创建该元数据实体的 Kylin 进程的版本
+        protected String version
+
+        private long mvcc
+        private boolean isBroken
+
+        // 如果这个 Entity 被修改而需要刷新缓存，那么随着需要更新的其它 Entity 就是它的依赖
+        private List<RootPersistentEntity> dependencies
+    }
+
+}
+
+
+
+namespace org.apache.kylin.table.metadata {
+
+
+}
+
+
+namespace org.apache.kylin.model.metadata {
+
+
+
+    class DataModel {
+        String rootFactTableName;
+        List<JoinTableDesc> joinTables;
+        PartitionDesc partitionDesc;
+
+        List<NamedColumn> allNamedColumns;
+        List<ComputedColumnDesc> computedColumnDescs;
+        List<Measure> allMeasures;
+
+        int storageType;
+        String project;
+    }
+
+    class JoinTableDesc {
+        String table;
+        NDataModel.TableKind kind ;
+        JoinDesc join;
+    }
+
+    class JoinDesc {
+        String type;
+        String[] primaryKey;
+        String[] foreignKey;
+        String primaryTable;
+        String foreignTable;
+    }
+
+    enum TableKind {
+        FACT,
+        LOOKUP
+    }
+
+    class Dataflow {
+        RealizationStatusEnum status;
+        int queryHitCount = 0;
+        long lastQueryTime = 0L;
+        Map<Long, FrequencyMap> layoutHitCount ;
+
+        Segments<NDataSegment> segments;
+    }
+
+    class IndexPlan {
+        RuleBasedIndex ruleBasedIndex;
+        List<IndexEntity> indexes;
+        List<IndexEntity> toBeDeletedIndexes
+        List<Integer> aggShardByColumns
+        List<NDictionaryDesc> dictionaries;
+    }
+
+    class IndexEntity {
+        List<Integer> dimensions ;
+        List<Integer> measures;
+        List<LayoutEntity> layouts;
+    }
+
+    class LayoutEntity {
+        List<Integer> colOrder;
+        List<Integer> shardByColumns;
+        List<Integer> partitionByColumns;
+        List<Integer> sortByColumns;
+        int storageType;
+    }
+
+    class NDataSegment {
+        long createTimeUTC;
+        SegmentStatusEnum status;
+        SegmentRange segmentRange;
+        TimeRange timeRange;
+
+        Map<String, String> dictionaries;
+        Map<String, String> snapshots;
+        long lastBuildTime;
+        long sourceCount = 0;
+        long sourceBytesSize = 0;
+
+        // Computed value below
+        transient NDataSegDetails segDetails;
+    }
+
+    class NDataSegDetails {
+        String dataflowId;
+        List<NDataLayout> layouts;
+    }
+
+
+
+
+    '--------------------------------------------------------------
+    ' Relation below
+    '--------------------------------------------------------------
+
+    DataModel --> IndexPlan : Index Management
+
+    DataModel --* JoinTableDesc : Join relationships
+
+    DataModel --> DataFlow : CubeInstance
+
+    DataFlow *-- NDataSegment : Segment Management
+
+    NDataSegment -- NDataSegDetails : detail
+
+    IndexPlan *--IndexEntity
+
+    IndexPlan --> RuleBasedIndex : Generate IndexEntity based on AggregationGroup
+
+    RuleBasedIndex *-- AggregationGroup : Hold all Index by AggregationGroup
+
+    IndexEntity *-- LayoutEntity : Cuboid Level
+
+
+    CuboidScheduler -- IndexPlan
+
+    CuboidScheduler -- RuleBasedIndex
+
+
+
+    JoinTableDesc -- TableKind
+
+    JoinTableDesc -- JoinDesc
+}
+
+
+
+
+
+
+
+
+
+
+
+
+@enduml

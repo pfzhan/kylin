@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -64,12 +58,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 public class AsyncQueryUtil {
-    private AsyncQueryUtil() {
-    }
-
+    public static final String ASYNC_QUERY_JOB_ID_PRE = "ASYNC-QUERY-";
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryUtil.class);
 
-    public static final String ASYNC_QUERY_JOB_ID_PRE = "ASYNC-QUERY-";
+    private AsyncQueryUtil() {
+    }
 
     public static FileSystem getFileSystem() {
         return HadoopUtil.getWorkingFileSystem();
@@ -86,7 +79,8 @@ public class AsyncQueryUtil {
         }
     }
 
-    public static void saveMetaData(String project, List<SelectedColumnMeta> columnMetas, String queryId) throws IOException {
+    public static void saveMetaData(String project, List<SelectedColumnMeta> columnMetas, String queryId)
+            throws IOException {
         ArrayList<String> dataTypes = Lists.newArrayList();
         ArrayList<String> columnNames = Lists.newArrayList();
         for (SelectedColumnMeta selectedColumnMeta : columnMetas) {
@@ -107,8 +101,8 @@ public class AsyncQueryUtil {
         }
     }
 
-    public static void saveFileInfo(String project, String format, String encode, String fileName, String queryId, String separator)
-            throws IOException {
+    public static void saveFileInfo(String project, String format, String encode, String fileName, String queryId,
+            String separator) throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (fileSystem.exists(asyncQueryResultDir)) {
@@ -131,7 +125,7 @@ public class AsyncQueryUtil {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFailureFlagFileName())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             if (errorMessage != null) {
                 osw.write(errorMessage);
                 os.hflush();

@@ -1,25 +1,19 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://kyligence.io
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.kylin.query.util;
@@ -107,7 +101,7 @@ public class RexToTblColRefTranslator {
      * @return
      */
     public static TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType, String fieldName,
-                                             Set<TblColRef> sourceColumnCollector, Map<RexNode, TblColRef> nodeAndTblColMap) {
+            Set<TblColRef> sourceColumnCollector, Map<RexNode, TblColRef> nodeAndTblColMap) {
         return new RexToTblColRefTranslator(sourceColumnCollector, nodeAndTblColMap).doTranslateRexNode(rexNode,
                 inputColumnRowType, fieldName);
     }
@@ -120,6 +114,28 @@ public class RexToTblColRefTranslator {
 
     public static TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType) {
         return new RexToTblColRefTranslator().doTranslateRexNode(rexNode, inputColumnRowType, rexNode.toString());
+    }
+
+    /**
+     * In RexNode trees, OR and AND have any number of children,
+     * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
+     */
+    static RexNode createLeftCall(RexNode origin) {
+        RexNode newRexNode = origin;
+        if (origin instanceof RexCall) {
+            RexCall call = (RexCall) origin;
+            SqlOperator op = call.getOperator();
+            List<RexNode> operands = call.getOperands();
+            if ((op.getKind() == SqlKind.AND || op.getKind() == SqlKind.OR) && operands.size() > 2) {
+                RexBuilder builder = new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+                RexNode first = builder.makeCall(op, operands.get(0), operands.get(1));
+                for (int i = 2; i < operands.size(); i++) {
+                    first = builder.makeCall(op, first, operands.get(i));
+                }
+                newRexNode = first;
+            }
+        }
+        return newRexNode;
     }
 
     public TblColRef doTranslateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType, String fieldName) {
@@ -200,28 +216,6 @@ public class RexToTblColRefTranslator {
 
         return TblColRef.newInnerColumn(fieldName, TblColRef.InnerDataTypeEnum.LITERAL, createInnerColumn(call),
                 operator, tblColRefs);
-    }
-
-    /**
-     * In RexNode trees, OR and AND have any number of children,
-     * SqlCall requires exactly 2. So, convert to a left-deep binary tree.
-     */
-    static RexNode createLeftCall(RexNode origin) {
-        RexNode newRexNode = origin;
-        if (origin instanceof RexCall) {
-            RexCall call = (RexCall) origin;
-            SqlOperator op = call.getOperator();
-            List<RexNode> operands = call.getOperands();
-            if ((op.getKind() == SqlKind.AND || op.getKind() == SqlKind.OR) && operands.size() > 2) {
-                RexBuilder builder = new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
-                RexNode first = builder.makeCall(op, operands.get(0), operands.get(1));
-                for (int i = 2; i < operands.size(); i++) {
-                    first = builder.makeCall(op, first, operands.get(i));
-                }
-                newRexNode = first;
-            }
-        }
-        return newRexNode;
     }
 
     private String createInnerColumn(RexCall call) {

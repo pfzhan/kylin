@@ -1,0 +1,135 @@
+@startuml
+
+namespace org.apache.kylin.common {
+    class NProjectManager {
+    }
+}
+
+
+namespace org.apache.kylin.source {
+    class NTableMetadataManager {
+    }
+
+    class KafkaConfigManager {
+    }
+
+}
+
+namespace org.apache.kylin.modeling {
+
+    class NDataflowManager {
+    }
+
+    class NIndexPlanManager {
+    }
+
+    class NDataModelManager {
+    }
+
+    class NDataLoadingRangeManager {
+    }
+
+    class TempStatementManager {
+    }
+
+    class SQLBlacklistManager {
+    }
+
+    '-------------------------------------------------
+    ' Class Relation
+
+    NDataflowManager --> NDataModelManager
+    NDataflowManager --> NIndexPlanManager
+    NDataflowManager --> NTableMetadataManager
+
+    NDataflowManager --> org.apache.kylin.common.NProjectManager
+
+    NDataModelManager --> org.apache.kylin.common.NProjectManager
+
+    NTableMetadataManager --> org.apache.kylin.common.NProjectManager
+
+    NIndexPlanManager --> NDataModelManager
+
+    JobStatisticsManager --> NDataModelManager
+
+    NDataLoadingRangeManager --> org.apache.kylin.source.NTableMetadataManager
+
+
+}
+
+
+namespace org.apache.kylin.building {
+
+    class JobStatisticsManager {
+    }
+
+    class NDataSegDetailsManager{
+    }
+}
+
+
+'========================================================
+'========================================================
+
+
+namespace io.ke.enterprise.streaming {
+    '批流一体
+    class FusionModelManager {
+    }
+
+    class StreamingManager {
+    }
+}
+
+
+namespace io.ke.enterprise.acl {
+
+    '表行列级权限
+    class AclTCRManager {
+    }
+
+
+    '-------------------------------------------------
+    ' Class Relation
+
+    AclTCRManager --> org.apache.kylin.source.NTableMetadataManager
+
+    SourceUsageManager --> org.apache.kylin.common.NProjectManager
+}
+
+
+
+namespace io.ke.enterprise.recommend {
+
+    '推荐
+    class FavoriteRuleManager {
+    }
+
+    class AccelerateRatioManager {
+    }
+}
+
+
+
+namespace io.ke.enterprise.others {
+
+
+    '分层存储
+    class ClickHouseNodeGroupManager {
+    }
+
+    class ClickHouseFlowManager {
+    }
+
+    class ClickHouseManager {
+    }
+
+    '容量计费
+    class SourceUsageManager {
+    }
+
+    '资源组
+    class ResourceGroupManager {
+    }
+}
+@enduml
