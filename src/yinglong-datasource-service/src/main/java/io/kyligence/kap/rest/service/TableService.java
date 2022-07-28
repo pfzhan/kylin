@@ -1180,19 +1180,24 @@ public class TableService extends BasicService {
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
             int maxRows, boolean needBuild, int priority, String yarnQueue) {
         aclEvaluate.checkProjectWritePermission(projectName);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        Pair<String, List<String>> result = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
             List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild, null);
             pair.setSecond(buildingJobs);
-            if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableIdentity), projectName,
-                        maxRows, priority, yarnQueue, null);
-                if (CollectionUtils.isNotEmpty(jobIds)) {
-                    pair.setFirst(jobIds.get(0));
-                }
-            }
             return pair;
         }, projectName);
+        try {
+            if (needSample && maxRows > 0) {
+                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows,
+                        priority, yarnQueue, null);
+                if (CollectionUtils.isNotEmpty(jobIds)) {
+                    result.setFirst(jobIds.get(0));
+                }
+            }
+        } catch (Throwable t) {
+            throw new RuntimeException("Reload table successfully, but failed to submit sampling job.", t);
+        }
+        return result;
     }
 
     public Pair<String, List<String>> reloadAWSTableCompatibleCrossAccount(String projectName, S3TableExtInfo tableExtInfo,
