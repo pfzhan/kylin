@@ -52,6 +52,12 @@
         <dependency>
             <groupId>io.kyligence</groupId>
             <artifactId>kyligence-config-external</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>logback-classic</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- provided -->

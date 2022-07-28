@@ -305,6 +305,7 @@
         <apache-api.version>1.0.3</apache-api.version>
 
         <saas.nacos.discovery.starter.version>2.6.2</saas.nacos.discovery.starter.version>
+        <nacos.spring.booter.version>2021.0.1.0</nacos.spring.booter.version>
 
         <jersey.version>2.35</jersey.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
@@ -581,6 +582,12 @@
                         <artifactId>log4j-to-slf4j</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>${nacos.spring.booter.version}</version>
             </dependency>
 
             <dependency>
