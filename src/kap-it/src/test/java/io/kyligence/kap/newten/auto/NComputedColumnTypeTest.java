@@ -64,7 +64,7 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
         newCC.setDatatype("ANY");
         
         ComputedColumnEvalUtil.evaluateExprAndTypeBatch(model, Lists.newArrayList(newCC));
-        Assert.assertEquals("DECIMAL(35,0)", newCC.getDatatype());
+        Assert.assertEquals("DECIMAL(32,0)", newCC.getDatatype());
     }
     
     @Test

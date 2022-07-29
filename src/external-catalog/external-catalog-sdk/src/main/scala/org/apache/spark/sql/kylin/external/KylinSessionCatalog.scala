@@ -32,6 +32,7 @@ import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.parser.ParserInterface
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
 import org.apache.spark.sql.connector.catalog.CatalogManager
+import org.apache.spark.sql.internal.SparkUDFExpressionBuilder
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 class KylinSessionCatalog(
@@ -50,7 +51,9 @@ class KylinSessionCatalog(
     tableFunctionRegistry,
     hadoopConf,
     parser,
-    functionResourceLoader) {
+    functionResourceLoader,
+    new SparkUDFExpressionBuilder
+    ) {
 
   lazy val keExternalCatalog: KeExternalCatalog = {
       externalCatalog.asInstanceOf[ExternalCatalogWithListener].unwrapped.asInstanceOf[HasKeExternal].keExternalCatalog

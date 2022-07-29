@@ -3601,7 +3601,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "Cannot find column BUYER_ACCOUNT.TEST_KYLIN_FACT_0_DOT_0_NEST1, please check whether schema of related table has changed.");
+                "Can’t validate the expression \"TEST_KYLIN_FACT.NEST2\" (computed column: TEST_KYLIN_FACT.NEST1 * 12).");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -3645,7 +3645,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "Cannot find column BUYER_ACCOUNT.TEST_KYLIN_FACT_0_DOT_0_NEST1, please check whether schema of related table has changed.");
+                "Can’t validate the expression \"TEST_KYLIN_FACT.NEST2\" (computed column: TEST_KYLIN_FACT.NEST1 * 12).");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";

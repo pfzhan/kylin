@@ -44,7 +44,7 @@ object LimitPlan {
       val offset = BigDecimal(rel.localOffset.accept(visitor).toString).toInt
       inputs
         .get(0)
-        .limitRange(offset, offset + limit)
+        .offset(offset).limit(limit)
     }
   }
 }

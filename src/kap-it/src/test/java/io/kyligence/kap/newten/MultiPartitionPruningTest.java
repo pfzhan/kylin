@@ -421,6 +421,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
     @Test
     public void testPartitionPruningChinese() throws Exception {
         val dfName = "9cde9d25-9334-4b92-b229-a00f49453757";
+        SparderEnv.getSparkSession().conf().set("spark.sql.adaptive.enabled", "false");
 
         // segment1 [2012-01-01, 2013-01-01] partition value FT, 中国
         // segment2 [2013-01-01, 2014-01-01] partition value 中国

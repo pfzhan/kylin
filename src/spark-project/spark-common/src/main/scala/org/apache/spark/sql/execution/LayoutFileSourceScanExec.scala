@@ -340,7 +340,7 @@ case class LayoutFileSourceScanExec(
       driverMetrics("staticFilesNum") = filesNum
       driverMetrics("staticFilesSize") = filesSize
     }
-    if (relation.partitionSchemaOption.isDefined) {
+    if (!relation.partitionSchema.isEmpty) {
       driverMetrics("numPartitions") = partitions.length
     }
   }
@@ -360,7 +360,7 @@ case class LayoutFileSourceScanExec(
       None
     }
   } ++ {
-    if (relation.partitionSchemaOption.isDefined) {
+    if (!relation.partitionSchema.isEmpty) {
       Map(
         "numPartitions" -> SQLMetrics.createMetric(sparkContext, "number of partitions read"),
         "pruningTime" ->
@@ -481,7 +481,7 @@ case class LayoutFileSourceScanExec(
       }
     }
 
-    new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions)
+    new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions,requiredSchema)
   }
 
   /**
@@ -522,7 +522,7 @@ case class LayoutFileSourceScanExec(
     val partitions =
       FilePartition.getFilePartitions(relation.sparkSession, splitFiles, maxSplitBytes)
 
-    new FileScanRDD(fsRelation.sparkSession, readFile, partitions)
+    new FileScanRDD(fsRelation.sparkSession, readFile, partitions,requiredSchema)
   }
 
   // Filters unused DynamicPruningExpression expressions - one which has been replaced

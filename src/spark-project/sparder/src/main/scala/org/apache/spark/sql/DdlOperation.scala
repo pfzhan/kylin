@@ -26,7 +26,7 @@ package org.apache.spark.sql
 import org.apache.spark.sql.DDLDesc.DDLType
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, SessionCatalog}
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.plans.logical.{CreateNamespace, LogicalPlan}
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
 import org.apache.spark.sql.execution.{CommandExecutionMode, CommandResultExec, QueryExecution, SparkPlan}
 import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableAsSerdeCommand, ShowPartitionsCommand}
@@ -35,6 +35,7 @@ import java.lang.{String => JString}
 import java.util.{List => JList}
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.execution.datasources.v2.{CreateNamespaceExec, DropNamespaceExec}
 
 import scala.collection.JavaConverters._
 
@@ -68,9 +69,19 @@ object DdlOperation extends Logging {
         new DDLDesc(sqlText, db.databaseName,
           null,
           DDLType.CREATE_DATABASE)
+      case CreateNamespaceExec(_,namespace:Seq[String],_,_) =>
+        SparderEnv.getSparkSession.sql(sqlText)
+        new DDLDesc(sqlText, namespace(0),
+          null,
+          DDLType.CREATE_DATABASE)  
       case ExecutedCommandExec(db: DropDatabaseCommand) =>
         SparderEnv.getSparkSession.sql(sqlText)
         new DDLDesc(sqlText, db.databaseName,
+          null,
+          DDLType.DROP_DATABASE)
+      case DropNamespaceExec(_,namespace:Seq[String],_,_) =>
+        SparderEnv.getSparkSession.sql(sqlText)
+        new DDLDesc(sqlText, namespace(0),
           null,
           DDLType.DROP_DATABASE)
       case ExecutedCommandExec(addPartition: AlterTableAddPartitionCommand) =>

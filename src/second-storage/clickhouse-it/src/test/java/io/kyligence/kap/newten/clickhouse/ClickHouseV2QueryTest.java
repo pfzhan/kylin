@@ -101,6 +101,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         conf.setConfString(catalogPrefix + ".driver", clickhouse.getDriverClassName());
         conf.setConfString(catalogPrefix + ".pushDownLimit", "true");
         conf.setConfString(catalogPrefix + ".pushDownAggregate", "true");
+        conf.setConfString(catalogPrefix + ".pushDownOffset", "true");
     }
 
     private void executeAndCheck(Dataset<Row> dataset, List<Row> expectedRow, int expectedShards) {
@@ -185,6 +186,26 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         };
         ClickHouseUtils.checkPushedInfo(dataset, expectedPlanFragment);
         List<Row> expectedRow = ImmutableList.of(RowFactory.create("4", 7, 3L));
+        executeAndCheck(dataset, expectedRow, expectedShards);
+    }
+
+    private void testOffset(String catalogName, int expectedShards) {
+        String sql = String.format(Locale.ROOT,
+                "select s2, i1, i2 from %s.%s where i1 > 6 offset 1", catalogName, table);
+        Dataset<Row> dataset = ss.sql(sql);
+        String[] expectedPlanFragment;
+        if (expectedShards == 1) {
+            expectedPlanFragment = new String[] {
+                    "PushedFilters: [i1 IS NOT NULL, i1 > 6],",
+                    "PushedOffset: OFFSET 1, "
+            };
+        } else {
+            expectedPlanFragment = new String[] {
+                    "PushedFilters: [i1 IS NOT NULL, i1 > 6],"
+            };
+        }
+        ClickHouseUtils.checkPushedInfo(dataset, expectedPlanFragment);
+        List<Row> expectedRow = ImmutableList.of();
         executeAndCheck(dataset, expectedRow, expectedShards);
     }
 
@@ -359,6 +380,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             testTop(catalogName, 1);
             testPaging(catalogName, 1);
             testAggregate(catalogName, 1);
+            testOffset(catalogName, 1);
 
             return true;
         });
@@ -387,6 +409,7 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             testTop(catalogName, shardList.size());
             testPaging(catalogName, shardList.size());
             testAggregate(catalogName, shardList.size());
+            testOffset(catalogName, shardList.size());
 
             return true;
         });

@@ -105,7 +105,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof AnalysisException);
-            Assert.assertTrue(e.getMessage().contains("cannot resolve 'NEST4' given input columns"));
+            Assert.assertTrue(e.getMessage().contains("Column 'NEST4' does not exist"));
         }
     }
 
