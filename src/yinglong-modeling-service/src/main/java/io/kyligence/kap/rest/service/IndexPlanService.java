@@ -80,6 +80,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -305,8 +306,8 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 }
                 final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
                 jobParam.setProject(project);
-                getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                UnitOfWork.get().doAfterUnit(() -> getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
