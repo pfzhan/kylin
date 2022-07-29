@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.delegate;
 
+import java.util.List;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.springframework.cloud.openfeign.EnableFeignClients;
@@ -32,22 +34,24 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import io.kyligence.kap.rest.aspect.WaitForSyncAfterRPC;
 import io.kyligence.kap.rest.request.MergeAndUpdateTableExtRequest;
-
-import java.util.List;
 
 @EnableFeignClients
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/tables/feign")
 public interface TableMetadataRPC extends TableMetadataContract {
 
     @PostMapping(value = "/merge_and_update_table_ext")
+    @WaitForSyncAfterRPC
     void mergeAndUpdateTableExt(@RequestParam("project") String project,
             @RequestBody MergeAndUpdateTableExtRequest request);
 
     @PostMapping(value = "/save_table_ext")
+    @WaitForSyncAfterRPC
     void saveTableExt(@RequestParam("project") String project, @RequestBody TableExtDesc tableExt);
 
     @PostMapping(value = "/update_table_desc")
+    @WaitForSyncAfterRPC
     void updateTableDesc(@RequestParam("project") String project, @RequestBody TableDesc tableDesc);
 
     @GetMapping("/get_table_names_by_fuzzy_key")

@@ -21,21 +21,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.delegate;
+package io.kyligence.kap.rest.aspect;
 
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.rest.aspect.WaitForSyncAfterRPC;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import lombok.extern.slf4j.Slf4j;
 
-@EnableFeignClients
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
-public interface JobStatisticsRPC extends JobStatisticsContract {
-    @PostMapping(value = "/update_statistics")
-    @WaitForSyncAfterRPC
-    void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
-            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
-            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount);
+@Slf4j
+@Aspect
+@Component
+public class WaitForSyncAspect {
+
+    @Pointcut("@annotation(waitForSyncBeforeRPC)")
+    public void callBefore(WaitForSyncBeforeRPC waitForSyncBeforeRPC) {
+        /// just implement it
+    }
+
+    @Before("callBefore(waitForSyncBeforeRPC)")
+    public void before(WaitForSyncBeforeRPC waitForSyncBeforeRPC) {
+        StreamingUtils.replayAuditlog();
+    }
+
+    @Pointcut("@annotation(waitForSyncAfterRPC)")
+    public void callAfter(WaitForSyncAfterRPC waitForSyncAfterRPC) {
+        /// just implement it
+    }
+
+    @After("callAfter(waitForSyncAfterRPC)")
+    public void after(WaitForSyncAfterRPC waitForSyncAfterRPC) {
+        StreamingUtils.replayAuditlog();
+    }
 }

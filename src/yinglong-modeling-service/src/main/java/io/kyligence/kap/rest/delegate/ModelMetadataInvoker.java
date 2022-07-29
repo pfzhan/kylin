@@ -26,19 +26,14 @@ package io.kyligence.kap.rest.delegate;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.util.SpringContext;
-import org.awaitility.Awaitility;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.request.AddSegmentRequest;
 import io.kyligence.kap.rest.request.DataFlowUpdateRequest;
 import io.kyligence.kap.rest.request.MergeSegmentRequest;
@@ -111,35 +106,19 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
     }
 
     public NDataSegment appendSegment(AddSegmentRequest request) {
-        NDataSegment segment = getDelegate().appendSegment(request);
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        waitForSync(() -> NDataflowManager.getInstance(config, request.getProject()).getDataflow(request.getModelId())
-                .getSegment(segment.getId()) != null);
-        return segment;
+        return getDelegate().appendSegment(request);
     }
 
     public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
-        NDataSegment segment = getDelegate().refreshSegment(project, indexPlanUuid, segmentId);
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        waitForSync(() -> NDataflowManager.getInstance(config, project).getDataflow(indexPlanUuid)
-                .getSegment(segment.getId()) != null);
-        return segment;
+        return getDelegate().refreshSegment(project, indexPlanUuid, segmentId);
     }
 
     public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
-        NDataSegment segment = getDelegate().appendPartitions(project, dfId, segId, partitionValues);
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        waitForSync(() -> NDataflowManager.getInstance(config, project).getDataflow(dfId)
-                .getSegment(segment.getId()) != null);
-        return segment;
+        return getDelegate().appendPartitions(project, dfId, segId, partitionValues);
     }
 
     public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
-        NDataSegment segment = getDelegate().mergeSegments(project, mergeSegmentRequest);
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        waitForSync(() -> NDataflowManager.getInstance(config, project)
-                .getDataflow(mergeSegmentRequest.getIndexPlanUuid()).getSegment(segment.getId()) != null);
-        return segment;
+        return getDelegate().mergeSegments(project, mergeSegmentRequest);
     }
 
     public void purgeModelManually(String dataflowId, String project) {
@@ -165,10 +144,6 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
         return getDelegate().getSegmentsByRange(modelId, project, start, end);
-    }
-
-    private void waitForSync(Callable<Boolean> callable) {
-        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(callable);
     }
 
     public void batchCreateModel(ModelSuggestionRequest request) {

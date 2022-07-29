@@ -33,15 +33,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.rest.aspect.WaitForSyncAfterRPC;
 
 @EnableFeignClients
 @FeignClient(name = "yinglong-common-booter", path = "/kylin/api/projects/feign")
 public interface ProjectMetadataRPC extends ProjectMetadataContract {
     @PostMapping(value = "/update_rule")
+    @WaitForSyncAfterRPC
     void updateRule(@RequestBody List<FavoriteRule.AbstractCondition> conditions,
             @RequestParam("isEnabled") boolean isEnabled, @RequestParam("ruleName") String ruleName,
             @RequestParam("project") String project);
 
     @PostMapping(value = "/save_async_task")
+    @WaitForSyncAfterRPC
     void saveAsyncTask(@RequestParam("project") String project, @RequestBody AsyncAccelerationTask task);
 }

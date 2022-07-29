@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.job.delegate.JobMetadataDelegate;
+import io.kyligence.kap.rest.aspect.WaitForSyncBeforeRPC;
 
 @Controller
 @RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -53,24 +54,28 @@ public class JobMetadataDelegateController {
 
     @PostMapping(value = "/feign/add_index_job")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public String addIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.addIndexJob(jobMetadataRequest);
     }
 
     @PostMapping(value = "/feign/add_second_storage_job")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public String addSecondStorageJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.addSecondStorageJob(jobMetadataRequest);
     }
 
     @PostMapping(value = "/feign/add_segment_job")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public String addSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
     }
 
     @PostMapping(value = "/feign/get_layouts_by_running_jobs")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public Set<Long> getLayoutsByRunningJobs(@RequestParam("project") String project,
             @RequestParam("modelId") String modelId) {
         return jobMetadataDelegate.getLayoutsByRunningJobs(project, modelId);

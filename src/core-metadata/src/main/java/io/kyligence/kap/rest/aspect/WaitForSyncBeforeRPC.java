@@ -21,21 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.delegate;
+package io.kyligence.kap.rest.aspect;
 
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import io.kyligence.kap.rest.aspect.WaitForSyncAfterRPC;
-
-@EnableFeignClients
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
-public interface JobStatisticsRPC extends JobStatisticsContract {
-    @PostMapping(value = "/update_statistics")
-    @WaitForSyncAfterRPC
-    void updateStatistics(@RequestParam("project") String project, @RequestParam("date") long date,
-            @RequestParam(value = "model", required = false) String model, @RequestParam("duration") long duration,
-            @RequestParam("byteSize") long byteSize, @RequestParam("dataCount") int deltaCount);
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface WaitForSyncBeforeRPC {
 }

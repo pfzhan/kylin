@@ -53,6 +53,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.job.service.DTableService;
 import io.kyligence.kap.job.service.TableSampleService;
+import io.kyligence.kap.rest.aspect.WaitForSyncBeforeRPC;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.service.ModelBuildSupporter;
 import io.kyligence.kap.rest.service.TableService;
@@ -139,6 +140,7 @@ public class SampleController extends BaseController {
 
     @PostMapping(value = "/feign/sampling")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public List<String> sampling(@RequestBody Set<String> tables, @RequestParam("project") String project,
             @RequestParam("rows") int rows, @RequestParam("priority") int priority,
             @RequestParam(value = "yarnQueue", required = false, defaultValue = "") String yarnQueue,
