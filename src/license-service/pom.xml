@@ -17,32 +17,13 @@
 
     <dependencies>
 
-        <!--yinglong-->
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-smart-server</artifactId>
+            <artifactId>yinglong-common-service</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-query-server</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>spring-boot-starter-validation</artifactId>
-                    <groupId>org.springframework.boot</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-metadata-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-common-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.yinglong</groupId>
-            <artifactId>yinglong-data-loading-server</artifactId>
+            <artifactId>yinglong-enterprise-service</artifactId>
         </dependency>
 
         <dependency>
