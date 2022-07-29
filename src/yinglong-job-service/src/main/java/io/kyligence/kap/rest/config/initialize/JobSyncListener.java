@@ -100,7 +100,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-//TODO need to be rewritten
 public class JobSyncListener {
     private static final long RETRY_INTERVAL = 5000L;
     private static final int MAX_RETRY_COUNT = 5;
@@ -144,12 +143,14 @@ public class JobSyncListener {
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
         jobReadyNotified = true;
+        //TODO schedule job immediately
         // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
         try {
+            //TODO schedule job immediately
             // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
             postJobInfo(extractJobInfo(notifier));
         } finally {

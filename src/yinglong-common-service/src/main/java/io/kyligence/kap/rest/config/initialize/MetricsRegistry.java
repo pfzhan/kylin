@@ -63,7 +63,9 @@ import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.manager.ExecutableManager;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -177,19 +179,23 @@ public class MetricsRegistry {
                 e -> SparderEnv.isSparkAvailable() ? e.getRunningTaskCount() * 1.0 / e.getSlotCount() : 0)
                 .strongReference(true).register(meterRegistry);
     }
-    // TODO need to be rewritten
+
     public static void registerProjectPrometheusMetrics(KylinConfig kylinConfig, String project) {
-//        if (!kylinConfig.isPrometheusMetricsEnabled()) {
-//            return;
-//        }
-//        MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
-//        Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
-//        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-//        Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
-//                () -> Objects.isNull(scheduler.getContext()) ? 0
-//                        : scheduler.getContext().getRunningJobs().values().stream()
-//                                .filter(job -> ExecutableState.RUNNING.equals(job.getOutput().getState())).count())
-//                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
+        if (!kylinConfig.isPrometheusMetricsEnabled()) {
+            return;
+        }
+        MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
+        Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
+
+        if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
+            Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(), () -> {
+                JobContext jobContext = JobContextUtil.getJobContext(kylinConfig);
+                return Objects.isNull(jobContext) ? 0
+                        : jobContext.getJobScheduler().getRunningJob().values().stream()
+                                .filter(jobExecutor -> project.equals(jobExecutor.getJobExecutable().getProject()))
+                                .count();
+            }).tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
+        }
     }
 
     public static void registerHostMetrics(String host) {

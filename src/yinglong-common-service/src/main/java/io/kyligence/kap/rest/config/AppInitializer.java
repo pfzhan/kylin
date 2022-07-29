@@ -57,6 +57,7 @@ import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.CacheCleanListener;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
+import io.kyligence.kap.rest.config.initialize.JobSchedulerListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
 import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
@@ -111,6 +112,8 @@ public class AppInitializer {
                 return localIdentify.equalsIgnoreCase(instance);
             });
             if (isJob || isDataLoading) {
+                // register scheduler listener
+                EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
                 streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
 
                 // register scheduler listener

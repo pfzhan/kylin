@@ -65,6 +65,7 @@ import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -91,6 +92,7 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.domain.JobInfo;
@@ -459,6 +461,9 @@ public class JobInfoService extends BasicService implements JobSupporter {
             break;
         case DISCARD:
             discardJob(project, jobId, executable);
+            JobTypeEnum jobTypeEnum = executableManager.getJob(jobId).getJobType();
+            String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
+            EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType));
             break;
         case PAUSE:
             killExistApplication(executable);
