@@ -25,6 +25,7 @@ import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
@@ -99,7 +100,7 @@ public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
         String dn = ldapConfig.getProperty("kylin.security.ldap.connection-username");
         String password = ldapConfig.getProperty("kylin.security.ldap.connection-password");
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=com");
-        config.addAdditionalBindCredentials(dn, password);
+        config.addAdditionalBindCredentials(dn, EncryptUtil.decrypt(password));
         config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);

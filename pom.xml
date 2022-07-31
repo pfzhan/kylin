@@ -284,6 +284,7 @@
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
 
         <external.version>4.5.9</external.version>
+        <iam-user-manager.version>1.1</iam-user-manager.version>
 
         <json-smart.version>2.4.7</json-smart.version>
         <xmlsec.version>2.1.7</xmlsec.version>
@@ -296,6 +297,7 @@
         <apache-api.version>1.0.3</apache-api.version>
 
         <spring.cloud.alibaba.version>2021.1</spring.cloud.alibaba.version>
+        <saas.nacos.discovery.starter.version>2.6.2</saas.nacos.discovery.starter.version>
 
         <jersey.version>2.35</jersey.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
@@ -554,9 +556,19 @@
             </dependency>
 
             <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-                <version>${spring.cloud.alibaba.version}</version>
+                <groupId>io.kyligence.saas</groupId>
+                <artifactId>saas-nacos-discovery-starter</artifactId>
+                <version>${saas.nacos.discovery.starter.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-to-slf4j</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

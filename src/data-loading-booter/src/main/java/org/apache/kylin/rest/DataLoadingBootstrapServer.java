@@ -29,7 +29,7 @@ import org.springframework.context.annotation.ImportResource;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableCaching
-@EnableFeignClients
+@EnableFeignClients(basePackages = { "io.kyligence", "org.apache.kylin" })
 public class DataLoadingBootstrapServer {
 
     public static void main(String[] args) {
