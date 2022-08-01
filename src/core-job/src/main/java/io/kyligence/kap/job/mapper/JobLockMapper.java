@@ -33,13 +33,13 @@ import io.kyligence.kap.job.domain.JobLock;
 
 @Mapper
 public interface JobLockMapper {
-    int deleteByPrimaryKey(Long id);
+    int deleteByPrimaryKey(@Param("id") Long id);
 
     int insert(JobLock row);
 
     int insertSelective(JobLock row);
 
-    JobLock selectByPrimaryKey(Long id);
+    JobLock selectByPrimaryKey(@Param("id") Long id);
 
     int updateByPrimaryKeySelective(JobLock row);
 

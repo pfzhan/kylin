@@ -42,8 +42,26 @@
     <context:component-scan base-package="org.apache.kylin.rest"/>
     <context:component-scan base-package="io.kyligence"/>
 
-    <bean class="org.apache.kylin.rest.security.PasswordPlaceholderConfigurer">
-        <property name="ignoreResourceNotFound" value="true"/>
+
+    <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource" name="jobDataSource">
+        <property name="username" value="sa"></property>
+        <property name="password" value=""></property>
+        <property name="url" value="jdbc:h2:mem:db_default"></property>
+        <property name="driverClassName" value="org.h2.Driver"></property>
+    </bean>
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:mybatis-mapper/*Mapper.xml"></property>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="io.kyligence.kap.job.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+
+    <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
     </bean>
 
 </beans>

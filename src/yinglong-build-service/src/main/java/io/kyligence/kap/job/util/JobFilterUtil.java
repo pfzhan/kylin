@@ -25,6 +25,7 @@
 package io.kyligence.kap.job.util;
 
 import com.google.common.base.Preconditions;
+import io.kyligence.kap.job.config.JobMybatisConfig;
 import io.kyligence.kap.job.rest.JobFilter;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 import io.kyligence.kap.rest.delegate.ModelMetadataInvoker;
@@ -77,7 +78,7 @@ public class JobFilterUtil {
         }
 
         return new JobMapperFilter(jobFilter.getStatuses(), jobFilter.getJobNames(), queryStartTime, subjects, null,
-                jobId, null, jobFilter.getProject(), orderByField, orderType, offset, limit);
+                jobId, null, jobFilter.getProject(), orderByField, orderType, offset, limit, JobMybatisConfig.JOB_INFO_TABLE);
     }
 
     private static Date getQueryStartTime(int timeFilter) {

@@ -69,4 +69,7 @@ public class JobMapperFilter {
 
     @Builder.Default
     private int limit = -1;
+
+    // placeholder for mybatis ${}
+    private String jobInfoTable;
 }
