@@ -84,14 +84,6 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-tool</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.apache.kylin</groupId>-->
-<!--            <artifactId>kylin-core-metadata-ext</artifactId>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.kylin</groupId>-->
-<!--            <artifactId>kylin-query-ext</artifactId>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-query</artifactId>
