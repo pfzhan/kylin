@@ -32,6 +32,7 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -41,6 +42,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -59,6 +61,7 @@ import io.kyligence.kap.common.logging.LogOutputStream;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.config.JobTableInterceptor;
 import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.config.FileJobConfig;
 import io.kyligence.kap.job.dao.JobInfoDao;
@@ -88,6 +91,8 @@ public class JobContextUtil {
     private static SqlSessionManager sqlSessionManager;
 
     private static DataSourceTransactionManager transactionManager;
+
+    private static JobTableInterceptor jobTableInterceptor = new JobTableInterceptor();
 
     synchronized public static JobInfoDao getJobInfoDaoForTest(KylinConfig config) {
         initMappers(config);
@@ -127,6 +132,7 @@ public class JobContextUtil {
             transactionManager = new DataSourceTransactionManager(dataSource);
             SqlSessionFactory sqlSessionFactory = getSqlSessionFactory(dataSource);
             sqlSessionManager = SqlSessionManager.newInstance(sqlSessionFactory);
+            addPluginForSqlSessionManager(sqlSessionManager);
             jobInfoMapper = sqlSessionManager.getMapper(JobInfoMapper.class);
             jobInfoMapper.deleteAllJob();
             jobLockMapper = sqlSessionManager.getMapper(JobLockMapper.class);
@@ -135,6 +141,16 @@ public class JobContextUtil {
             throw new RuntimeException("initialize mybatis mappers failed", e);
         }
     }
+
+    private static void addPluginForSqlSessionManager(SqlSessionManager sqlSessionManager){
+        List<Interceptor> interceptors = sqlSessionManager.getConfiguration().getInterceptors();
+
+        if (!interceptors.contains(jobTableInterceptor)){
+            sqlSessionManager.getConfiguration().addInterceptor(jobTableInterceptor);
+        }
+
+    }
+
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource) throws SQLException, IOException {
         log.info("Start to build data loading SqlSessionFactory");
