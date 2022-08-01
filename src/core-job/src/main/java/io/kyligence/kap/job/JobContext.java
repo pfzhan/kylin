@@ -38,6 +38,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
@@ -59,6 +60,7 @@ import io.kyligence.kap.job.scheduler.ResourceAcquirer;
 import io.kyligence.kap.job.scheduler.SharedFileProgressReporter;
 
 @Component
+@DependsOn({"springContext"})
 @ConditionalOnProperty("spring.job-datasource.url")
 public class JobContext implements InitializingBean, DisposableBean {
 
