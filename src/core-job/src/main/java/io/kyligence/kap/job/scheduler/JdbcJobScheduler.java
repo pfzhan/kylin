@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +37,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.runners.JobCheckUtil;
@@ -66,7 +66,8 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private final AtomicBoolean isMaster;
 
-    private final Map<String, JobExecutor> runningJobMap;
+    // job id -> (executable, job scheduled time)
+    private final Map<String, Pair<AbstractJobExecutable, Long>> runningJobMap;
 
     private JdbcJobLock masterLock;
 
@@ -75,11 +76,14 @@ public class JdbcJobScheduler implements JobScheduler {
     private ScheduledExecutorService slave;
 
     private ThreadPoolExecutor executorPool;
+    
+    private int consumerMaxThreads;
 
     public JdbcJobScheduler(JobContext jobContext) {
         this.jobContext = jobContext;
         this.isMaster = new AtomicBoolean(false);
         this.runningJobMap = Maps.newConcurrentMap();
+        this.consumerMaxThreads = jobContext.getJobConfig().getJobSchedulerConsumerMaxThreads();
     }
 
     @Override
@@ -106,7 +110,7 @@ public class JdbcJobScheduler implements JobScheduler {
         return !runningJobMap.isEmpty();
     }
 
-    public Map<String, JobExecutor> getRunningJob() {
+    public Map<String, Pair<AbstractJobExecutable, Long>> getRunningJob() {
         return Collections.unmodifiableMap(runningJobMap);
     }
 
@@ -128,8 +132,8 @@ public class JdbcJobScheduler implements JobScheduler {
         slave = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave");
 
         // execute job: RUNNING -> FINISHED
-        executorPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor", 1,
-                jobContext.getJobConfig().getJobSchedulerConsumerMaxThreads(), 5, TimeUnit.MINUTES);
+        executorPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor", 1, this.consumerMaxThreads,
+                5, TimeUnit.MINUTES);
 
         publishJob();
         subscribeJob();
@@ -179,13 +183,10 @@ public class JdbcJobScheduler implements JobScheduler {
             if (!jobContext.getParallelLimiter().tryRelease()) {
                 return;
             }
-
-            // TODO enum job status
-            final String readyStatus = "READY";
+            
             int batchSize = jobContext.getJobConfig().getJobSchedulerMasterPollBatchSize();
-
-            List<String> readyJobIdList = jobContext.getJobInfoMapper().findJobIdListByStatusBatch(readyStatus,
-                    batchSize);
+            List<String> readyJobIdList = jobContext.getJobInfoMapper()
+                    .findJobIdListByStatusBatch(JobStatusEnum.READY.name(), batchSize);
             if (readyJobIdList.isEmpty()) {
                 return;
             }
@@ -225,11 +226,18 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private void consumeJob() {
-
         long delay = jobContext.getJobConfig().getJobSchedulerSlavePollIntervalSec();
         try {
-
+            // The number of tasks to be obtained cannot exceed the free slots of the 'executorPool'
+            int exeFreeSlots = this.consumerMaxThreads - this.runningJobMap.size();
+            if (exeFreeSlots == 0) {
+                logger.info("No free slots to execute job");
+                return;
+            }
             int batchSize = jobContext.getJobConfig().getJobSchedulerSlavePollBatchSize();
+            if (exeFreeSlots < batchSize) {
+                batchSize = exeFreeSlots;
+            }
             List<String> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize);
             if (CollectionUtils.isEmpty(jobIdList)) {
                 return;
@@ -242,23 +250,26 @@ public class JdbcJobScheduler implements JobScheduler {
                 Collections.shuffle(jobIdList);
             }
 
-            CountDownLatch jobLockCountDown = new CountDownLatch(jobIdList.size());
             // submit job
             jobIdList.forEach(jobId -> {
+                // check 'runningJobMap', avoid processing submitted tasks
+                if (runningJobMap.containsKey(jobId)) {
+                    logger.warn("Job {} has already been submitted" , jobId);
+                    return;
+                }
                 Pair<JobInfo, AbstractJobExecutable> job = fetchJob(jobId);
                 if (null == job) {
-                    jobLockCountDown.countDown();
                     return;
                 }
                 final JobInfo jobInfo = job.getFirst();
                 final AbstractJobExecutable jobExecutable = job.getSecond();
                 if (!canSubmitJob(jobId, jobInfo, jobExecutable)) {
-                    jobLockCountDown.countDown();
                     return;
                 }
-                executorPool.execute(() -> executeJob(jobExecutable, jobInfo, jobLockCountDown));
+                // record running job id, and job scheduled time
+                runningJobMap.put(jobId, new Pair<>(jobExecutable, System.currentTimeMillis()));
+                executorPool.execute(() -> executeJob(jobExecutable, jobInfo));
             });
-            jobLockCountDown.await();
         } catch (Exception e) {
             logger.error("Something's wrong when consuming job", e);
         } finally {
@@ -302,9 +313,9 @@ public class JdbcJobScheduler implements JobScheduler {
         return true;
     }
 
-    private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo, CountDownLatch countDownLatch) {
+    private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo) {
         try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
-            JdbcJobLock jobLock = tryJobLock(jobExecutable, countDownLatch);
+            JdbcJobLock jobLock = tryJobLock(jobExecutable);
             if (null == jobLock) {
                 return;
             }
@@ -325,7 +336,6 @@ public class JdbcJobScheduler implements JobScheduler {
             }
 
             jobExecutor.setStartTime(System.currentTimeMillis());
-            runningJobMap.put(jobExecutable.getJobId(), jobExecutor);
 
             try {
                 // heavy action
@@ -340,20 +350,16 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    private JdbcJobLock tryJobLock(AbstractJobExecutable jobExecutable, CountDownLatch countDownLatch) throws LockException {
-        try {
-            JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
-                    jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
-                    jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
-                    new JobAcquireListener(jobExecutable));
-            if (!jobLock.tryAcquire()) {
-                logger.info("Acquire job lock failed.");
-                return null;
-            }
-            return jobLock;
-        } finally {
-            countDownLatch.countDown();
+    private JdbcJobLock tryJobLock(AbstractJobExecutable jobExecutable) throws LockException {
+        JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
+                jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
+                jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
+                new JobAcquireListener(jobExecutable));
+        if (!jobLock.tryAcquire()) {
+            logger.info("Acquire job lock failed.");
+            return null;
         }
+        return jobLock;
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {

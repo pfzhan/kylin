@@ -191,9 +191,8 @@ public class MetricsRegistry {
             Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(), () -> {
                 JobContext jobContext = JobContextUtil.getJobContext(kylinConfig);
                 return Objects.isNull(jobContext) ? 0
-                        : jobContext.getJobScheduler().getRunningJob().values().stream()
-                                .filter(jobExecutor -> project.equals(jobExecutor.getJobExecutable().getProject()))
-                                .count();
+                        : jobContext.getJobScheduler().getRunningJob().values().stream().map(pair -> pair.getFirst())
+                                .filter(jobExecutable -> project.equals(jobExecutable.getProject())).count();
             }).tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
         }
     }

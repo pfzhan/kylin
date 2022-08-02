@@ -27,15 +27,16 @@ package org.apache.kylin.job.runners;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.job.JobContext;
+import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.scheduler.JdbcJobScheduler;
-import io.kyligence.kap.job.scheduler.JobExecutor;
 import lombok.val;
 
 public class JobCheckRunner implements Runnable {
@@ -82,16 +83,17 @@ public class JobCheckRunner implements Runnable {
     public void run() {
         logger.info("Start check job pool.");
         JdbcJobScheduler jdbcJobScheduler = jobContext.getJobScheduler();
-        Map<String, JobExecutor> runningJobs = jdbcJobScheduler.getRunningJob();
-        for (Map.Entry<String, JobExecutor> entry : runningJobs.entrySet()) {
+        Map<String, Pair<AbstractJobExecutable, Long>> runningJobs = jdbcJobScheduler.getRunningJob();
+        for (Map.Entry<String, Pair<AbstractJobExecutable, Long>> entry : runningJobs.entrySet()) {
             String jobId = entry.getKey();
-            JobExecutor jobExecutor = entry.getValue();
-            String project = jobExecutor.getJobExecutable().getProject();
+            AbstractJobExecutable jobExecutable = entry.getValue().getFirst();
+            long startTime = entry.getValue().getSecond();
+            String project = jobExecutable.getProject();
             if (JobCheckUtil.markSuicideJob(jobId, jobContext)) {
                 logger.info("suicide job = {} on checker runner", jobId);
                 continue;
             }
-            if (discardTimeoutJob(jobId, project, jobExecutor.getStartTime())) {
+            if (discardTimeoutJob(jobId, project, startTime)) {
                 logger.info("discardTimeoutJob job = {} on checker runner", jobId);
                 continue;
             }
