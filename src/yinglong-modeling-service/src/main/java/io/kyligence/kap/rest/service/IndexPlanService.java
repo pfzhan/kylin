@@ -306,8 +306,14 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 }
                 final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
                 jobParam.setProject(project);
-                UnitOfWork.get().doAfterUnit(() -> getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
+                if (UnitOfWork.isAlreadyInTransaction()) {
+                    UnitOfWork.get().doAfterUnit(() -> getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
+                } else {
+                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                }
+
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
