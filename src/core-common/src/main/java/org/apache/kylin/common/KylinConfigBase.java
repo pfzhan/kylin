@@ -59,6 +59,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +73,6 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.config.core.loader.IExternalConfigLoader;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
@@ -94,6 +94,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.config.core.loader.IExternalConfigLoader;
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
@@ -105,7 +106,6 @@ import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
-import java.util.Collections;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -865,6 +865,17 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // JOB
     // ============================================================================
+
+    public StorageURL getJobMetadataUrl() {
+        if (StringUtils.isEmpty(getOptional("kylin.job.metadata.url"))) {
+            return getMetadataUrl();
+        }
+        return StorageURL.valueOf(getOptional("kylin.job.metadata.url"));
+    }
+
+    public void setJobMetadataUrl(String jobMetadataUrl) {
+        setProperty("kylin.job.metadata.url", jobMetadataUrl);
+    }
 
     public String getStreamingJobTmpDir(String project) {
         return getHdfsWorkingDirectoryWithoutScheme() + "streaming/jobs/" + project + "/";
