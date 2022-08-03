@@ -254,7 +254,7 @@ public class JdbcJobScheduler implements JobScheduler {
             jobIdList.forEach(jobId -> {
                 // check 'runningJobMap', avoid processing submitted tasks
                 if (runningJobMap.containsKey(jobId)) {
-                    logger.warn("Job {} has already been submitted" , jobId);
+                    logger.warn("Job {} has already been submitted", jobId);
                     return;
                 }
                 Pair<JobInfo, AbstractJobExecutable> job = fetchJob(jobId);
