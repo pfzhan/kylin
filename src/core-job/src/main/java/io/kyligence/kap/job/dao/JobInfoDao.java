@@ -40,6 +40,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -98,18 +99,44 @@ public class JobInfoDao {
         if (getExecutablePOByUuid(executablePO.getUuid()) != null) {
             throw new IllegalArgumentException("job id:" + executablePO.getUuid() + " already exists");
         }
-        jobInfoMapper.insertJobInfoSelective(constructJobInfo(executablePO));
+        jobInfoMapper.insertJobInfoSelective(constructJobInfo(executablePO, 1));
         return executablePO;
     }
 
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
-        val job = getExecutablePOByUuid(uuid);
-        Preconditions.checkNotNull(job);
-        val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
-        copyForWrite.setProject(job.getProject());
-        if (updater.test(copyForWrite)) {
-            jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite));
-        }
+        updateJob(uuid, updater, true);
+    }
+
+    public void updateJob(String uuid, Predicate<ExecutablePO> updater, boolean needRetryOnOptLockFail) {
+
+        int retryCount = 0;
+        do {
+            JobInfo jobInfo = null;
+            try {
+                jobInfo = jobInfoMapper.selectByJobId(uuid);
+                Preconditions.checkNotNull(jobInfo);
+                val job = JobInfoUtil.deserializeExecutablePO(jobInfo);
+                Preconditions.checkNotNull(job);
+                val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
+                copyForWrite.setProject(job.getProject());
+                if (updater.test(copyForWrite)) {
+                    int updateAffect = jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite, jobInfo.getMvcc()));
+                    if (updateAffect == 0) {
+                        String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
+                                job.getId(), jobInfo.getMvcc());
+                        throw new OptimisticLockingFailureException(errorMeg);
+                    }
+                }
+                break;
+            } catch (OptimisticLockingFailureException e) {
+                if (needRetryOnOptLockFail && retryCount++ < 3) {
+                    logger.warn("job_info {} fail on OptimisticLockingFailureException {} times", jobInfo.getJobId(), retryCount);
+                } else {
+                    throw e;
+                }
+            }
+        } while (needRetryOnOptLockFail);
+
     }
 
     public ExecutablePO getExecutablePOByUuid(String uuid) {
@@ -146,7 +173,7 @@ public class JobInfoDao {
     }
 
     // visible for UT
-    public JobInfo constructJobInfo(ExecutablePO executablePO) {
+    public JobInfo constructJobInfo(ExecutablePO executablePO, long mvcc) {
         JobInfo jobInfo = new JobInfo();
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());
@@ -176,6 +203,7 @@ public class JobInfoDao {
         jobInfo.setCreateTime(new Date(executablePO.getCreateTime()));
         jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));
         jobInfo.setJobContent(JobInfoUtil.serializeExecutablePO(executablePO));
+        jobInfo.setMvcc(mvcc);
         return jobInfo;
     }
     

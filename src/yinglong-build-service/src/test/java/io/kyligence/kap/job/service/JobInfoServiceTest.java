@@ -261,7 +261,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
     private List<JobInfo> mockDetailJobInfoList(boolean random) throws Exception {
         List<JobInfo> jobs = new ArrayList<>();
         for (int i = 1; i < 4; i++) {
-            jobs.add(jobInfoDao.constructJobInfo(mockExecutablePO(random, i + "")));
+            jobs.add(jobInfoDao.constructJobInfo(mockExecutablePO(random, i + ""), 1L));
         }
         return jobs;
     }

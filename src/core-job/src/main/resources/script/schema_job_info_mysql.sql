@@ -23,13 +23,14 @@
 --
 
 CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
-  id bigint(10) NOT NULL AUTO_INCREMENT,
+  id bigint(20) NOT NULL AUTO_INCREMENT,
   job_id varchar(100) NOT NULL,
   job_type varchar(50) NOT NULL,
   job_status varchar(50) NOT NULL,
   project varchar(512) NOT NULL,
   subject varchar(512) NOT NULL,
   model_id varchar(50) NOT NULL,
+  mvcc bigint(10),
   job_content longblob NOT NULL,
   create_time datetime DEFAULT CURRENT_TIMESTAMP,
   update_time datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

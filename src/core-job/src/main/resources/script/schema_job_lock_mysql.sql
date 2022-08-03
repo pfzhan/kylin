@@ -23,7 +23,7 @@
 --
 
 CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_lock (
-  id bigint(10) NOT NULL AUTO_INCREMENT,
+  id bigint(20) NOT NULL AUTO_INCREMENT,
   lock_id varchar(100) NOT NULL COMMENT 'what is locked',
   lock_node varchar(50) DEFAULT NULL COMMENT 'who locked it',
   lock_expire_time datetime DEFAULT NULL COMMENT 'when does the lock expire',

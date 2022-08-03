@@ -49,6 +49,8 @@ public class JobInfo {
 
     private byte[] jobContent;
 
+    private Long mvcc = 1L;
+
     // placeholder for mybatis ${}
     private String jobInfoTable;
 
@@ -146,5 +148,13 @@ public class JobInfo {
 
     public void setJobInfoTable(String jobInfoTable) {
         this.jobInfoTable = jobInfoTable;
+    }
+
+    public Long getMvcc() {
+        return mvcc;
+    }
+
+    public void setMvcc(Long mvcc) {
+        this.mvcc = mvcc;
     }
 }

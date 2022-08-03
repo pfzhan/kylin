@@ -60,7 +60,7 @@ import io.kyligence.kap.job.scheduler.ResourceAcquirer;
 import io.kyligence.kap.job.scheduler.SharedFileProgressReporter;
 
 @Component
-@DependsOn({"springContext"})
+@DependsOn({ "springContext", "jobMybatisConfig" })
 @ConditionalOnProperty("spring.job-datasource.url")
 public class JobContext implements InitializingBean, DisposableBean {
 
