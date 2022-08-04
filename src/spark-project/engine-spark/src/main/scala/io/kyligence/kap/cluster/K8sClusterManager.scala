@@ -21,19 +21,19 @@
  */
 package io.kyligence.kap.cluster
 
-import scala.collection.JavaConverters._
 import java.util
 import java.util.concurrent.TimeUnit
 
 import com.google.common.collect.Lists
 import io.fabric8.kubernetes.client.Config.autoConfigure
 import io.fabric8.kubernetes.client.{ConfigBuilder, DefaultKubernetesClient, KubernetesClient}
-import io.fabric8.kubernetes.client.utils.HttpClientUtils
 import io.kyligence.kap.engine.spark.utils.ThreadUtils
 import okhttp3.Dispatcher
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
+
+import scala.collection.JavaConverters._
 
 class K8sClusterManager extends IClusterManager with Logging {
   import io.kyligence.kap.cluster.K8sClusterManager._
@@ -148,13 +148,7 @@ object K8sClusterManager extends Logging{
       .withRequestTimeout(10000)
       .withConnectionTimeout(10000)
     .build()
-    val baseHttpClient = HttpClientUtils.createHttpClient(config)
-    val httpClientWithCustomDispatcher = baseHttpClient.newBuilder()
-      .dispatcher(dispatcher)
-      .build()
-    new DefaultKubernetesClient(httpClientWithCustomDispatcher, config)
+    new DefaultKubernetesClient(config)
   }
-
-
 
 }
