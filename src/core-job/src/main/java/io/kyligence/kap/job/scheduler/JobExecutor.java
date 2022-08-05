@@ -29,8 +29,6 @@ import java.util.Locale;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 import io.kyligence.kap.job.execution.AbstractExecutable;
-import lombok.Getter;
-import lombok.Setter;
 
 public class JobExecutor implements AutoCloseable {
 
@@ -38,10 +36,6 @@ public class JobExecutor implements AutoCloseable {
     private final AbstractJobExecutable jobExecutable;
 
     private final String originThreadName;
-
-    @Getter
-    @Setter
-    private long startTime;
 
     public JobExecutor(JobContext jobContext, AbstractJobExecutable jobExecutable) {
         this.jobContext = jobContext;

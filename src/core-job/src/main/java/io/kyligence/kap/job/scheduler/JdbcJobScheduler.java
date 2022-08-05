@@ -57,6 +57,7 @@ import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.execution.AbstractExecutable;
 import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.util.JobInfoUtil;
+import lombok.val;
 
 public class JdbcJobScheduler implements JobScheduler {
 
@@ -325,26 +326,19 @@ public class JdbcJobScheduler implements JobScheduler {
                 jobLock.tryRelease();
                 return;
             }
-            
-            AbstractExecutable executable = (AbstractExecutable) jobExecutable;
-            if (executable.getStatus().equals(ExecutableState.RUNNING)) {
-                // resume job status from running to ready
-                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), executable.getProject())
-                        .resumeJob(jobExecutable.getJobId(), executable, true);
-                jobLock.tryRelease();
+
+            if (!checkJobStatusBeforeExecute(jobExecutable, jobLock)) {
                 return;
             }
-
-            jobExecutor.setStartTime(System.currentTimeMillis());
 
             try {
                 // heavy action
                 jobExecutor.execute();
             } finally {
-                jobLock.tryRelease();
+                releaseJobLockAfterExecute(jobLock);
             }
-        } catch (Exception e) {
-            logger.error("Execute job failed", e);
+        } catch (Throwable t) {
+            logger.error("Execute job failed " + jobExecutable.getJobId(), t);
         } finally {
             runningJobMap.remove(jobExecutable.getJobId());
         }
@@ -360,6 +354,53 @@ public class JdbcJobScheduler implements JobScheduler {
             return null;
         }
         return jobLock;
+    }
+
+    private boolean checkJobStatusBeforeExecute(AbstractJobExecutable jobExecutable, JdbcJobLock jobLock) throws LockException {
+        AbstractExecutable executable = (AbstractExecutable) jobExecutable;
+        ExecutableState jobStatus = executable.getStatus();
+        if (ExecutableState.PENDING == jobStatus) {
+            return true;
+        }
+        logger.warn("Unexpected status for {} <{}>, should not execute job", jobExecutable.getJobId(), jobStatus);
+        if (ExecutableState.RUNNING == jobStatus) {
+            // there should be other nodes crashed during job execution, resume job status from running to ready
+            logger.warn("Resume <RUNNING> job {}", jobExecutable.getJobId());
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), executable.getProject())
+                    .resumeJob(jobExecutable.getJobId(), executable, true);
+        }
+        // for other status, it should be caused by the failure of release locks, so just release lock agagin
+        logger.warn("Release lock for {} <{}>", jobExecutable.getJobId(), jobStatus);
+        jobLock.tryRelease();
+        return false;
+    }
+
+    private void releaseJobLockAfterExecute(JdbcJobLock jobLock) throws LockException {
+        try {
+            String jobId = jobLock.getLockId();
+            JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+            AbstractExecutable jobExecutable = (AbstractExecutable) getJobExecutable(jobInfo);
+            if (jobExecutable.getStatusInMem().isProgressing()) {
+                logger.error("Unexpected status for {} <{}>, mark job error", jobId, jobExecutable.getStatusInMem());
+                markErrorJob(jobId, jobExecutable.getProject());
+            }
+        } catch (Throwable t) {
+            logger.error("Fail to check status before release job lock {}, stop renew job lock", jobLock.getLockId());
+            jobLock.stopRenew();
+            throw t;
+        }
+        jobLock.tryRelease();
+    }
+
+    private void markErrorJob(String jobId, String project) {
+        try {
+            val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            manager.errorJob(jobId);
+        } catch (Throwable t) {
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} should be error but mark failed", project,
+                    jobId, t);
+            throw t;
+        }
     }
 
     private AbstractJobExecutable getJobExecutable(JobInfo jobInfo) {

@@ -34,4 +34,6 @@ public interface JobLock {
 
     boolean tryRelease() throws LockException;
 
+    void stopRenew();
+
 }

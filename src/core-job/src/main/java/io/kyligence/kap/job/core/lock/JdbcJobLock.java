@@ -63,6 +63,11 @@ public class JdbcJobLock implements JobLock {
     }
 
     @Override
+    public void stopRenew() {
+        lockClient.stopRenew(lockId);
+    }
+
+    @Override
     public String toString() {
         return "JdbcJobLock{" + "lockId='" + lockId + '\'' + ", lockNode='" + lockNode + '\'' + '}';
     }

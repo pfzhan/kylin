@@ -68,6 +68,12 @@ public class JdbcLockClient {
         }
     }
 
+    public void stopRenew(String lockId) {
+        if (Objects.nonNull(renewalMap)) {
+            renewalMap.remove(lockId);
+        }
+    }
+
     public boolean tryAcquire(JdbcJobLock jobLock) throws LockException {
         boolean acquired = tryAcquireInternal(jobLock);
         if (acquired) {
@@ -86,9 +92,7 @@ public class JdbcLockClient {
         } catch (Exception e) {
             throw new LockException("Release lock failed", e);
         } finally {
-            if (null != renewalMap) {
-                renewalMap.remove(jobLock.getLockId());
-            }
+            stopRenew(jobLock.getLockId());
         }
     }
 
