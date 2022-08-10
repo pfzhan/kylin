@@ -59,7 +59,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -88,6 +87,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -124,8 +124,10 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.delegate.JobMetadataBaseInvoker;
+import io.kyligence.kap.rest.delegate.JobMetadataInvoker;
 import io.kyligence.kap.rest.delegate.ProjectMetadataContract;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -182,6 +184,9 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
     @Autowired
     private JobMetadataInvoker jobMetadataInvoker;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -765,9 +770,16 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
         backupAndDeleteKeytab(projectKerberosInfoRequest.getPrincipal());
     }
 
+    // for UT only
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project) {
+        dropProject(project, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void dropProject(String project, HttpHeaders headers) {
         if (SecondStorageUtil.isProjectEnable(project)) {
             throw new KylinException(PROJECT_DROP_FAILED,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
@@ -796,8 +808,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
         NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
-        JobMetadataBaseInvoker.getInstance().clearJobsByProject(project);
-        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
+        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project, clusterManager, headers));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }
 

@@ -48,15 +48,20 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -66,6 +71,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -77,13 +83,13 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import org.springframework.http.HttpHeaders;
 
 /**
  */
@@ -246,6 +252,34 @@ public class RestClient {
             }
         } finally {
             cleanup(put, response);
+        }
+        return response;
+    }
+
+    public HttpResponse forwardPostWithUrlEncodedForm(String targetUrl, HttpHeaders headers, Map<String, String> form)
+            throws IOException {
+        String url = baseUrl + targetUrl;
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.addHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
+        httpPost.addHeader("Authorization", headers.getFirst("Authorization"));
+        httpPost.addHeader(ROUTED, "true");
+        httpPost.addHeader("Cookie", headers.getFirst("Cookie"));
+        List<NameValuePair> nameValuePairs = new ArrayList<>();
+        if (null != form) {
+            form.entrySet()
+                    .forEach(entry -> nameValuePairs.add(new BasicNameValuePair(entry.getKey(), entry.getValue())));
+        }
+        HttpResponse response = null;
+        try {
+            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, "UTF-8"));
+            response = client.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_FORWARD_METADATA_ACTION, "Invalid response "
+                        + response.getStatusLine().getStatusCode() + " with url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(httpPost, response);
         }
         return response;
     }

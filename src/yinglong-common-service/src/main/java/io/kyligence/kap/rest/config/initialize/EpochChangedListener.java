@@ -38,7 +38,6 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
-import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
@@ -122,7 +121,6 @@ public class EpochChangedListener {
         if (!GLOBAL.equals(project)) {
             log.info("Shutdown related thread: {}", project);
             try {
-                ExecutableManager.getInstance(kylinConfig, project).destroyAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
                 recommendationUpdateScheduler.removeProject(project);

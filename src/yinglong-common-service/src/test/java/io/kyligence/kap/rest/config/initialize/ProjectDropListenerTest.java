@@ -95,7 +95,7 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
 
         ProjectDropListener projectDropListener = new ProjectDropListener();
         PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
-        projectDropListener.onDelete(project);
+        projectDropListener.onDelete(project, null, null);
 
         Assert.assertFalse(fs.exists(path));
     }

@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.DataResult;
@@ -53,6 +54,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -62,6 +64,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.job.manager.ExecutableManager;
 import io.kyligence.kap.job.rest.ExecutableResponse;
 import io.kyligence.kap.job.rest.ExecutableStepResponse;
 import io.kyligence.kap.job.rest.JobFilter;
@@ -345,5 +348,12 @@ public class JobController extends BaseController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
+    }
+
+    @PostMapping(value = "/destroy_job_process")
+    @ApiOperation(value = "destroyJobProcess", tags = { "DW" })
+    @ResponseBody
+    public void destroyJobProcess(@RequestParam("project") String project) {
+        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).destroyAllProcess();
     }
 }

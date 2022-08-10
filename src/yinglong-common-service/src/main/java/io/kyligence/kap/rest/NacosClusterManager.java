@@ -82,7 +82,7 @@ public class NacosClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getJobServers() {
-        return Collections.emptyList();
+        return getServersByServerId(DATA_LOADING);
     }
 
     @Override
