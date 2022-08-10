@@ -99,6 +99,7 @@ public class JobInfoDao {
         if (getExecutablePOByUuid(executablePO.getUuid()) != null) {
             throw new IllegalArgumentException("job id:" + executablePO.getUuid() + " already exists");
         }
+        executablePO.setLastModified(System.currentTimeMillis());
         jobInfoMapper.insertJobInfoSelective(constructJobInfo(executablePO, 1));
         return executablePO;
     }
@@ -120,6 +121,7 @@ public class JobInfoDao {
                 val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
                 copyForWrite.setProject(job.getProject());
                 if (updater.test(copyForWrite)) {
+                    copyForWrite.setLastModified(System.currentTimeMillis());
                     int updateAffect = jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite, jobInfo.getMvcc()));
                     if (updateAffect == 0) {
                         String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
