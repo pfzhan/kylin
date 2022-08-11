@@ -1592,7 +1592,7 @@ public class ExecutableManager {
 
     @Transactional
     public void resumeAllRunningJobs() {
-        val jobs = jobInfoDao.getJobs(null);
+        val jobs = jobInfoDao.getJobs(project);
         CliCommandExecutor exe = getCliCommandExecutor();
         for (ExecutablePO executablePO : jobs) {
             try {

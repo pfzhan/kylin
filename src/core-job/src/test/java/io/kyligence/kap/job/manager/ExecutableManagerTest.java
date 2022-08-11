@@ -67,7 +67,6 @@ import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -85,12 +84,12 @@ import io.kyligence.kap.job.execution.DefaultChainedExecutable;
 import io.kyligence.kap.job.execution.DefaultChainedExecutableOnModel;
 import io.kyligence.kap.job.execution.EmailNotificationContent;
 import io.kyligence.kap.job.execution.Executable;
+import io.kyligence.kap.job.util.JobContextUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import lombok.var;
 
-@Ignore
 public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Rule
@@ -106,6 +105,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
+        JobContextUtil.getJobInfoDao(getTestConfig());
         manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
 
         for (String jobPath : manager.getJobs()) {
@@ -118,6 +118,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
     @After
     public void after() throws Exception {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -137,6 +138,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         AbstractExecutable another = manager.getJob(executable.getId());
         assertJobEqual(executable, another);
 
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING, null, null, "test output");
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, "test output");
         assertNotEquals(0L, manager.getJob(executable.getId()).getStartTime());
         Assert.assertEquals(createTime, manager.getJob(executable.getId()).getCreateTime());
@@ -205,11 +207,14 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         String id = job.getId();
         UnitOfWork.doInTransactionWithRetry(() -> {
             manager.addJob(job);
+            manager.updateJobOutput(id, ExecutableState.PENDING);
             manager.updateJobOutput(id, ExecutableState.RUNNING);
             manager.updateJobOutput(id, ExecutableState.ERROR);
             manager.updateJobOutput(id, ExecutableState.READY);
+            manager.updateJobOutput(id, ExecutableState.PENDING);
             manager.updateJobOutput(id, ExecutableState.RUNNING);
             manager.updateJobOutput(id, ExecutableState.READY);
+            manager.updateJobOutput(id, ExecutableState.PENDING);
             manager.updateJobOutput(id, ExecutableState.RUNNING);
             manager.updateJobOutput(id, ExecutableState.SUCCEED);
             return null;
@@ -226,12 +231,13 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             manager.addJob(job);
             for (ExecutableState state : ExecutableState.values()) {
-                if (Arrays.asList(ExecutableState.RUNNING, ExecutableState.ERROR, ExecutableState.PAUSED)
+                if (Arrays.asList(ExecutableState.PENDING, ExecutableState.RUNNING, ExecutableState.ERROR, ExecutableState.PAUSED)
                         .contains(state)) {
                     manager.updateJobOutput(id, state, extraInfo, null, null);
                     Assert.assertTrue(
                             manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
                     manager.updateJobOutput(id, ExecutableState.READY);
+                    manager.updateJobOutput(id, ExecutableState.PENDING);
                     assertFalse(
                             manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
                 }
@@ -261,6 +267,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
         manager.deleteJob(executable.getId());
@@ -315,15 +322,20 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.addTask(executable1);
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(job);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
         AbstractExecutable anotherJob = manager.getJob(job.getId());
         assertEquals(ExecutableState.PAUSED, anotherJob.getStatus());
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.resumeJob(job.getId(), job);
         assertEquals(ExecutableState.READY, anotherJob.getStatus());
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
         val duration = job.getDuration();
         Thread.sleep(3000);
         assertEquals(duration, job.getDuration());
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.resumeJob(job.getId(), job);
         assertEquals(ExecutableState.READY, anotherJob.getStatus());
     }
@@ -333,6 +345,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable job = new SucceedTestExecutable();
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(job);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(job.getId(), ExecutableState.ERROR);
         manager.updateJobOutput(job.getId(), ExecutableState.PAUSED);
     }
@@ -344,6 +357,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         extraInfo.put(ExecutableConstants.YARN_APP_URL, "yarn app url");
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, extraInfo, null, null);
 
         AbstractExecutable job = manager.getJob(executable.getId());
@@ -363,6 +377,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         AbstractExecutable job = manager.getJob(executable.getId());
         Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
@@ -405,6 +420,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.ERROR);
         AbstractExecutable job = manager.getJob(executable.getId());
         assertEquals(ExecutableState.ERROR, job.getStatus());
@@ -417,6 +433,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL);
         AbstractExecutable job = manager.getJob(executable.getId());
         Assert.assertEquals(ExecutableState.SUICIDAL, job.getStatus());
@@ -432,6 +449,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
         AbstractExecutable job = manager.getJob(executable.getId());
@@ -447,6 +465,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         AbstractExecutable job = manager.getJob(executable.getId());
         assertEquals(ExecutableState.RUNNING, job.getStatus());
@@ -456,6 +475,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         BaseTestExecutable ssbExecutable = new SucceedTestExecutable();
         ssbExecutable.setJobType(JobTypeEnum.INDEX_BUILD);
         ssbManager.addJob(ssbExecutable);
+        ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.PENDING);
         ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.RUNNING);
 
         AbstractExecutable ssbJob = ssbManager.getJob(ssbExecutable.getId());
@@ -480,15 +500,25 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.setTargetSubject("test");
         job.setProject(DEFAULT_PROJECT);
         SucceedTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject(DEFAULT_PROJECT);
         job.addTask(executable);
         SucceedTestExecutable executable2 = new SucceedTestExecutable();
+        executable2.setProject(DEFAULT_PROJECT);
         job.addTask(executable2);
         manager.addJob(job);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
+        manager.updateJobOutput(job.getId(), ExecutableState.READY);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
+        manager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
+        manager.updateJobOutput(executable2.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable2.getId(), ExecutableState.PAUSED);
 
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.restartJob(job.getId(), job);
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.READY, job1.getStatus());
@@ -508,6 +538,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         manager.addJob(job);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
@@ -528,6 +560,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         manager.addJob(job);
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
+        job = (DefaultChainedExecutable) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
@@ -567,8 +601,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
         val po = ExecutableManager.toPO(job, DEFAULT_PROJECT);
-        val executableDao = NExecutableDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        executableDao.addJob(po);
+        JobContextUtil.getJobInfoDao(getTestConfig()).addJob(po);
         val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
         val runExecutables = executableManager.getRunningExecutables(DEFAULT_PROJECT, null);
         Assert.assertEquals(1, runExecutables.size());
@@ -587,7 +620,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         val executables3 = executableManager.getExecutablesByStatus(ExecutableState.READY);
         Assert.assertEquals(executables2.size(), executables3.size());
         Assert.assertEquals(executables2.size(), executables21.size());
-        Assert.assertEquals(executables2.size(), executables22.size());
+        Assert.assertEquals(0, executables22.size());
         val executables4 = executableManager.getAllExecutables(0L, Long.MAX_VALUE);
         Assert.assertEquals(1, executables4.size());
         val executables5 = executableManager.getRunningJobs(10);
@@ -678,6 +711,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, "test1");
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, extraInfo, null, null);
         appIds = manager.getYarnApplicationJobs(executable.getId());
         Assert.assertEquals(1, appIds.size());
@@ -700,6 +734,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, Collections.emptyMap(), null, null);
 
@@ -710,6 +745,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, Collections.emptyMap(), null, null);
 
@@ -729,6 +765,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
         try {
             Thread.sleep(3000);
@@ -743,6 +780,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject(DEFAULT_PROJECT);
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
 
         long result = manager.getMaxDurationRunningExecDurationByModel(modelId, manager.getAllJobs());
