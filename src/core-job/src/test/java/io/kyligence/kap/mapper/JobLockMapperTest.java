@@ -50,10 +50,6 @@ import io.kyligence.kap.job.mapper.JobLockMapper;
 @ContextConfiguration(value = { "classpath:applicationContext.xml" })
 @TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })
 @TestPropertySource(properties = { "spring.session.store-type = NONE" })
-@TestPropertySource(properties = { "spring.job-datasource.url = jdbc:h2:mem:db_default" })
-@TestPropertySource(properties = { "spring.job-datasource.username = sa" })
-@TestPropertySource(properties = { "spring.job-datasource.password = " })
-@TestPropertySource(properties = { "spring.job-datasource.driver-class-name = org.h2.Driver" })
 public class JobLockMapperTest extends NLocalFileMetadataTestCase {
 
     @Autowired
@@ -62,6 +58,8 @@ public class JobLockMapperTest extends NLocalFileMetadataTestCase {
     @BeforeClass
     public static void setupClass() {
         staticCreateTestMetadata();
+        // change kylin.env to load bean
+        getTestConfig().setProperty("kylin.env", "testing");
     }
 
     @Before

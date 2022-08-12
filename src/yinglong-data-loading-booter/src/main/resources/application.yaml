@@ -81,27 +81,8 @@ spring:
       table-name: ${kylin.metadata.url.identifier}_session_v2
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
-  job-datasource:
-    url: jdbc:mysql://yinglong-mysql:3306/kylin
-    username: root
-    password: kyligence
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    type: com.zaxxer.hikari.HikariDataSource
-    hikari:
-      minimum-idle: 1
-      maximum-pool-size: 10
-      auto-commit: true
-      idle-timeout: 30000
-      pool-name: HikariCP
-      max-lifetime: 600000
-      connection-timeout: 10000
-      connection-test-query: SELECT 1
-      validation-timeout: 5000
 mybatis:
   mapper-locations: classpath:/mybatis-mapper/*Mapper.xml
-
-kylin:
-  config-source: NA
 
 saas:
   nacos:

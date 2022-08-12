@@ -24,23 +24,8 @@
 
 package io.kyligence.kap.job.config;
 
-import lombok.extern.slf4j.Slf4j;
-import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
-import org.springframework.security.util.InMemoryResource;
-import org.springframework.stereotype.Component;
-import org.springframework.util.ReflectionUtils;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -48,11 +33,30 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
+import javax.sql.DataSource;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.security.util.InMemoryResource;
+import org.springframework.stereotype.Component;
+import org.springframework.util.ReflectionUtils;
+
+import io.kyligence.kap.job.condition.JobModeCondition;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@ConditionalOnProperty("spring.job-datasource.url")
+@Conditional(JobModeCondition.class)
 public class JobMybatisConfig implements InitializingBean {
 
     @Autowired
@@ -64,9 +68,9 @@ public class JobMybatisConfig implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        KylinConfig instanceFromEnv = KylinConfig.getInstanceFromEnv();
-        String keIdentified = instanceFromEnv.getMetadataUrlPrefix();
-        if (StringUtils.isEmpty(instanceFromEnv.getMetadataUrl().getScheme())){
+        StorageURL jobMetadataUrl = KylinConfig.getInstanceFromEnv().getJobMetadataUrl();
+        String keIdentified = jobMetadataUrl.getIdentifier();
+        if (StringUtils.isEmpty(jobMetadataUrl.getScheme())){
             log.info("metadata from file");
             keIdentified = "file";
         }

@@ -29,28 +29,18 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 import javax.sql.DataSource;
 
 import org.apache.kylin.common.KylinConfig;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
+import io.kyligence.kap.job.condition.JobModeCondition;
 import lombok.val;
 
 @Configuration
-@ConditionalOnProperty("spring.job-datasource.url")
+@Conditional(JobModeCondition.class)
 public class DataSourceConfig {
-
-    @Bean
-    @Primary
-    @ConfigurationProperties("spring.job-datasource")
-    public DataSourceProperties getDatasourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    // TODO Hikari parameters in spring.job-datasource.hikari don't work here and need to be fixed.
     @Bean("jobDataSource")
     @Primary
     public DataSource dataSource() throws Exception {

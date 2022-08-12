@@ -25,6 +25,8 @@
 package io.kyligence.kap.job.config;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Objects;
 
 import org.apache.ibatis.binding.MapperMethod;
 import org.apache.ibatis.cache.CacheKey;
@@ -39,14 +41,19 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.job.condition.JobModeCondition;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.domain.JobLock;
+import io.kyligence.kap.job.mapper.JobInfoMapper;
+import io.kyligence.kap.job.mapper.JobLockMapper;
 import io.kyligence.kap.job.rest.JobMapperFilter;
 
-@ConditionalOnProperty("spring.job-datasource.url")
+@Conditional(JobModeCondition.class)
 @Component
 @Intercepts({
         @Signature(type = Executor.class, method = "query", args = { MappedStatement.class, Object.class,
@@ -60,6 +67,8 @@ public class JobTableInterceptor implements Interceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(JobTableInterceptor.class);
 
+    List<String> controlledMappers = Lists.newArrayList(JobInfoMapper.class.getName(), JobLockMapper.class.getName());
+
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
 
@@ -70,6 +79,16 @@ public class JobTableInterceptor implements Interceptor {
         if (JobMybatisConfig.JOB_INFO_TABLE == null || JobMybatisConfig.JOB_LOCK_TABLE == null) {
             logger.info("mybatis table not init, skip");
             return null;
+        }
+
+        MappedStatement mappedStatement = (MappedStatement) args[0];
+        Objects.requireNonNull(mappedStatement);
+        String mappedStatementId = mappedStatement.getId();
+        Objects.requireNonNull(mappedStatementId);
+
+        if (!isControlledMapper(mappedStatementId)) {
+            logger.info("not controlled mapper find, mappedStatementId = {}, ignore", mappedStatementId);
+            return invocation.proceed();
         }
 
         if (args[1] == null) {
@@ -95,5 +114,15 @@ public class JobTableInterceptor implements Interceptor {
         }
 
         return invocation.proceed();
+    }
+
+    private boolean isControlledMapper(String mappedStatementId) {
+        for (String controlledMapper : controlledMappers) {
+            if (mappedStatementId.startsWith(controlledMapper)) {
+                // ok, find controlled mapper, mappedStatementId like "io.kyligence.kap.job.mapper.JobLockMapper.findCount"
+                return true;
+            }
+        }
+        return false;
     }
 }
