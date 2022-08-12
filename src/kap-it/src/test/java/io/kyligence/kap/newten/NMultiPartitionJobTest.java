@@ -50,7 +50,6 @@ import lombok.val;
 public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition");
 

@@ -45,7 +45,7 @@ public class ParallelLimiter {
     }
 
     public boolean tryAcquire() {
-        int threshold = jobContext.getJobConfig().getParallelJobCountThreshold();
+        int threshold = jobContext.getKylinConfig().getParallelJobCountThreshold();
         if (accumulator.getAndIncrement() < threshold) {
             return true;
         }
@@ -58,7 +58,7 @@ public class ParallelLimiter {
     public boolean tryRelease() {
         // exclude master lock
         int c = jobContext.getJobLockMapper().findCount() - 1;
-        int threshold = jobContext.getJobConfig().getParallelJobCountThreshold();
+        int threshold = jobContext.getKylinConfig().getParallelJobCountThreshold();
         if (c < threshold) {
             accumulator.set(c);
             return true;

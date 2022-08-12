@@ -53,7 +53,6 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.job.flat-table-join-without-lookup", "true");
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         this.createTestMetadata("src/test/resources/ut_meta/flattable_without_join_lookup");

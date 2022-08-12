@@ -3467,4 +3467,40 @@ public abstract class KylinConfigBase implements Serializable {
     public Integer getLoadHiveTableWaitSparderIntervals() {
         return Integer.parseInt(this.getOptional("kylin.source.load-hive-table-wait-sparder-interval-seconds", "10"));
     }
+
+    public double getJobSchedulerMasterRenewalRatio() {
+        return Double.parseDouble(this.getOptional("kylin.job.scheduler.master-lock-renew-ratio", "0.85"));
+    }
+
+    public long getJobSchedulerMasterRenewalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.master-lock-renew-sec", "60"));
+    }
+
+    public long getJobSchedulerMasterPollIntervalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.scheduler.master-poll-interval-second", "30"));
+    }
+
+    public int getJobSchedulerMasterPollBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.job.master-pull-batch-size", "10"));
+    }
+
+    public long getJobSchedulerJobRenewalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.slave-lock-renew-sec", "120"));
+    }
+
+    public double getJobSchedulerJobRenewalRatio() {
+        return Double.parseDouble(this.getOptional("kylin.job.slave-lock-renew-ratio", "0.75"));
+    }
+
+    public int getJobSchedulerSlavePollBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "5"));
+    }
+
+    public int getParallelJobCountThreshold() {
+        return Integer.parseInt(this.getOptional("kylin.job.master-produce-job-size", "20"));
+    }
+
+    public int getJobLockClientRenewalMaxThreads() {
+        return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
+    }
 }

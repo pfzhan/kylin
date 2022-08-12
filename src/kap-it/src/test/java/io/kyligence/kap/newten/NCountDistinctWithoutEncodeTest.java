@@ -46,7 +46,6 @@ import io.kyligence.kap.util.ExecAndComp;
 public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/count_distinct_no_encode");
 
         JobContextUtil.cleanUp();

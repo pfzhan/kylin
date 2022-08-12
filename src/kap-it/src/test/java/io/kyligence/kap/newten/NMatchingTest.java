@@ -47,7 +47,6 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
 
         JobContextUtil.cleanUp();

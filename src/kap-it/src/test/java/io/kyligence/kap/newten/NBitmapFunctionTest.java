@@ -46,8 +46,6 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-
         JobContextUtil.cleanUp();
         JobContextUtil.getJobContextForTest(getTestConfig());
 

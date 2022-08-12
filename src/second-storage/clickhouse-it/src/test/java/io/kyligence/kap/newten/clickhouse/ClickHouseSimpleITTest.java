@@ -252,7 +252,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         }
 
         overwriteSystemProp("kylin.second-storage.query-pushdown-limit", "0");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
 
         JobContextUtil.cleanUp();

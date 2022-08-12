@@ -86,7 +86,6 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition_pruning");
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
 

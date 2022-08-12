@@ -115,7 +115,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @Before
     public void setupHandlers() {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "3");
         overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");

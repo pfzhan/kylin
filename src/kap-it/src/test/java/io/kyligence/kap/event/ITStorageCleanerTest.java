@@ -60,7 +60,6 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
     @Before
     public void setUp() throws Exception {
         overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "2");
         overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         overwriteSystemProp("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "0s");

@@ -44,7 +44,6 @@ public class NPartitionColumnTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/partition_col");
 
         JobContextUtil.cleanUp();

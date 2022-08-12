@@ -84,15 +84,15 @@ public class JdbcJobScheduler implements JobScheduler {
         this.jobContext = jobContext;
         this.isMaster = new AtomicBoolean(false);
         this.runningJobMap = Maps.newConcurrentMap();
-        this.consumerMaxThreads = jobContext.getJobConfig().getJobSchedulerConsumerMaxThreads();
+        this.consumerMaxThreads = jobContext.getKylinConfig().getMaxConcurrentJobLimit();
     }
 
     @Override
     public void publishJob() {
         // master lock
         masterLock = new JdbcJobLock(JobScheduler.MASTER_SCHEDULER, jobContext.getServerNode(),
-                jobContext.getJobConfig().getJobSchedulerMasterRenewalSec(),
-                jobContext.getJobConfig().getJobSchedulerMasterRenewalRatio(), jobContext.getLockClient(),
+                jobContext.getKylinConfig().getJobSchedulerMasterRenewalSec(),
+                jobContext.getKylinConfig().getJobSchedulerMasterRenewalRatio(), jobContext.getLockClient(),
                 new MasterAcquireListener());
         // standby: acquire master lock
         master.schedule(this::standby, 0, TimeUnit.SECONDS);
@@ -173,7 +173,7 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private void produceJob() {
-        long delaySec = jobContext.getJobConfig().getJobSchedulerMasterPollIntervalSec();
+        long delaySec = jobContext.getKylinConfig().getJobSchedulerMasterPollIntervalSec();
         try {
             // only master can publish job
             if (!isMaster.get()) {
@@ -185,7 +185,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 return;
             }
             
-            int batchSize = jobContext.getJobConfig().getJobSchedulerMasterPollBatchSize();
+            int batchSize = jobContext.getKylinConfig().getJobSchedulerMasterPollBatchSize();
             List<String> readyJobIdList = jobContext.getJobInfoMapper()
                     .findJobIdListByStatusBatch(JobStatusEnum.READY.name(), batchSize);
             if (readyJobIdList.isEmpty()) {
@@ -227,7 +227,7 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private void consumeJob() {
-        long delay = jobContext.getJobConfig().getJobSchedulerSlavePollIntervalSec();
+        long delay = jobContext.getKylinConfig().getSchedulerPollIntervalSecond();
         try {
             // The number of tasks to be obtained cannot exceed the free slots of the 'executorPool'
             int exeFreeSlots = this.consumerMaxThreads - this.runningJobMap.size();
@@ -235,7 +235,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 logger.info("No free slots to execute job");
                 return;
             }
-            int batchSize = jobContext.getJobConfig().getJobSchedulerSlavePollBatchSize();
+            int batchSize = jobContext.getKylinConfig().getJobSchedulerSlavePollBatchSize();
             if (exeFreeSlots < batchSize) {
                 batchSize = exeFreeSlots;
             }
@@ -346,8 +346,8 @@ public class JdbcJobScheduler implements JobScheduler {
 
     private JdbcJobLock tryJobLock(AbstractJobExecutable jobExecutable) throws LockException {
         JdbcJobLock jobLock = new JdbcJobLock(jobExecutable.getJobId(), jobContext.getServerNode(),
-                jobContext.getJobConfig().getJobSchedulerJobRenewalSec(),
-                jobContext.getJobConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
+                jobContext.getKylinConfig().getJobSchedulerJobRenewalSec(),
+                jobContext.getKylinConfig().getJobSchedulerJobRenewalRatio(), jobContext.getLockClient(),
                 new JobAcquireListener(jobExecutable));
         if (!jobLock.tryAcquire()) {
             logger.info("Acquire job lock failed.");

@@ -427,8 +427,8 @@ public class SecondStorageJavaTest implements JobWaiter {
         val jobId = triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
 
         JobContext jobContext = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv());
-        long minimumWaitSecondsForJobScheduler = jobContext.getJobConfig().getJobSchedulerMasterPollIntervalSec()
-                + jobContext.getJobConfig().getJobSchedulerSlavePollIntervalSec();
+        long minimumWaitSecondsForJobScheduler = jobContext.getKylinConfig().getJobSchedulerMasterPollIntervalSec()
+                + jobContext.getKylinConfig().getSchedulerPollIntervalSecond();
         await().atMost(minimumWaitSecondsForJobScheduler, TimeUnit.SECONDS).until(() -> {
             val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;

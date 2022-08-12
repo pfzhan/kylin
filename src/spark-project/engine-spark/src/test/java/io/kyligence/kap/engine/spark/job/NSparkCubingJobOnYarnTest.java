@@ -55,7 +55,6 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
 
         JobContextUtil.cleanUp();

@@ -53,7 +53,7 @@ public class JdbcLockClient {
 
     public void start() {
         scheduler = ThreadUtils.newDaemonThreadScheduledExecutor(
-                jobContext.getJobConfig().getJdbcJobLockClientMaxThreads(), "JdbcJobLockClient");
+                jobContext.getKylinConfig().getJobLockClientRenewalMaxThreads(), "JdbcJobLockClient");
 
         renewalMap = Maps.newConcurrentMap();
     }

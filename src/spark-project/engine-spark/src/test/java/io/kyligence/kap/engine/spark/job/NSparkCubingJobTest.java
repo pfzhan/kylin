@@ -121,7 +121,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 

@@ -72,7 +72,7 @@ public class ShellExecutable extends AbstractExecutable {
         try {
             logger.info("executing:{}", getCmd());
             val patternedLogger = new BufferedLogger(logger);
-            val result = context.getJobConfig().getCliCommandExecutor().execute(getCmd(), patternedLogger);
+            val result = context.getKylinConfig().getCliCommandExecutor().execute(getCmd(), patternedLogger);
 
             Preconditions.checkState(result.getCode() == 0);
             return ExecuteResult.createSucceed(result.getCmd());

@@ -27,49 +27,39 @@ package io.kyligence.kap.job.scheduler;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.SystemInfoCollector;
-import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.core.AbstractJobExecutable;
 
 public class ResourceAcquirer {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceAcquirer.class);
 
-    private final AbstractJobConfig jobConfig;
-
-    private final AtomicInteger accumulator;
+    private KylinConfig kylinConfig;
 
     private final ConcurrentMap<String, NodeResource> registers;
 
     private static volatile Semaphore memorySemaphore = new Semaphore(Integer.MAX_VALUE);;
 
-    public ResourceAcquirer(AbstractJobConfig jobConfig) {
-        this.jobConfig = jobConfig;
+    public ResourceAcquirer(KylinConfig kylinConfig) {
+        this.kylinConfig = kylinConfig;
 
-        if (jobConfig.getAutoSetConcurrentJob()) {
-            double memoryRatio = jobConfig.getMaxLocalNodeMemoryRatio();
+        if (kylinConfig.getAutoSetConcurrentJob()) {
+            double memoryRatio = kylinConfig.getMaxLocalConsumptionRatio();
             if (Integer.MAX_VALUE == memorySemaphore.availablePermits()) {
                 memorySemaphore = new Semaphore((int) (memoryRatio * SystemInfoCollector.getAvailableMemoryInfo()));
             }
         }
-        accumulator = new AtomicInteger(0);
         registers = Maps.newConcurrentMap();
     }
 
     public boolean tryAcquire(AbstractJobExecutable jobExecutable) {
-        int threshold = jobConfig.getNodeParallelJobCountThreshold();
-        if (accumulator.incrementAndGet() > threshold) {
-            int c = accumulator.decrementAndGet();
-            logger.info("Acquire failed with node parallel job count: {}, threshold {}", c, threshold);
-            return false;
-        }
         NodeResource resource = new NodeResource(jobExecutable);
         boolean acquired = memorySemaphore.tryAcquire(resource.getMemory());
         if (acquired) {
@@ -78,12 +68,10 @@ public class ResourceAcquirer {
             return true;
         }
         logger.warn("Acquire resource failed {}, available: {}MB", resource, memorySemaphore.availablePermits());
-        accumulator.decrementAndGet();
         return false;
     }
 
     public void release(AbstractJobExecutable jobExecutable) {
-        accumulator.decrementAndGet();
         String jobId = jobExecutable.getJobId();
         NodeResource resource = registers.get(jobId);
         if (Objects.isNull(resource)) {

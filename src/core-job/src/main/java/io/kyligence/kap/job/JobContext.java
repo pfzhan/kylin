@@ -30,6 +30,7 @@ import java.util.Objects;
 
 import javax.annotation.Resource;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.runners.JobCheckRunner;
 import org.apache.kylin.job.runners.JobCheckUtil;
@@ -47,8 +48,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.job.core.AbstractJobConfig;
-import io.kyligence.kap.job.core.config.FileJobConfig;
 import io.kyligence.kap.job.core.lock.JdbcLockClient;
 import io.kyligence.kap.job.domain.JobInfo;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
@@ -70,7 +69,7 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     private String serverNode;
 
-    private AbstractJobConfig jobConfig;
+    private KylinConfig kylinConfig;
 
     @Resource
     private JobInfoMapper jobInfoMapper;
@@ -94,11 +93,6 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     @Override
     public void destroy() throws Exception {
-
-        if (Objects.nonNull(jobConfig)) {
-            jobConfig.destroy();
-        }
-
         if (Objects.nonNull(resourceAcquirer)) {
             resourceAcquirer.destroy();
         }
@@ -149,15 +143,12 @@ public class JobContext implements InitializingBean, DisposableBean {
     public void init() {
         serverNode = AddressUtil.getLocalInstance();
 
-        // for UT, jobConfig can be set by UT
-        if (null == jobConfig) {
-            jobConfig = new FileJobConfig();
-        }
+        kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        resourceAcquirer = new ResourceAcquirer(jobConfig);
+        resourceAcquirer = new ResourceAcquirer(kylinConfig);
         resourceAcquirer.start();
 
-        progressReporter = new SharedFileProgressReporter(jobConfig);
+        progressReporter = new SharedFileProgressReporter(kylinConfig);
         progressReporter.start();
 
         parallelLimiter = new ParallelLimiter(this);
@@ -181,16 +172,14 @@ public class JobContext implements InitializingBean, DisposableBean {
         return serverNode;
     }
 
-    // for ut only
     @VisibleForTesting
-    public void setJobConfig(AbstractJobConfig jobConfig) {
-        this.jobConfig = jobConfig;
+    public KylinConfig getKylinConfig() {
+        return kylinConfig;
     }
 
-    // for ut only
     @VisibleForTesting
-    public AbstractJobConfig getJobConfig() {
-        return jobConfig;
+    public void setKylinConfig(KylinConfig kylinConfig) {
+        this.kylinConfig = kylinConfig;
     }
 
     public DataSourceTransactionManager getTransactionManager() {

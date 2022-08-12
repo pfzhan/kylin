@@ -62,8 +62,6 @@ import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.job.JobContext;
 import io.kyligence.kap.job.config.JobTableInterceptor;
-import io.kyligence.kap.job.core.AbstractJobConfig;
-import io.kyligence.kap.job.core.config.FileJobConfig;
 import io.kyligence.kap.job.dao.JobInfoDao;
 import io.kyligence.kap.job.mapper.JobInfoMapper;
 import io.kyligence.kap.job.mapper.JobLockMapper;
@@ -107,11 +105,10 @@ public class JobContextUtil {
     synchronized public static JobContext getJobContextForTest(KylinConfig config) {
         initMappers(config);
         if (null == jobContext) {
-            AbstractJobConfig jobConfig = new FileJobConfig();
-            jobConfig.setJobSchedulerMasterPollIntervalSec(1L);
-            jobConfig.setJobSchedulerSlavePollIntervalSec(2L);
+            config.setProperty("kylin.job.scheduler.master-poll-interval-second","1");
+            config.setProperty("kylin.job.scheduler.poll-interval-second", "1");
             jobContext = new JobContext();
-            jobContext.setJobConfig(jobConfig);
+            jobContext.setKylinConfig(config);
             jobContext.setJobInfoMapper(jobInfoMapper);
             jobContext.setJobLockMapper(jobLockMapper);
             jobContext.setTransactionManager(transactionManager);

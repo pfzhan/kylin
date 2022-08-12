@@ -95,6 +95,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+
         this.createTestMetadata();
         config = getTestConfig();
 

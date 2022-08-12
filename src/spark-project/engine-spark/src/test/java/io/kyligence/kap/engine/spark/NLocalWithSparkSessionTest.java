@@ -160,7 +160,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void init() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
 

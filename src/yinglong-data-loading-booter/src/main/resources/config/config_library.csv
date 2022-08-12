@@ -567,3 +567,12 @@ kylin.security.acl.row-filter-limit-threshold,int,行级权限过滤条件的最
 kyligence.kyiam.sdk.tenant-id,string,iam 租户ID,iam tenant id,TRUE,TRUE
 kyligence.kyiam.sdk.security.gateway-path-filter.ignore-url,string,,iam gateway ignore url,TRUE,TRUE
 kyligence.kyiam.sdk.security.gateway-path-filter.forbid-url,string,,iam gateway forbid url,TRUE,TRUE
+kylin.job.master-lock-renew-ratio,Double,,Job Scheduler Master lock renew ratio,TRUE,TRUE
+kylin.job.master-lock-renew-sec,Long,,Job Scheduler Master lock renew second,TRUE,TRUE
+kylin.job.scheduler.master-poll-interval-second,Long,,Job Scheduler Master scheduler scheduler,TRUE,TRUE
+kylin.job.master-pull-batch-size,Integer,,Job Scheduler Master fetch size,TRUE,TRUE
+kylin.job.slave-lock-renew-ratio,Double,,Job Scheduler Slave lock renew ratio,TRUE,TRUE
+kylin.job.slave-lock-renew-sec,Long,,Job Scheduler Slave lock renew second,TRUE,TRUE
+kylin.job.slave-pull-batch-size,Integer,,Job Scheduler Slave fetch size,TRUE,TRUE
+kylin.job.master-produce-job-size,Integer,,PENDING status execute max size,TRUE,TRUE
+kylin.job.lock-client-renewal-threads,Integer,,Lock client renewal size,TRUE,TRUE

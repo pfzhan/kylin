@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.job.scheduler;
 
-import io.kyligence.kap.job.core.AbstractJobConfig;
+import org.apache.kylin.common.KylinConfig;
 
 public class SharedFileProgressReporter implements ProgressReporter {
 
-    private final AbstractJobConfig jobConfig;
+    private final KylinConfig kylinConfig;
 
-    public SharedFileProgressReporter(AbstractJobConfig jobConfig) {
-        this.jobConfig = jobConfig;
+    public SharedFileProgressReporter(KylinConfig kylinConfig) {
+        this.kylinConfig = kylinConfig;
     }
 
     public void start() {

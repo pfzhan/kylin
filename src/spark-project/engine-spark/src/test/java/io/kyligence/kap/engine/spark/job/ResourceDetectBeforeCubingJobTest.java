@@ -54,7 +54,6 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
     @Before
     public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
 
         config = getTestConfig();
 

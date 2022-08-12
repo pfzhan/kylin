@@ -77,7 +77,6 @@ import io.kyligence.kap.engine.spark.job.ISparkJobHandler;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.engine.spark.job.SparkAppDescription;
 import io.kyligence.kap.job.JobContext;
-import io.kyligence.kap.job.core.AbstractJobConfig;
 import io.kyligence.kap.job.execution.merger.MetadataMerger;
 import io.kyligence.kap.job.execution.stage.StageBase;
 import io.kyligence.kap.job.manager.ExecutableManager;
@@ -212,7 +211,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     protected ExecuteResult doWork(JobContext context) throws ExecuteException {
         waiteForResourceStart(context);
 
-        this.setLogPath(getSparkDriverLogHdfsPath(context.getJobConfig()));
+        this.setLogPath(getSparkDriverLogHdfsPath(context.getKylinConfig()));
         final KylinConfig config = getConfig();
 
         String jobId = getId();
@@ -320,16 +319,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     /**
      * generate the spark driver log hdfs path format, json path + timestamp + .log
      *
-     * @param config
-     * @return
-     */
-    public String getSparkDriverLogHdfsPath(AbstractJobConfig config) {
-        return String.format(Locale.ROOT, "%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
-                System.currentTimeMillis());
-    }
-
-    /**
-     *  for async query, generate the spark driver log hdfs path format, json path + timestamp + .log
      * @param config
      * @return
      */
