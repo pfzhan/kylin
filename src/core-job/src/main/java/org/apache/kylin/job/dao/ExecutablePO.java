@@ -105,6 +105,7 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("output")
     private ExecutableOutputPO output = new ExecutableOutputPO();
 
+    @JsonProperty("project")
     private String project;
 
     @JsonProperty("target_partitions")
