@@ -32,7 +32,7 @@ import scala.collection.JavaConverters._
 
 class K8sClusterManager extends IClusterManager with Logging {
   import org.apache.kylin.cluster.K8sClusterManager._
-  private val JOB_STEP_PREFIX = "jobstep"
+  private val JOB_STEP_PREFIX = "job-step-"
   private val SPARK_ROLE = "spark-role"
   private val DRIVER = "driver"
   private val DEFAULT_NAMESPACE = "default"
