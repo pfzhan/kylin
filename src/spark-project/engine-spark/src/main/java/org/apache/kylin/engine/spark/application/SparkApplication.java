@@ -559,7 +559,7 @@ public abstract class SparkApplication implements Application {
         }
 
         sparkSession = createSpark(sparkConf);
-        if (!config.isUTEnv() && !sparkConf.get("spark.master").startsWith("k8s")) {
+        if (!config.isUTEnv()) {
             getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/spark", project, jobId,
                     getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled()));
         }

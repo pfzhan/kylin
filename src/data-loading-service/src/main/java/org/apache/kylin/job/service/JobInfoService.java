@@ -92,6 +92,7 @@ import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.Constant;
@@ -104,6 +105,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.JobDriverUIUtil;
 import org.apache.kylin.rest.util.SparkHistoryUIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,7 +145,6 @@ public class JobInfoService extends BasicService implements JobSupporter {
         JOB_TYPE_MAP.put("INC_BUILD", "Load Data");
         JOB_TYPE_MAP.put("TABLE_SAMPLING", "Sample Table");
     }
-
 
     @Autowired
     private ProjectService projectService;
@@ -396,7 +397,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
         batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
     }
 
-    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses) throws IOException {
+    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses)
+            throws IOException {
         logger.info("Owned projects is {}", projectService.getOwnedProjects());
         for (String project : projectService.getOwnedProjects()) {
             aclEvaluate.checkProjectOperationPermission(project);
@@ -470,7 +472,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     @Transaction(project = 0)
     public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
-                               String failedStack, String failedReason) {
+            String failedStack, String failedReason) {
         if (StringUtils.isBlank(failedStepId)) {
             return;
         }
@@ -479,7 +481,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     public void updateStageStatus(String project, String taskId, String segmentId, String status,
-                                  Map<String, String> updateInfo, String errMsg) {
+            Map<String, String> updateInfo, String errMsg) {
         final ExecutableState newStatus = convertToExecutableState(status);
         val executableManager = getManager(ExecutableManager.class, project);
         executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
@@ -563,8 +565,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
-        return jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses).stream()
-                .map(executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
+        return jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses).stream().map(
+                executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .collect(Collectors.toList());
     }
 
@@ -602,6 +604,18 @@ public class JobInfoService extends BasicService implements JobSupporter {
             result.putInfo(ExecutableConstants.SPARK_HISTORY_APP_URL,
                     SparkHistoryUIUtil.getHistoryTrackerUrl(result.getInfo().get(ExecutableConstants.YARN_APP_ID)));
         }
+
+        if (result.getInfo().containsKey(ExecutableConstants.YARN_APP_URL)) {
+            result.putInfo(ExecutableConstants.PROXY_APP_URL,
+                    JobDriverUIUtil.getProxyUrl(task.getProject(), task.getId()));
+            NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+            ProjectInstance prjInstance = projectManager.getProject(task.getProject());
+            if (prjInstance != null && prjInstance.getConfig().isProxyJobSparkUIEnabled()) {
+                result.putInfo(ExecutableConstants.YARN_APP_URL,
+                        JobDriverUIUtil.getProxyUrl(task.getProject(), task.getId()));
+            }
+        }
+
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stepOutput));
@@ -792,8 +806,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
         // If this segment has running stage, this segment is running, this segment doesn't have end time
         // If this task is running and this segment has pending stage, this segment is running, this segment doesn't have end time
         val stageStatuses = stageResponses.stream().map(ExecutableStepResponse::getStatus).collect(Collectors.toSet());
-        if (!stageStatuses.contains(JobStatusEnum.RUNNING)
-                && !(task.getStatusInMem() == ExecutableState.RUNNING && stageStatuses.contains(JobStatusEnum.PENDING))) {
+        if (!stageStatuses.contains(JobStatusEnum.RUNNING) && !(task.getStatusInMem() == ExecutableState.RUNNING
+                && stageStatuses.contains(JobStatusEnum.PENDING))) {
             val execEndTime = stageResponses.stream()//
                     .map(ExecutableStepResponse::getExecEndTime)//
                     .max(Long::compare).orElse(0L);
@@ -829,8 +843,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
          * the progress of other steps will not be refined
          */
         val stepCount = stageResponses.size() == 0 ? 1 : stageResponses.size();
-        val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId,
-                stageBases, true, executablePO) / stepCount;
+        val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId, stageBases, true,
+                executablePO) / stepCount;
         segmentSubStages.setStepRatio(stepRatio);
     }
 
@@ -876,7 +890,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     @Override
     public void stopBatchJob(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project).getModelsUsingTable(tableDesc)) {
+        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project)
+                .getModelsUsingTable(tableDesc)) {
             stopBatchJobByModel(project, tableRelatedModel.getId());
         }
     }
@@ -892,8 +907,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             return;
         }
 
-        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.getJobs().stream().map(executableManager::getJob).filter(
                 job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
                 .forEach(job -> {
@@ -928,5 +942,17 @@ public class JobInfoService extends BasicService implements JobSupporter {
             default:
                 throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
         }
+    }
+
+    public String getOriginTrackUrlByProjectAndStepId(String project, String stepId) {
+        String trackUrl = null;
+        try {
+            ExecutableManager executableManager = getManager(ExecutableManager.class, project);
+            Output stepOutput = executableManager.getOutput(stepId);
+            trackUrl = stepOutput.getExtra().get(ExecutableConstants.YARN_APP_URL);
+        } catch (Exception e) {
+            logger.warn("get trackUrl failed", e);
+        }
+        return trackUrl;
     }
 }

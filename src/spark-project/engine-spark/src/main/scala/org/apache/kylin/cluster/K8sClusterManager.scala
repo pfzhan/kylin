@@ -17,6 +17,9 @@
  */
 package org.apache.kylin.cluster
 
+import java.util
+import java.util.concurrent.TimeUnit
+
 import com.google.common.collect.Lists
 import io.fabric8.kubernetes.client.Config.autoConfigure
 import io.fabric8.kubernetes.client.{ConfigBuilder, DefaultKubernetesClient, KubernetesClient}
@@ -26,8 +29,6 @@ import org.apache.kylin.engine.spark.utils.ThreadUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 
-import java.util
-import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 
 class K8sClusterManager extends IClusterManager with Logging {
@@ -46,9 +47,10 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
-    logInfo("Get Build Tracking Url!")
     val applicationId = sparkSession.sparkContext.applicationId
-    ""
+    val trackUrl = sparkSession.sparkContext.uiWebUrl.getOrElse("")
+    logInfo(s"Tracking Ur $applicationId from spark context $trackUrl ")
+    return trackUrl
   }
 
   override def killApplication(jobStepId: String): Unit = {
@@ -65,6 +67,7 @@ class K8sClusterManager extends IClusterManager with Logging {
         val ops = kubernetesClient
           .pods
           .inNamespace(kubernetesClient.getNamespace)
+        logInfo(s"delete pod $pods")
         ops.delete(pods.asJava)
       }
     })
@@ -108,20 +111,24 @@ class K8sClusterManager extends IClusterManager with Logging {
       }.toList
     pods
   }
-
 }
-object K8sClusterManager extends Logging{
 
-  def withKubernetesClient[T](body: KubernetesClient => T): T = {
-    val config = KylinConfig.getInstanceFromEnv
-    val master = config.getSparkMaster.substring("k8s://".length)
-    val namespace = config.getKubernetesNameSpace
+object K8sClusterManager extends Logging {
+
+  def withKubernetesClient[T](master: String, namespace: String, body: KubernetesClient => T): T = {
     val kubernetesClient = createKubernetesClient(master, namespace)
     try {
       body(kubernetesClient)
     } finally {
       kubernetesClient.close()
     }
+  }
+
+  def withKubernetesClient[T](body: KubernetesClient => T): T = {
+    val config = KylinConfig.getInstanceFromEnv
+    val master = config.getSparkMaster.substring("k8s://".length)
+    val namespace = config.getKubernetesNameSpace
+    withKubernetesClient(master, namespace, body)
   }
 
   def createKubernetesClient(master: String,
@@ -145,5 +152,4 @@ object K8sClusterManager extends Logging{
       .build()
     new DefaultKubernetesClient(config)
   }
-
 }

@@ -3518,4 +3518,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getJobLockClientRenewalMaxThreads() {
         return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
     }
+
+    public boolean isProxyJobSparkUIEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.proxy-spark-ui-enabled", "false"));
+    }
 }
