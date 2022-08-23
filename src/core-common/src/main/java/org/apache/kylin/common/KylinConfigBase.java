@@ -165,7 +165,7 @@ public abstract class KylinConfigBase implements Serializable {
         return getKylinHome() + File.separator + "spark";
     }
 
-    public Map<String, String> getReadonlyProperties(){
+    public Map<String, String> getReadonlyProperties() {
         val substitutor = getSubstitutor();
         HashMap<String, String> config = Maps.newHashMap();
         for (Entry<Object, Object> entry : this.properties.entrySet()) {
@@ -1422,7 +1422,7 @@ public abstract class KylinConfigBase implements Serializable {
     public List<String> getSparkBuildConfExtraRules() {
         String rules = getOptional("kylin.engine.spark.build-conf-extra-rules");
         if (StringUtils.isEmpty(rules)) {
-            return Collections.<String>emptyList();
+            return Collections.<String> emptyList();
         }
         return Lists.newArrayList(rules.split(","));
     }
@@ -3520,6 +3520,10 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isProxyJobSparkUIEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.job.proxy-spark-ui-enabled", "false"));
+        String defaultValue = "false";
+        if (getSparkMaster().startsWith("k8s")) {
+            defaultValue = "true";
+        }
+        return Boolean.parseBoolean(getOptional("kylin.job.proxy-spark-ui-enabled", defaultValue));
     }
 }
