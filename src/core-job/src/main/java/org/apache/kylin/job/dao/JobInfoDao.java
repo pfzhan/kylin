@@ -98,40 +98,21 @@ public class JobInfoDao {
     }
 
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
-        updateJob(uuid, updater, true);
-    }
-
-    public void updateJob(String uuid, Predicate<ExecutablePO> updater, boolean needRetryOnOptLockFail) {
-
-        int retryCount = 0;
-        do {
-            JobInfo jobInfo = null;
-            try {
-                jobInfo = jobInfoMapper.selectByJobId(uuid);
-                Preconditions.checkNotNull(jobInfo);
-                val job = JobInfoUtil.deserializeExecutablePO(jobInfo);
-                Preconditions.checkNotNull(job);
-                val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
-                copyForWrite.setProject(job.getProject());
-                if (updater.test(copyForWrite)) {
-                    copyForWrite.setLastModified(System.currentTimeMillis());
-                    int updateAffect = jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite, jobInfo.getMvcc()));
-                    if (updateAffect == 0) {
-                        String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
-                                job.getId(), jobInfo.getMvcc());
-                        throw new OptimisticLockingFailureException(errorMeg);
-                    }
-                }
-                break;
-            } catch (OptimisticLockingFailureException e) {
-                if (needRetryOnOptLockFail && retryCount++ < 3) {
-                    logger.warn("job_info {} fail on OptimisticLockingFailureException {} times", jobInfo.getJobId(), retryCount);
-                } else {
-                    throw e;
-                }
+        JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);
+        Preconditions.checkNotNull(jobInfo);
+        val job = JobInfoUtil.deserializeExecutablePO(jobInfo);
+        Preconditions.checkNotNull(job);
+        val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
+        copyForWrite.setProject(job.getProject());
+        if (updater.test(copyForWrite)) {
+            copyForWrite.setLastModified(System.currentTimeMillis());
+            int updateAffect = jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite, jobInfo.getMvcc()));
+            if (updateAffect == 0) {
+                String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
+                        job.getId(), jobInfo.getMvcc());
+                throw new OptimisticLockingFailureException(errorMeg);
             }
-        } while (needRetryOnOptLockFail);
-
+        }
     }
 
     public ExecutablePO getExecutablePOByUuid(String uuid) {

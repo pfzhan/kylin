@@ -361,7 +361,7 @@ public class JdbcJobScheduler implements JobScheduler {
             // there should be other nodes crashed during job execution, resume job status from running to ready
             logger.warn("Resume <RUNNING> job {}", jobExecutable.getJobId());
             ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), executable.getProject())
-                    .resumeJob(jobExecutable.getJobId(), executable, true);
+                    .resumeJob(jobExecutable.getJobId(), true);
         }
         // for other status, it should be caused by the failure of release locks, so just release lock agagin
         logger.warn("Release lock for {} <{}>", jobExecutable.getJobId(), jobStatus);

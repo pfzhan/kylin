@@ -247,4 +247,9 @@ public class JobContextUtil {
             throw new RuntimeException("JobContextUtil clean up failed.", e);
         }
     }
+
+    public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer) {
+        DataSourceTransactionManager txManager = SpringContext.getBean(DataSourceTransactionManager.class);
+        return JdbcUtil.withTxAndRetry(txManager, consumer);
+    }
 }

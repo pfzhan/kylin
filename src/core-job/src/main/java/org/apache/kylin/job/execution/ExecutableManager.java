@@ -92,7 +92,6 @@ import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -616,19 +615,24 @@ public class ExecutableManager {
         });
     }
 
-    // only for UT
-    @Transactional
-    public void resumeJob(String jobId) {
-        resumeJob(jobId, getJob(jobId));
+    public void resumeJob(String jobId){
+        resumeJob(jobId, false);
     }
 
-    @Transactional
+    public void resumeJob(String jobId, boolean force) {
+        JobContextUtil.withTxAndRetry(() -> {
+            resumeJob(jobId, getJob(jobId), force);
+            return true;
+        });
+    }
+
+    //for ut
     public void resumeJob(String jobId, AbstractExecutable job) {
         resumeJob(jobId, job, false);
     }
 
-    @Transactional
     public void resumeJob(String jobId, AbstractExecutable job, boolean force) {
+        updateJobError(jobId, null, null, null, null);
         if (Objects.isNull(job)) {
             return;
         }
@@ -663,7 +667,6 @@ public class ExecutableManager {
     }
 
     // READY -> PENDING
-    @Transactional
     public void publishJob(String jobId, AbstractExecutable job) {
         if (Objects.isNull(job) || job.getStatusInMem() != ExecutableState.READY) {
             return;
@@ -779,14 +782,16 @@ public class ExecutableManager {
         return true;
     }
 
-    // only for UT
-    @Transactional
     public void restartJob(String jobId) {
-        restartJob(jobId, getJob(jobId));
+        JobContextUtil.withTxAndRetry(()->{
+            restartJob(jobId, getJob(jobId));
+            return true;
+        });
     }
 
-    @Transactional
+    // for ut
     public void restartJob(String jobId, AbstractExecutable jobToRestart) {
+        updateJobError(jobId, null, null, null, null);
         if (Objects.isNull(jobToRestart)) {
             return;
         }
@@ -818,7 +823,6 @@ public class ExecutableManager {
         });
     }
 
-    @Transactional
     private void updateJobReady(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
@@ -849,7 +853,7 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.READY, info);
     }
 
-    @Transactional
+    // for ut
     public void discardJob(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
@@ -876,14 +880,15 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
-    // only for UT
-    @Transactional
     public void pauseJob(String jobId) {
-        ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
-        pauseJob(jobId, executablePO, fromPO(executablePO));
+        JobContextUtil.withTxAndRetry(() -> {
+            ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);
+            pauseJob(jobId, executablePO, fromPO(executablePO));
+            return true;
+        });
     }
 
-    @Transactional
+    // for ut
     public void pauseJob(String jobId, ExecutablePO executablePO, AbstractExecutable job) {
         if (job == null) {
             return;
@@ -891,18 +896,14 @@ public class ExecutableManager {
         if (!job.getStatusInMem().isProgressing()) {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatusInMem());
         }
-        JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(config), () -> {
-            updateStagePaused(job);
-            Map<String, String> info = getWaiteTime(executablePO, job);
-            updateJobOutput(jobId, ExecutableState.PAUSED, info);
-            return null;
-        });
+        updateStagePaused(job);
+        Map<String, String> info = getWaiteTime(executablePO, job);
+        updateJobOutput(jobId, ExecutableState.PAUSED, info, null, null, 0, null);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();
     }
 
-    @Transactional
     public void errorJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
@@ -1001,14 +1002,18 @@ public class ExecutableManager {
         }
     }
 
-    @Transactional
     public void discardJob(String jobId) {
-        discardJob(jobId, getJob(jobId));
+        JobContextUtil.withTxAndRetry(()->{
+            discardJob(jobId, getJob(jobId));
+            return true;
+        });
     }
 
-    @Transactional
     public void deleteAllJobsOfProject() {
-        jobInfoDao.deleteJobsByProject(project);
+        JobContextUtil.withTxAndRetry(() ->{
+            jobInfoDao.deleteJobsByProject(project);
+            return true;
+        });
     }
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {
@@ -1543,7 +1548,6 @@ public class ExecutableManager {
         jobInfoDao.dropAllJobs();
     }
 
-    @Transactional
     public void suicideJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
@@ -1576,7 +1580,7 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
     }
 
-    @Transactional
+    // for ut
     public void resumeAllRunningJobs() {
         val jobs = jobInfoDao.getJobs(project);
         CliCommandExecutor exe = getCliCommandExecutor();

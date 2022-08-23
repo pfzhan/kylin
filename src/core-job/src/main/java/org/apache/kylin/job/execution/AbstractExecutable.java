@@ -230,8 +230,12 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
             tryAgain = false;
             try {
-                checkNeedQuit(false);
-                f.process();
+                JobContextUtil.withTxAndRetry(()->{
+                    checkNeedQuit(false);
+                    f.process();
+
+                    return true;
+                });
             } catch (Exception e) {
                 if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
                     // "in this short period user might changed job state" happens
@@ -293,24 +297,29 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, String logPath, String failedMsg, Consumer<String> hook) {
-        ExecutableManager executableManager = getExecutableManager(project);
-        val existedInfo = executableManager.getOutput(jobId).getExtra();
-        if (info != null) {
-            existedInfo.putAll(info);
-        }
 
-        //The output will be stored in HDFS,not in RS
-        if (this instanceof ChainedStageExecutable) {
-            if (newStatus == ExecutableState.SUCCEED) {
-                executableManager.makeStageSuccess(jobId);
-            } else if (newStatus == ExecutableState.ERROR) {
-                executableManager.makeStageError(jobId);
+        JobContextUtil.withTxAndRetry(() -> {
+            ExecutableManager executableManager = getExecutableManager(project);
+            val existedInfo = executableManager.getOutput(jobId).getExtra();
+            if (info != null) {
+                existedInfo.putAll(info);
             }
-        }
-        executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, failedMsg);
-        if (hook != null) {
-            hook.accept(jobId);
-        }
+
+            //The output will be stored in HDFS,not in RS
+            if (this instanceof ChainedStageExecutable) {
+                if (newStatus == ExecutableState.SUCCEED) {
+                    executableManager.makeStageSuccess(jobId);
+                } else if (newStatus == ExecutableState.ERROR) {
+                    executableManager.makeStageError(jobId);
+                }
+            }
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, failedMsg);
+            if (hook != null) {
+                hook.accept(jobId);
+            }
+
+            return true;
+        });
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output, logPath);
@@ -397,26 +406,30 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             return;
         }
 
-        boolean abort = false;
-        val parent = getParent();
-        ExecutableState state = parent.getStatus();
-        switch (state) {
-        case READY:
-        case PAUSED:
-        case DISCARDED:
-            //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
-            //in this case the old thread should fail itself by calling this
-            if (applyChange) {
-                logger.debug("abort {} because parent job is {}", getId(), state);
-                updateJobOutput(project, getId(), state, null, null, null);
+        Boolean aborted = JobContextUtil.withTxAndRetry(() -> {
+            boolean abort = false;
+            val parent = getParent();
+            ExecutableState state = parent.getStatus();
+            switch (state) {
+                case READY:
+                case PAUSED:
+                case DISCARDED:
+                    //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
+                    //in this case the old thread should fail itself by calling this
+                    if (applyChange) {
+                        logger.debug("abort {} because parent job is {}", getId(), state);
+                        updateJobOutput(project, getId(), state, null, null, null);
+                    }
+                    abort = true;
+                    break;
+                default:
+                    break;
             }
-            abort = true;
-            break;
-        default:
-            break;
-        }
 
-        if (abort) {
+            return abort;
+        });
+
+        if (aborted) {
             throw new JobStoppedNonVoluntarilyException();
         }
     }
@@ -830,7 +843,11 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     protected void wrapWithExecuteExceptionUpdateJobError(Exception exception) {
-        getExecutableManager(project).updateJobError(getId(), getId(), null, ExceptionUtils.getStackTrace(exception),
-                exception.getMessage());
+        JobContextUtil.withTxAndRetry(() -> {
+            getExecutableManager(project).updateJobError(getId(), getId(), null, ExceptionUtils.getStackTrace(exception),
+                    exception.getMessage());
+
+            return true;
+        });
     }
 }

@@ -439,21 +439,13 @@ public class JobInfoService extends BasicService implements JobSupporter {
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
             SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
-            JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
-                executableManager.updateJobError(jobId, null, null, null, null);
-                executableManager.resumeJob(jobId, executable);
-                return null;
-            });
+            executableManager.resumeJob(jobId);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
             SecondStorageUtil.checkJobRestart(project, jobId, executable);
             killExistApplication(executable);
-            JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
-                executableManager.updateJobError(jobId, null, null, null, null);
-                executableManager.restartJob(jobId, executable);
-                return null;
-            });
+            executableManager.restartJob(jobId);
             break;
         case DISCARD:
             discardJob(project, jobId, executable);
@@ -463,7 +455,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             break;
         case PAUSE:
             killExistApplication(executable);
-            executableManager.pauseJob(jobId, executablePO, executable);
+            executableManager.pauseJob(jobId);
             break;
         default:
             throw new IllegalStateException("This job can not do this action: " + action);
@@ -561,7 +553,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             return;
         }
         killExistApplication(job);
-        getManager(ExecutableManager.class, project).discardJob(job.getId(), job);
+        getManager(ExecutableManager.class, project).discardJob(job.getId());
     }
 
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
