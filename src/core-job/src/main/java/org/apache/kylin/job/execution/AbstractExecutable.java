@@ -16,24 +16,6 @@
  * limitations under the License.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
@@ -60,12 +42,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.ThrowableUtils;
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobIssueEnum;
+import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -75,7 +58,6 @@ import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -96,7 +78,7 @@ import lombok.experimental.Delegate;
 
 /**
  */
-public abstract class AbstractExecutable implements Executable {
+public abstract class AbstractExecutable extends AbstractJobExecutable implements Executable {
 
     public interface Callback {
         void process() throws Exception;
@@ -146,7 +128,7 @@ public abstract class AbstractExecutable implements Executable {
     @Delegate
     private ExecutableParams executableParams = new ExecutableParams();
     protected String project;
-    protected ExecutableContext context;
+    protected JobContext context;
 
     @Getter
     @Setter
@@ -171,6 +153,10 @@ public abstract class AbstractExecutable implements Executable {
     @Getter
     @Setter
     private int stepId = -1;
+
+    @Getter
+    @Setter
+    private ExecutablePO po;
 
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
@@ -224,7 +210,7 @@ public abstract class AbstractExecutable implements Executable {
         return KylinConfig.getInstanceFromEnv();
     }
 
-    protected NExecutableManager getManager() {
+    protected ExecutableManager getManager() {
         return getExecutableManager(project);
     }
 
@@ -244,18 +230,15 @@ public abstract class AbstractExecutable implements Executable {
 
             tryAgain = false;
             try {
-                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    checkNeedQuit(false);
-                    f.process();
-                    return null;
-                }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
+                checkNeedQuit(false);
+                f.process();
             } catch (Exception e) {
                 if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
                     // "in this short period user might changed job state" happens
                     logger.info("[LESS_LIKELY_THINGS_HAPPENED] JobStoppedException thrown from in a UnitOfWork", e);
                     tryAgain = true;
                 } else {
-                    throw e;
+                    throw new JobStoppedException(e);
                 }
             }
         }
@@ -290,16 +273,12 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    protected void onExecuteStopHook() {
+    public void onExecuteStopHook() {
         onExecuteErrorHook(getId());
     }
 
     protected void onExecuteErrorHook(String jobId) {
         // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
-    }
-
-    protected long getEpochId() {
-        return context == null ? -1 : context.getEpochId();
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
@@ -314,35 +293,32 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, String logPath, String failedMsg, Consumer<String> hook) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager executableManager = getExecutableManager(project);
-            val existedInfo = executableManager.getOutput(jobId).getExtra();
-            if (info != null) {
-                existedInfo.putAll(info);
-            }
+        ExecutableManager executableManager = getExecutableManager(project);
+        val existedInfo = executableManager.getOutput(jobId).getExtra();
+        if (info != null) {
+            existedInfo.putAll(info);
+        }
 
-            //The output will be stored in HDFS,not in RS
-            if (this instanceof ChainedStageExecutable) {
-                if (newStatus == ExecutableState.SUCCEED) {
-                    executableManager.makeStageSuccess(jobId);
-                } else if (newStatus == ExecutableState.ERROR) {
-                    executableManager.makeStageError(jobId);
-                }
+        //The output will be stored in HDFS,not in RS
+        if (this instanceof ChainedStageExecutable) {
+            if (newStatus == ExecutableState.SUCCEED) {
+                executableManager.makeStageSuccess(jobId);
+            } else if (newStatus == ExecutableState.ERROR) {
+                executableManager.makeStageError(jobId);
             }
-            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, failedMsg);
-            if (hook != null) {
-                hook.accept(jobId);
-            }
-            return null;
-        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
+        }
+        executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, failedMsg);
+        if (hook != null) {
+            hook.accept(jobId);
+        }
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output, logPath);
     }
 
     private static void updateJobOutputToHDFS(String project, String jobId, String output, String logPath) {
-        NExecutableManager nExecutableManager = getExecutableManager(project);
-        ExecutableOutputPO jobOutput = nExecutableManager.getJobOutput(jobId);
+        ExecutableManager executableManager = getExecutableManager(project);
+        ExecutableOutputPO jobOutput = executableManager.getJobOutput(jobId);
         if (null != output) {
             jobOutput.setContent(output);
         }
@@ -351,17 +327,17 @@ public abstract class AbstractExecutable implements Executable {
         }
         String outputHDFSPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
 
-        nExecutableManager.updateJobOutputToHDFS(outputHDFSPath, jobOutput);
+        executableManager.updateJobOutputToHDFS(outputHDFSPath, jobOutput);
     }
 
-    protected static NExecutableManager getExecutableManager(String project) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+    protected static ExecutableManager getExecutableManager(String project) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     @Override
-    public final ExecuteResult execute(ExecutableContext executableContext) throws ExecuteException {
+    public final ExecuteResult execute(JobContext jobContext) throws ExecuteException {
         logger.info("Executing AbstractExecutable {}", this.getDisplayName());
-        this.context = executableContext;
+        this.context = jobContext;
         ExecuteResult result;
 
         onExecuteStart();
@@ -373,7 +349,7 @@ public abstract class AbstractExecutable implements Executable {
             }
 
             try {
-                result = wrapWithExecuteException(() -> doWork(executableContext));
+                result = wrapWithExecuteException(() -> doWork(jobContext));
             } catch (JobStoppedException jse) {
                 // job quits voluntarily or non-voluntarily, in this case, the job is "finished"
                 // we createSucceed() to run onExecuteFinished()
@@ -421,28 +397,26 @@ public abstract class AbstractExecutable implements Executable {
             return;
         }
 
-        boolean aborted = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            boolean abort = false;
-            val parent = getParent();
-            ExecutableState state = parent.getStatus();
-            switch (state) {
-            case READY:
-            case PAUSED:
-            case DISCARDED:
-                //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
-                //in this case the old thread should fail itself by calling this
-                if (applyChange) {
-                    logger.debug("abort {} because parent job is {}", getId(), state);
-                    updateJobOutput(project, getId(), state, null, null, null);
-                }
-                abort = true;
-                break;
-            default:
-                break;
+        boolean abort = false;
+        val parent = getParent();
+        ExecutableState state = parent.getStatus();
+        switch (state) {
+        case READY:
+        case PAUSED:
+        case DISCARDED:
+            //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
+            //in this case the old thread should fail itself by calling this
+            if (applyChange) {
+                logger.debug("abort {} because parent job is {}", getId(), state);
+                updateJobOutput(project, getId(), state, null, null, null);
             }
-            return abort;
-        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
-        if (aborted) {
+            abort = true;
+            break;
+        default:
+            break;
+        }
+
+        if (abort) {
             throw new JobStoppedNonVoluntarilyException();
         }
     }
@@ -480,11 +454,11 @@ public abstract class AbstractExecutable implements Executable {
         return ArrayUtils.isEmpty(jobRetryExceptions) || ArrayUtils.contains(jobRetryExceptions, exceptionName);
     }
 
-    protected abstract ExecuteResult doWork(ExecutableContext context) throws ExecuteException;
+    protected abstract ExecuteResult doWork(JobContext context) throws ExecuteException;
 
     @Override
     public boolean isRunnable() {
-        return this.getStatus() == ExecutableState.READY;
+        return this.getStatus() == ExecutableState.PENDING;
     }
 
     public String getDisplayName() {
@@ -493,8 +467,19 @@ public abstract class AbstractExecutable implements Executable {
 
     @Override
     public final ExecutableState getStatus() {
-        NExecutableManager manager = getManager();
+        ExecutableManager manager = getManager();
         return manager.getOutput(this.getId()).getState();
+    }
+
+    // This status is recorded when executable is inited.
+    // Use method 'getStatus' to get the last status.
+    public final ExecutableState getStatusInMem() {
+        return getStatus(getPo());
+    }
+
+    public final ExecutableState getStatus(ExecutablePO po) {
+        ExecutableManager manager = getManager();
+        return manager.getOutput(this.getId(), po).getState();
     }
 
     public final long getLastModified() {
@@ -570,6 +555,10 @@ public abstract class AbstractExecutable implements Executable {
         return getManager().getJob(getParam(PARENT_ID));
     }
 
+    public final AbstractExecutable getParent(ExecutablePO po) {
+        return getManager().getJob(getParam(PARENT_ID), po);
+    }
+
     public final String getProject() {
         if (project == null) {
             throw new IllegalStateException("project is not set for abstract executable " + getId());
@@ -581,9 +570,17 @@ public abstract class AbstractExecutable implements Executable {
         this.project = project;
     }
 
+    public final String getJobId() {
+        return getId();
+    }
+
     @Override
     public final Output getOutput() {
         return getManager().getOutput(getId());
+    }
+
+    public final Output getOutput(ExecutablePO executablePO) {
+        return getManager().getOutput(getId(), executablePO);
     }
 
     //will modify input info
@@ -613,21 +610,28 @@ public abstract class AbstractExecutable implements Executable {
 
         return info;
     }
+    public final long getStartTime() {
+        return getStartTime(getOutput());
+    }
 
     public static long getStartTime(Output output) {
         return output.getStartTime();
     }
 
+    public final long getEndTime() {
+        return getEndTime(getOutput());
+    }
+
     public static long getEndTime(Output output) {
         return output.getEndTime();
     }
-
-    protected final Map<String, String> getExtraInfo() {
-        return getOutput().getExtra();
+    
+    public final long getEndTime(ExecutablePO po) {
+        return getEndTime(getOutput(po));
     }
 
-    public final long getStartTime() {
-        return getStartTime(getOutput());
+    public final Map<String, String> getExtraInfo() {
+        return getOutput().getExtra();
     }
 
     public final long getCreateTime() {
@@ -638,24 +642,20 @@ public abstract class AbstractExecutable implements Executable {
         return output.getCreateTime();
     }
 
-    public final long getEndTime() {
-        return getEndTime(getOutput());
-    }
-
     // just using to get job duration in get job list
-    public long getDurationFromStepOrStageDurationSum() {
-        var duration = getDuration();
+    public long getDurationFromStepOrStageDurationSum(ExecutablePO executablePO) {
+        var duration = getDuration(executablePO);
         if (this instanceof ChainedExecutable) {
             val tasks = ((ChainedExecutable) this).getTasks();
             val jobAtomicDuration = new AtomicLong(0);
             tasks.forEach(task -> {
-                var taskDuration = task.getDuration();
+                var taskDuration = task.getDuration(executablePO);
                 if (task instanceof ChainedStageExecutable) {
                     val stagesMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (stagesMap.size() == 1) {
                         for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
                             taskDuration = entry.getValue().stream()
-                                    .map(stage -> getDuration(stage.getOutput(entry.getKey()))) //
+                                    .map(stage -> getDuration(stage.getOutput(entry.getKey(), executablePO))) //
                                     .mapToLong(Long::valueOf) //
                                     .sum();
                         }
@@ -670,6 +670,10 @@ public abstract class AbstractExecutable implements Executable {
 
     public long getDuration() {
         return getDuration(getOutput());
+    }
+
+    public long getDuration(ExecutablePO executablePO) {
+        return getDuration(getOutput(executablePO));
     }
 
     public static long getDuration(Output output) {
@@ -688,23 +692,28 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public long getWaitTime() {
-        Output output = getOutput();
+        String jobId = ExecutableManager.extractJobId(getId());
+        return getWaitTime(getManager().getExecutablePO(jobId));
+    }
+
+    public long getWaitTime(ExecutablePO po) {
+        Output output = getOutput(po);
         long startTime = output.getStartTime();
 
         long lastTaskEndTime = output.getCreateTime();
-        var lastTaskStatus = getStatus();
+        var lastTaskStatus = output.getState();
 
         int stepId = getStepId();
 
         // get end_time of last task
-        if (getParent() instanceof DefaultChainedExecutable) {
-            val parentExecutable = (DefaultChainedExecutable) getParent();
+        if (getParent(po) instanceof DefaultChainedExecutable) {
+            val parentExecutable = (DefaultChainedExecutable) getParent(po);
             val lastExecutable = parentExecutable.getSubTaskByStepId(stepId - 1);
 
-            lastTaskEndTime = lastExecutable.map(AbstractExecutable::getEndTime)
-                    .orElse(parentExecutable.getOutput().getCreateTime());
+            lastTaskEndTime = lastExecutable.map(e -> e.getEndTime(po))
+                    .orElse(parentExecutable.getOutput(po).getCreateTime());
 
-            lastTaskStatus = lastExecutable.map(AbstractExecutable::getStatus).orElse(parentExecutable.getStatus());
+            lastTaskStatus = lastExecutable.map(e -> e.getStatus(po)).orElse(parentExecutable.getStatus(po));
         }
 
         //if last task is not end, wait_time is 0
@@ -713,9 +722,9 @@ public abstract class AbstractExecutable implements Executable {
         }
 
         if (startTime == 0) {
-            if (getParent() != null && getParent().getStatus() == ExecutableState.DISCARDED) {
+            if (getParent(po) != null && getParent(po).getStatus(po) == ExecutableState.DISCARDED) {
                 // job is discarded before started
-                startTime = getParent().getEndTime();
+                startTime = getParent(po).getEndTime(po);
             } else {
                 //the job/task is not started, use the current time
                 startTime = System.currentTimeMillis();
@@ -821,17 +830,7 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     protected void wrapWithExecuteExceptionUpdateJobError(Exception exception) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            getExecutableManager(project).updateJobError(getId(), getId(), null,
-                    ExceptionUtils.getStackTrace(exception), exception.getMessage());
-            return null;
-        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
-    }
-
-    public final String getTempLockName() {
-        if (getParentId() == null) {
-            return getId();
-        }
-        return getParentId();
+        getExecutableManager(project).updateJobError(getId(), getId(), null, ExceptionUtils.getStackTrace(exception),
+                exception.getMessage());
     }
 }

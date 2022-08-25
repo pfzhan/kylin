@@ -29,7 +29,6 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_RANGE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -52,18 +51,22 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.engine.spark.job.ExecutableAddCuboidHandler;
-import org.apache.kylin.engine.spark.job.ExecutableAddSegmentHandler;
-import org.apache.kylin.engine.spark.job.ExecutableMergeOrRefreshHandler;
-import org.apache.kylin.engine.spark.job.NSparkCubingJob;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.dao.JobInfoDao;
+import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
+import org.apache.kylin.job.execution.handler.ExecutableAddCuboidHandler;
+import org.apache.kylin.job.execution.handler.ExecutableAddSegmentHandler;
+import org.apache.kylin.job.execution.handler.ExecutableMergeOrRefreshHandler;
+import org.apache.kylin.job.service.JobInfoService;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.junit.rule.TransactionExceptedException;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -96,6 +99,8 @@ import org.apache.kylin.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.kylin.query.util.KapQueryUtil;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
@@ -144,9 +149,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
     @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
-
-    @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
 
     @InjectMocks
@@ -187,6 +189,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
     private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     private StreamingJobListener eventListener = new StreamingJobListener();
+    
+    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
 
     @Before
     public void setup() {
@@ -208,18 +212,33 @@ public class ModelServiceBuildTest extends SourceTestCase {
                 }));
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        JobInfoService jobInfoService = new JobInfoService();
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
+
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", modelMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         modelService.setSemanticUpdater(semanticService);
-        modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -241,6 +260,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -297,7 +317,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
         modelBuildService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
                 new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
-        val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val execManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
         Assert.assertEquals(JobTypeEnum.INDEX_MERGE, executables.get(0).getJobType());
@@ -770,7 +790,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
                 "1609430400000", true, Sets.newHashSet(), null, 0, true);
         Assert.assertEquals(1, jobInfo2.getJobs().size());
         Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val job2 = NExecutableManager.getInstance(getTestConfig(), "default")
+        val job2 = ExecutableManager.getInstance(getTestConfig(), "default")
                 .getJob(jobInfo2.getJobs().get(0).getJobId());
         Assert.assertEquals(3, job2.getTargetPartitions().size());
 
@@ -815,9 +835,10 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
-        NExecutableManager executableManager = mock(NExecutableManager.class);
-        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
-        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
+        List<AbstractExecutable> jobs = mockJobs();
+        List<ExecutablePO> executablePOS = jobs.stream().map(job -> ExecutableManager.toPO(job, "default"))
+                .collect(Collectors.toList());
+        when(jobMetadataInvoker.getExecutablePOsByStatus("default", ExecutableState.ERROR)).thenReturn(executablePOS);
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, responses.size());
@@ -1364,7 +1385,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         val project = "default";
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), project);
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         val model = dataflow.getModel();
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());

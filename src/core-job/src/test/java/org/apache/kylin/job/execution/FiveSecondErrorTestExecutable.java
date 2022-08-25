@@ -36,6 +36,7 @@
 
 package org.apache.kylin.job.execution;
 
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.exception.ExecuteException;
 
 public class FiveSecondErrorTestExecutable extends BaseTestExecutable {
@@ -49,7 +50,7 @@ public class FiveSecondErrorTestExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {

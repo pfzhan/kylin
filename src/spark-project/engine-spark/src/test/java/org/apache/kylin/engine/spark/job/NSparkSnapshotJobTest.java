@@ -31,16 +31,16 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NSparkSnapshotJob;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.parquet.Strings;
 import org.junit.After;
 import org.junit.Assert;
@@ -56,24 +56,20 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
         config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 
@@ -88,7 +84,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
@@ -138,7 +134,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
                 JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, null, null, null);
@@ -178,7 +174,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         table.setPartitionColumn(partitionCol);
         tableManager.updateTableDesc(table);
 
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Set<String> partitionToBuild = ImmutableSet.of("2012-01-03");
         TableDesc tableDesc = tableManager.getTableDesc(tableName);
@@ -222,7 +218,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testBuildSnapshotJob() throws Exception {
         String tableName = "SSB.PART";
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

@@ -24,19 +24,19 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -80,9 +80,9 @@ public class SourceTestCase extends NLocalFileMetadataTestCase {
     protected void setupPushdownEnv() throws Exception {
         Class.forName("org.h2.Driver");
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "org.apache.kylin.query.pushdown.PushDownRunnerJdbcImpl");
+                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         getTestConfig().setProperty("kylin.query.pushdown.partition-check.runner-class-name",
-                "org.apache.kylin.query.pushdown.PushDownRunnerJdbcImpl");
+                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         getTestConfig().setProperty("kylin.query.pushdown-enabled", "true");
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
@@ -123,16 +123,17 @@ public class SourceTestCase extends NLocalFileMetadataTestCase {
     }
 
     protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        List<AbstractExecutable> runningExecutables = NExecutableManager
+        List<AbstractExecutable> runningExecutables = ExecutableManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project, model);
         runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
         return runningExecutables;
     }
 
     protected void deleteJobByForce(AbstractExecutable executable) {
-        val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val exManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         exManager.deleteJob(executable.getId());
     }
 
 }
+

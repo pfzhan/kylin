@@ -40,18 +40,18 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.utils.StreamingUtils;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.streaming.constants.StreamingConstants;
 import org.apache.kylin.streaming.jobs.thread.StreamingJobRunner;
@@ -114,7 +114,7 @@ public class StreamingScheduler {
     public synchronized void init() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        if (!config.isJobNode()) {
+        if (!config.isJobNode() && !config.isDataLoadingNode()) {
             log.info("server mode: {}, no need to run job scheduler", config.getServerMode());
             return;
         }

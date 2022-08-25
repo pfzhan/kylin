@@ -452,6 +452,8 @@ class FilePruner(val session: SparkSession,
       case expressions.Or(left, right) =>
         getExpressionShards(left, shardColumnName, numShards) |
           getExpressionShards(right, shardColumnName, numShards)
+      case attr: expressions.AttributeReference =>
+        getShardSetFromValue(attr, true)
       case _ =>
         val matchedShards = new BitSet(numShards)
         matchedShards.setUntil(numShards)

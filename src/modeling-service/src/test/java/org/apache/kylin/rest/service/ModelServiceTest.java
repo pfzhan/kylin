@@ -86,8 +86,8 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.junit.rule.TransactionExceptedException;
@@ -137,7 +137,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.VolatileRange;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.kylin.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.query.QueryTimesResponse;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -146,13 +145,16 @@ import org.apache.kylin.query.util.KapQueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
+import org.apache.kylin.rest.delegate.JobMetadataBaseDelegate;
+import org.apache.kylin.rest.delegate.JobMetadataContract;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.ModelConfigRequest;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.UpdateRuleBasedCuboidRequest;
-import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.CheckSegmentResponse;
 import org.apache.kylin.rest.response.ComputedColumnUsageResponse;
 import org.apache.kylin.rest.response.FusionModelResponse;
@@ -203,11 +205,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.google.common.primitives.Longs;
 
-import io.kyligence.kap.clickhouse.MockSecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -262,6 +259,8 @@ public class ModelServiceTest extends SourceTestCase {
 
     private StreamingJobListener eventListener = new StreamingJobListener();
 
+    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
+
     private JdbcRawRecStore jdbcRawRecStore;
 
     private FavoriteRuleManager favoriteRuleManager;
@@ -289,6 +288,8 @@ public class ModelServiceTest extends SourceTestCase {
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
+        JobMetadataInvoker.setDelegate(new JobMetadataContractTest());
+        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
@@ -307,6 +308,19 @@ public class ModelServiceTest extends SourceTestCase {
         }
         EventBusFactory.getInstance().register(eventListener, true);
         EventBusFactory.getInstance().register(modelBrokenListener, false);
+    }
+
+    private class JobMetadataContractTest extends JobMetadataBaseDelegate implements JobMetadataContract {
+
+        @Override
+        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void stopBatchJob(String project, TableDesc tableDesc) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @After
@@ -1494,9 +1508,8 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasNoErrorJobs() {
-        NExecutableManager executableManager = mock(NExecutableManager.class);
-        when(modelService.getManager(NExecutableManager.class, "default")).thenReturn(executableManager);
-        when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
+        when(jobMetadataInvoker.getExecutablePOsByStatus("default", ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
+
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic");
         Assert.assertEquals(2, responses.size());
@@ -3584,7 +3597,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "Cannot find column BUYER_ACCOUNT.TEST_KYLIN_FACT_0_DOT_0_NEST1, please check whether schema of related table has changed.");
+                "Can’t validate the expression \"TEST_KYLIN_FACT.NEST2\" (computed column: TEST_KYLIN_FACT.NEST1 * 12).");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -3628,7 +3641,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "Cannot find column BUYER_ACCOUNT.TEST_KYLIN_FACT_0_DOT_0_NEST1, please check whether schema of related table has changed.");
+                "Can’t validate the expression \"TEST_KYLIN_FACT.NEST2\" (computed column: TEST_KYLIN_FACT.NEST1 * 12).");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -4100,34 +4113,6 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testConvertToRequestWithSecondStorage() throws IOException {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, () -> true);
-
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded(project, request, () -> true);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
-        Assert.assertTrue(modelRequest.isWithSecondStorage());
-    }
-
-    @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -4177,7 +4162,7 @@ public class ModelServiceTest extends SourceTestCase {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
         modelService.updatePartitionColumn(project, modelId, null, null);
-        val runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        val runningExecutables = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getRunningExecutables(project, modelId);
         Assert.assertEquals(0, runningExecutables.size());
     }
@@ -4655,46 +4640,6 @@ public class ModelServiceTest extends SourceTestCase {
         okModelRequest.setProject(project);
         semanticService.updateModelColumns(okModel, okModelRequest);
         Assert.assertEquals("SUM_L", okModel.getAllMeasures().get(1).getName());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testListNodesByProject() throws IOException {
-        val project = "default";
-        MockSecondStorage.mock(project, new ArrayList<>(), this);
-        val nodeGroupManagerOption = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
-
-        Assert.assertTrue(nodeGroupManagerOption.isPresent());
-        val nodeGroupManager = nodeGroupManagerOption.get();
-
-        NodeGroup nodeGroup1 = new NodeGroup();
-        nodeGroup1.setNodeNames(Lists.newArrayList("node01", "node02"));
-        NodeGroup nodeGroup2 = new NodeGroup();
-        nodeGroup2.setNodeNames(Lists.newArrayList("node01"));
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            nodeGroupManager.createAS(nodeGroup1);
-            return null;
-        }, project);
-
-        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
-        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
-        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
-
-        Assert.assertEquals(2, SecondStorageNodeHelper.getALlNodesInProject(project).size());
-        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testAllListNodes() throws IOException {
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-
-        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
-        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
-        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
-        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
-        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
     }
 
     @Test

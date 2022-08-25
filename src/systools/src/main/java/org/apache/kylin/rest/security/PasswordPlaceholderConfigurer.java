@@ -37,7 +37,6 @@
 package org.apache.kylin.rest.security;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -45,7 +44,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
@@ -53,7 +51,7 @@ import org.apache.kylin.rest.exception.PasswordDecryptionException;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -77,8 +75,11 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
             prop.store(new PrintWriter(writer), "kylin properties");
             propString = writer.getBuilder().toString();
         }
-        InputStream is = IOUtils.toInputStream(propString, Charset.defaultCharset());
-        resources[0] = new InputStreamResource(is);
+//        InputStream is = IOUtils.toInputStream(propString, Charset.defaultCharset());
+//        resources[0] = new InputStreamResource(is);
+
+        ByteArrayResource byteArrayResource = new ByteArrayResource(propString.getBytes(Charset.defaultCharset()));
+        resources[0] = byteArrayResource;
         this.setLocations(resources);
     }
 

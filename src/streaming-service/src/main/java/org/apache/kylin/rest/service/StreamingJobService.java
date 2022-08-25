@@ -45,8 +45,8 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -89,6 +89,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
+
 
 import lombok.val;
 
@@ -536,7 +537,7 @@ public class StreamingJobService extends BasicService {
      */
     public InputStream getStreamingJobAllLog(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         return executableManager.getStreamingOutputFromHDFS(jobId, Integer.MAX_VALUE).getVerboseMsgStream();
     }
 
@@ -545,7 +546,7 @@ public class StreamingJobService extends BasicService {
      */
     public String getStreamingJobSimpleLog(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
         return executableManager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
     }
 

@@ -26,6 +26,7 @@ import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.metadata.epoch.EpochManager;
+import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -60,6 +61,7 @@ import lombok.val;
 @EnableDiscoveryClient
 @LoadBalancerClient(name = "spring-boot-provider", configuration = org.apache.kylin.rest.LoadBalanced.class)
 @EnableSpringHttpSession
+@MapperScan("io.kyligence.kap.job.mapper")
 public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);

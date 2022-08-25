@@ -29,11 +29,13 @@ import static org.apache.kylin.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -47,38 +49,39 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.config.core.loader.IExternalConfigLoader;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.lock.DistributedLockFactory;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.common.constant.NonCustomProjectLevelConfig;
+import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.common.util.ClassLoaderUtils;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ClusterConstant;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.common.util.FileUtils;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.SizeConvertUtil;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.config.core.loader.IExternalConfigLoader;
 import lombok.val;
-import java.util.Collections;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -108,6 +111,8 @@ public abstract class KylinConfigBase implements Serializable {
     private static final String LOOPBACK = "127.0.0.1";
     private static final String VENDOR = System.getProperty("vendor");
     public static final String DEFAULT_VENDOR = "kylin";
+
+    private static final String SERVER_NAME_STRING = "spring.application.name";
 
     protected static final Map<String, String> STATIC_SYSTEM_ENV = new ConcurrentHashMap<>(System.getenv());
 
@@ -852,6 +857,17 @@ public abstract class KylinConfigBase implements Serializable {
     // JOB
     // ============================================================================
 
+    public StorageURL getJobMetadataUrl() {
+        if (StringUtils.isEmpty(getOptional("kylin.job.metadata.url"))) {
+            return getMetadataUrl();
+        }
+        return StorageURL.valueOf(getOptional("kylin.job.metadata.url"));
+    }
+
+    public void setJobMetadataUrl(String jobMetadataUrl) {
+        setProperty("kylin.job.metadata.url", jobMetadataUrl);
+    }
+
     public String getStreamingJobTmpDir(String project) {
         return getHdfsWorkingDirectoryWithoutScheme() + "streaming/jobs/" + project + "/";
     }
@@ -1389,6 +1405,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getSparkMaster() {
         return getOptional("kylin.engine.spark-conf.spark.master", "yarn").toLowerCase(Locale.ROOT);
+    }
+
+    public String getKubernetesNameSpace() {
+        return getOptional("kylin.engine.spark-conf.spark.kubernetes.namespace", "default").toLowerCase(Locale.ROOT);
     }
 
     public String getDeployMode() {
@@ -2074,6 +2094,56 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
+    public String getMicroServerMode() {
+        String serverName = getApplicationConfig(SERVER_NAME_STRING);
+        if ("yinglong-common-booter".equals(serverName)) {
+            return ClusterConstant.METADATA;
+        } else if ("yinglong-query-booter".equals(serverName)) {
+            return ClusterConstant.QUERY;
+        } else if ("yinglong-smart-booter".equals(serverName)) {
+            return ClusterConstant.SMART;
+        } else if ("yinglong-data-loading-booter".equals(serverName)) {
+            return ClusterConstant.DATA_LOADING;
+        } else {
+            return null;
+        }
+    }
+
+    public String getApplicationConfig(String key) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            return value;
+        }
+        // try to parse the application.yaml
+        try {
+            String[] keys = key.split("\\.");
+            URL ymlFile = ClassLoaderUtils.getOriginClassLoader().getResource("application.yaml");
+            if (ymlFile == null) {
+                return null;
+            }
+            Iterable<Object> applicationConfigs = new Yaml().loadAll(ymlFile.openStream());
+            for (Object config : applicationConfigs) {
+                Map<String, Object> tmpConf = (Map<String, Object>) config;
+                for (int index = 0; index < keys.length - 1; index++) {
+                    tmpConf = (Map<String, Object>) tmpConf.get(keys[index]);
+                    if (tmpConf == null) {
+                        break;
+                    }
+                }
+                if (tmpConf != null) {
+                    value = (String) tmpConf.get(keys[keys.length - 1]);
+                    if (value != null) {
+                        properties.setProperty(key, value);
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Parse application.yaml failed.", e);
+        }
+        return value;
+    }
+
     public String getMetadataStoreType() {
         if (!isJobNode()) {
             return this.getOptional("kylin.server.store-type", "hdfs");
@@ -2083,23 +2153,39 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isJobNode() {
-        return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
+                && getMicroServerMode() == null;
     }
 
     public boolean isQueryNode() {
-        return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
+                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
     }
 
     public boolean isJobNodeOnly() {
-        return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
+                && getMicroServerMode() == null;
     }
 
     public boolean isQueryNodeOnly() {
-        return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
+                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
+    }
+
+    public boolean isSmartNode() {
+        return ClusterConstant.SMART.equals(getMicroServerMode());
+    }
+
+    public boolean isDataLoadingNode() {
+        return ClusterConstant.DATA_LOADING.equals(getMicroServerMode());
+    }
+
+    public boolean isMetadataNode() {
+        return ClusterConstant.METADATA.equals(getMicroServerMode());
     }
 
     public boolean isAllNode() {
-        return ClusterConstant.ALL.equals(getServerMode());
+        return ClusterConstant.ALL.equals(getServerMode()) && getMicroServerMode() == null;
     }
 
     public String[] getAllModeServers() {
@@ -3395,5 +3481,41 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Integer getLoadHiveTableWaitSparderIntervals() {
         return Integer.parseInt(this.getOptional("kylin.source.load-hive-table-wait-sparder-interval-seconds", "10"));
+    }
+
+    public double getJobSchedulerMasterRenewalRatio() {
+        return Double.parseDouble(this.getOptional("kylin.job.scheduler.master-lock-renew-ratio", "0.85"));
+    }
+
+    public long getJobSchedulerMasterRenewalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.master-lock-renew-sec", "60"));
+    }
+
+    public long getJobSchedulerMasterPollIntervalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.scheduler.master-poll-interval-second", "30"));
+    }
+
+    public int getJobSchedulerMasterPollBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.job.master-pull-batch-size", "10"));
+    }
+
+    public long getJobSchedulerJobRenewalSec() {
+        return Long.parseLong(this.getOptional("kylin.job.slave-lock-renew-sec", "120"));
+    }
+
+    public double getJobSchedulerJobRenewalRatio() {
+        return Double.parseDouble(this.getOptional("kylin.job.slave-lock-renew-ratio", "0.75"));
+    }
+
+    public int getJobSchedulerSlavePollBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "5"));
+    }
+
+    public int getParallelJobCountThreshold() {
+        return Integer.parseInt(this.getOptional("kylin.job.master-produce-job-size", "20"));
+    }
+
+    public int getJobLockClientRenewalMaxThreads() {
+        return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
     }
 }

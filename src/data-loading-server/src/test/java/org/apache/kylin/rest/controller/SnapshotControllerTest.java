@@ -24,8 +24,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.job.service.SnapshotJobService;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.constant.SnapshotStatus;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.request.SnapshotTableConfigRequest;
@@ -62,6 +63,9 @@ public class SnapshotControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private SnapshotService snapshotService;
+
+    @Mock
+    private SnapshotJobService snapshotJobService;
 
     @InjectMocks
     private final SnapshotController snapshotController = Mockito.spy(new SnapshotController());

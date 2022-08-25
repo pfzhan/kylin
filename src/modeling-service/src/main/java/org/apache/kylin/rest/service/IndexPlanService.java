@@ -45,26 +45,14 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.common.SegmentUtil;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.rest.model.FuzzyKeySearcher;
-import org.apache.kylin.rest.response.AggIndexCombResult;
-import org.apache.kylin.rest.response.AggIndexResponse;
-import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
+import org.apache.kylin.job.common.SegmentUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexEntity.Source;
@@ -80,21 +68,32 @@ import org.apache.kylin.metadata.cube.model.RuleBasedIndex;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
+import org.apache.kylin.rest.model.FuzzyKeySearcher;
 import org.apache.kylin.rest.request.AggShardByColumnsRequest;
 import org.apache.kylin.rest.request.CreateBaseIndexRequest;
 import org.apache.kylin.rest.request.CreateBaseIndexRequest.LayoutProperty;
 import org.apache.kylin.rest.request.CreateTableIndexRequest;
 import org.apache.kylin.rest.request.UpdateRuleBasedCuboidRequest;
+import org.apache.kylin.rest.response.AggIndexCombResult;
+import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.AggShardByColumnsResponse;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.BuildIndexResponse;
+import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.response.IndexGraphResponse;
 import org.apache.kylin.rest.response.IndexResponse;
 import org.apache.kylin.rest.response.IndexStatResponse;
 import org.apache.kylin.rest.response.TableIndexResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -257,7 +256,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout,
             boolean loadData) {
         NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
-        val jobManager = getManager(JobManager.class, project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
@@ -299,8 +297,16 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> jobManager.addIndexJob(new JobParam(indexPlan.getUuid(), BasicService.getUsername())));
+                final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
+                jobParam.setProject(project);
+                if (UnitOfWork.isAlreadyInTransaction()) {
+                    UnitOfWork.get().doAfterUnit(() -> getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
+                } else {
+                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                }
+
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -552,9 +558,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                     .collect(Collectors.toList()));
         });
         if (request.isLoadData()) {
-            val jobManager = getManager(JobManager.class, project);
+            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
+            jobParam.setProject(project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> jobManager.addIndexJob(new JobParam(modelId, BasicService.getUsername())));
+                    () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
         }
     }
 
@@ -573,12 +580,11 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
                 SegmentStatusEnum.NEW);
 
-        val executableManager = getManager(NExecutableManager.class, project);
-        List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
-                ExecutableState::isProgressing, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD,
-                JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
+        val executablesCount = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, modelId,
+                "isProgressing", JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH,
+                JobTypeEnum.INDEX_MERGE);
 
-        if (segments.isEmpty() && executables.isEmpty()) {
+        if (segments.isEmpty() && executablesCount == 0) {
             result.setShowLoadData(false);
         }
 
@@ -798,16 +804,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        List<AbstractExecutable> runningJobList = NExecutableManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project) //
-                .getPartialExecutablesByStatusList(
-                        Sets.newHashSet(ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED,
-                                ExecutableState.ERROR), //
-                        path -> StringUtils.endsWith(path, modelId));
-
-        return runningJobList.stream()
-                .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
-                .map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream).collect(Collectors.toSet());
+        return JobMetadataBaseInvoker.getInstance().getLayoutsByRunningJobs(project, modelId);
     }
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {

@@ -64,10 +64,10 @@ import org.apache.kylin.common.scheduler.JobFinishedNotifier;
 import org.apache.kylin.common.scheduler.JobReadyNotifier;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.engine.spark.job.NSparkCubingJob;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
@@ -75,7 +75,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
-import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -138,13 +137,15 @@ public class JobSyncListener {
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
         jobReadyNotified = true;
-        NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+        //TODO schedule job immediately
+        // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
         try {
-            NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+            //TODO schedule job immediately
+            // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
             postJobInfo(extractJobInfo(notifier));
         } finally {
             updateMetrics(notifier);

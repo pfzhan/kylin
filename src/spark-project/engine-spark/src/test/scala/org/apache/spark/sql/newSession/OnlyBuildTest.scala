@@ -18,14 +18,11 @@
 package org.apache.spark.sql.newSession
 
 import com.google.common.collect.Sets
-import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.engine.spark.IndexDataConstructor
+import org.apache.kylin.job.util.JobContextUtil
 import org.apache.kylin.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.kylin.metadata.model.NDataModelManager.NDataModelUpdater
-import org.apache.kylin.metadata.model.{NDataModel, NDataModelManager}
-import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
-import org.apache.kylin.metadata.model.SegmentRange
+import org.apache.kylin.metadata.model.{NDataModel, NDataModelManager, SegmentRange}
 import org.apache.spark.sql.test.SQLTestUtils
 
 import java.util
@@ -50,15 +47,15 @@ abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog 
   override def beforeAll(): Unit = {
     overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1")
     super.beforeAll()
-    val scheduler = NDefaultScheduler.getInstance(project)
-    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
-    assert(scheduler.hasStarted)
     setStorage(NDataModelManager.getInstance(kylinConf, project), dfID)
+
+    JobContextUtil.cleanUp()
+    JobContextUtil.getJobContext(kylinConf)
   }
 
   override def afterAll(): Unit = {
-    NDefaultScheduler.destroyInstance()
     super.afterAll()
+    JobContextUtil.cleanUp()
   }
 
   test("testNonExistTimeRange") {

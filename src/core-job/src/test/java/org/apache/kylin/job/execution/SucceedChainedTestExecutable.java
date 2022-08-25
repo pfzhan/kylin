@@ -21,6 +21,7 @@ package org.apache.kylin.job.execution;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
@@ -40,7 +41,7 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
         try {
             Object o = new Object();
             synchronized (o) {

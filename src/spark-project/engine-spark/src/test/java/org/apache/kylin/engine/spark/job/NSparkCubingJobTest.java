@@ -48,15 +48,18 @@ import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.engine.spark.builder.SnapshotBuilder;
-import org.apache.kylin.engine.spark.merger.AfterBuildResourceMerger;
 import org.apache.kylin.engine.spark.storage.ParquetStorage;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.execution.NSparkCubingJob;
+import org.apache.kylin.job.execution.NSparkExecutable;
+import org.apache.kylin.job.execution.NSparkMergingJob;
+import org.apache.kylin.job.execution.merger.AfterBuildResourceMerger;
+import org.apache.kylin.job.execution.step.NSparkCubingStep;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.cuboid.NCuboidLayoutChooser;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTree;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -110,25 +113,20 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
         overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
-        NDefaultScheduler.destroyInstance();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
-
         config = getTestConfig();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContextForTest(config);
     }
 
     @After
-    public void after() {
-        NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }
 
@@ -212,7 +210,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         long startLong = System.currentTimeMillis();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -313,7 +311,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         long startLong = System.currentTimeMillis();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -407,7 +405,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 "org.apache.kylin.engine.spark.job.MockedDFBuildJob");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         cleanupSegments(dsMgr, dataflowId);
         NDataflow df = dsMgr.getDataflow(dataflowId);
@@ -445,7 +443,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         cleanupSegments(dsMgr, dataflowId);
         NDataflow df = dsMgr.getDataflow(dataflowId);
@@ -478,7 +476,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCancelCubingJob() {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -499,7 +497,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, df.getSegments().size());
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job.getStatus()));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).discardJob(job.getId());
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).discardJob(job.getId());
             return null;
         }, getProject(), UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
         dsMgr = NDataflowManager.getInstance(config, getProject());
@@ -511,7 +509,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testCancelMergingJob() throws Exception {
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -533,7 +531,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(firstMergeJob);
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, firstMergeJob.getStatus()));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                     .discardJob(firstMergeJob.getId());
             return null;
         }, getProject(), UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, firstMergeJob.getId());
@@ -545,7 +543,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testGetJobNodeInfo() throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -702,7 +700,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSafetyIfDiscard() {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, df.getSegments().size());
@@ -725,8 +723,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job2);
         execMgr.addJob(refreshJob);
 
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
-        execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
+        //execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
+        //execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertTrue(job2.safetyIfDiscard());
 
@@ -734,7 +732,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(thirdSeg), Sets.newLinkedHashSet(round1), "ADMIN",
                 JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job3);
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job1.getStatus()));
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertFalse(job2.safetyIfDiscard());
         Assert.assertTrue(job3.safetyIfDiscard());
@@ -757,7 +755,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkCubingJob job4 = NSparkCubingJob.create(Sets.newHashSet(singleSeg), Sets.newLinkedHashSet(round2),
                 "ADMIN", JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job4);
-        execMgr.updateJobOutput(job4.getId(), ExecutableState.RUNNING);
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job4.getStatus()));
 
         dsMgr.dropDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertTrue(job4.checkSuicide());
@@ -774,7 +772,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 "MockResumeBuildJob");
         // prepare segment
         final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-        final NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+        final ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
 
         // clean segments and jobs
         cleanupSegments(dfMgr, dfId);
@@ -839,7 +837,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // pause job simulation
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(job.getId());
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(job.getId());
             return null;
         }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
 
@@ -862,7 +860,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // remove break points, then resume job
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NExecutableManager tempExecMgr = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            ExecutableManager tempExecMgr = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             tempExecMgr.removeBreakPoints(cubeStep.getId());
             tempExecMgr.resumeJob(job.getId());
             return null;
@@ -887,7 +885,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // sorry, at present, job restart simulation unstable
         //// restart job simulation
         // EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-        //     NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).restartJob(job.getId());
+        //     ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).restartJob(job.getId());
         //     return null;
         // }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
         // // job wouldn't be resumable after restart

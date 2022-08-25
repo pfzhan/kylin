@@ -60,7 +60,7 @@ import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.user.ManagedUser;

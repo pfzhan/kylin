@@ -36,6 +36,8 @@
 
 package org.apache.kylin.job.execution;
 
+import org.apache.kylin.job.JobContext;
+
 /**
  */
 public class FailedTestExecutable extends BaseTestExecutable {
@@ -49,7 +51,7 @@ public class FailedTestExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) {
+    protected ExecuteResult doWork(JobContext context) {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

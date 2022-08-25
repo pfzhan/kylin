@@ -152,7 +152,11 @@ public class KylinExternalConfigLoader implements IExternalConfigLoader {
     @Override
     public String getConfig() {
         StringWriter writer = new StringWriter();
-        properties.list(new PrintWriter(writer));
+        try {
+            properties.store(new PrintWriter(writer), "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return writer.toString();
     }
 

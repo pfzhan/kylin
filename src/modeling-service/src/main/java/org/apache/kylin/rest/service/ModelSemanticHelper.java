@@ -47,8 +47,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ModifyTableNameSqlVisitor;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -90,12 +90,13 @@ import org.apache.kylin.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.recommendation.ref.OptRecManagerV2;
 import org.apache.kylin.query.util.KapQueryUtil;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildIndexResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SCD2SimplificationConvertUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -971,11 +972,12 @@ public class ModelSemanticHelper extends BasicService {
         if (readySegs.isEmpty()) {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
-        val jobManager = JobManager.getInstance(kylinConfig, project);
 
         // new cuboid
         if (hasRulebaseLayoutChange(oldRule, newRule) || forceFireEvent) {
-            String jobId = jobManager.addIndexJob(new JobParam(model, BasicService.getUsername()));
+            final JobParam jobParam = new JobParam(model, BasicService.getUsername());
+            jobParam.setProject(project);
+            String jobId = JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 
@@ -1008,8 +1010,9 @@ public class ModelSemanticHelper extends BasicService {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getIndexPlan(modelId);
         if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
-            JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .addIndexJob(new JobParam(modelId, BasicService.getUsername()));
+            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
+            jobParam.setProject(project);
+            JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
         }
     }
 

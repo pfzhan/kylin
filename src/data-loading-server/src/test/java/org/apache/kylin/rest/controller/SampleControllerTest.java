@@ -26,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.PartitionKeyRequest;
 import org.apache.kylin.rest.request.RefreshSegmentsRequest;
@@ -58,6 +59,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+
 public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
@@ -69,6 +71,9 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableSamplingService tableSamplingService;
+
+    @Mock
+    private TableSampleService tableSampleService;
 
     @Mock
     private TableService tableService;

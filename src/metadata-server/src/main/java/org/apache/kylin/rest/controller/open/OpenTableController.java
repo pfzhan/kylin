@@ -48,7 +48,6 @@ import org.apache.kylin.rest.response.OpenReloadTableResponse;
 import org.apache.kylin.rest.response.PreUnloadTableResponse;
 import org.apache.kylin.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.kylin.rest.service.ProjectService;
-import org.apache.kylin.rest.service.TableSamplingService;
 import org.apache.kylin.rest.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -199,7 +198,7 @@ public class OpenTableController extends NBasicController {
         }
 
         if (request.getNeedSampling()) {
-            TableSamplingService.checkSamplingRows(request.getSamplingRows());
+            checkSamplingRows(request.getSamplingRows());
         }
 
         Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
@@ -227,7 +226,7 @@ public class OpenTableController extends NBasicController {
         }
 
         if (request.getNeedSampling()) {
-            TableSamplingService.checkSamplingRows(request.getSamplingRows());
+            checkSamplingRows(request.getSamplingRows());
         }
 
         Pair<String, List<String>> pair = tableService.reloadAWSTableCompatibleCrossAccount(request.getProject(),
@@ -274,5 +273,11 @@ public class OpenTableController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         return tableController.updateLoadedAWSTableExtProp(request);
+    }
+
+    public static void checkSamplingRows(int rows) {
+        if (rows > MAX_SAMPLING_ROWS || rows < MIN_SAMPLING_ROWS) {
+            throw new KylinException(JOB_SAMPLING_RANGE_INVALID, MIN_SAMPLING_ROWS, MAX_SAMPLING_ROWS);
+        }
     }
 }

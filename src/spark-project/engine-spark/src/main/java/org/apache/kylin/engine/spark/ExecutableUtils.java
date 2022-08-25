@@ -27,10 +27,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.engine.spark.job.NSparkCubingJob;
-import org.apache.kylin.engine.spark.job.NSparkCubingStep;
-import org.apache.kylin.engine.spark.job.NSparkMergingJob;
-import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
+import org.apache.kylin.job.execution.NSparkCubingJob;
+import org.apache.kylin.job.execution.NSparkMergingJob;
+import org.apache.kylin.job.execution.NSparkSnapshotJob;
+import org.apache.kylin.job.execution.step.NSparkCubingStep;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 
 import lombok.val;

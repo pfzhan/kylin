@@ -248,6 +248,10 @@ public class Message {
         return "The selected time filter is invalid. Please select again.";
     }
 
+    public String getJobSortByError() {
+        return "The parameter \"sort_by\" only supports 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'total_duration'.";
+    }
+
     public String getIllegalExecutableState() {
         return "The job status is invalid. Please select again.";
     }

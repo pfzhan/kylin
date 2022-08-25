@@ -34,15 +34,14 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.engine.spark.job.NTableSamplingJob;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -50,7 +49,7 @@ import com.google.common.collect.Sets;
 
 import lombok.val;
 
-@Component("tableSamplingService")
+//@Component("tableSamplingService")
 public class TableSamplingService extends BasicService implements TableSamplingSupporter {
 
     private static final int MAX_SAMPLING_ROWS = 20_000_000;
@@ -64,7 +63,7 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
             Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
-        NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
+        ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 
@@ -81,7 +80,7 @@ public class TableSamplingService extends BasicService implements TableSamplingS
             val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority, yarnQueue,
                     tag);
             jobIds.add(samplingJob.getId());
-            execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
+            execMgr.addJob(ExecutableManager.toPO(samplingJob, project));
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
             jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
         });
@@ -94,10 +93,10 @@ public class TableSamplingService extends BasicService implements TableSamplingS
     }
 
     private Map<String, AbstractExecutable> collectRunningSamplingJobs(Set<String> tables, String project) {
-        final List<AbstractExecutable> jobs = NExecutableManager
+        final List<AbstractExecutable> jobs = ExecutableManager
                 .getInstance(KylinConfig.readSystemKylinConfig(), project).getAllJobs(0, Long.MAX_VALUE).stream()
                 .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
-                .map(job -> getManager(NExecutableManager.class, job.getProject()).fromPO(job)) //
+                .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job)) //
                 .filter(NTableSamplingJob.class::isInstance) //
                 .filter(job -> tables.contains(job.getTargetSubject())) //
                 .collect(Collectors.toList());

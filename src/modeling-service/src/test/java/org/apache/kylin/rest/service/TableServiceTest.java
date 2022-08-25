@@ -57,7 +57,9 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.S3AUtil;
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRange;
@@ -78,6 +80,8 @@ import org.apache.kylin.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.kylin.metadata.streaming.KafkaConfig;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.delegate.JobMetadataContract;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.DateRangeRequest;
 import org.apache.kylin.rest.request.TopTableRequest;
@@ -123,8 +127,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
 
-    @InjectMocks
-    private final JobSupporter jobService = Mockito.spy(JobSupporter.class);
+    @Mock
+    private final JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
 
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
@@ -153,7 +157,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void setup() {
         super.setup();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-
+        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
+        JobMetadataInvoker.setDelegate(jobMetadataContract);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
@@ -163,7 +168,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -179,13 +184,24 @@ public class TableServiceTest extends CSVSourceTestCase {
             //
         }
         EventBusFactory.getInstance().register(eventListener, true);
+
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        try {
+            // need not start job scheduler
+            jobContext.destroy();
+        } catch (Exception e) {
+            log.error("Destroy jobContext failed.");
+            throw new RuntimeException("Destroy jobContext failed.", e);
+        }
     }
 
     @After
     public void tearDown() {
         EventBusFactory.getInstance().unregister(eventListener);
         cleanupTestMetadata();
-        FileUtils.deleteQuietly(new File("../server-base/metastore_db"));
+        FileUtils.deleteQuietly(new File("metastore_db"));
+        JobContextUtil.cleanUp();
     }
 
     @Test

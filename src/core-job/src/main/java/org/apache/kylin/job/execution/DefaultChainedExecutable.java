@@ -46,13 +46,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.scheduler.JobFinishedNotifier;
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 
@@ -75,7 +74,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
         for (Executable subTask : executables) {
             if (subTask.isRunnable()) {
@@ -98,14 +97,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteStart() throws JobStoppedException {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-
-            if (isStoppedNonVoluntarily() && ExecutableState.READY != getOutput().getState()) //onExecuteStart will turn READY to RUNNING
-                return null;
-
-            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
-            return null;
-        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
+        if (isStoppedNonVoluntarily() && ExecutableState.PENDING != getOutput().getState()) //onExecuteStart will turn READY to RUNNING
+            return;
+        updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
     }
 
     @Override
@@ -157,50 +151,46 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         } else if (hasPaused) {
             state = ExecutableState.PAUSED;
         } else {
-            state = ExecutableState.READY;
+            state = ExecutableState.PENDING;
         }
 
         logger.info("Job finished {}, state:{}", this.getDisplayName(), state);
 
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            switch (state) {
-            case SUCCEED:
-                updateToFinalState(ExecutableState.SUCCEED, this::afterUpdateOutput, result.getShortErrMsg());
+        switch (state) {
+        case SUCCEED:
+            updateToFinalState(ExecutableState.SUCCEED, this::afterUpdateOutput, result.getShortErrMsg());
+            break;
+        case DISCARDED:
+            updateToFinalState(ExecutableState.DISCARDED, this::onExecuteDiscardHook, result.getShortErrMsg());
+            break;
+        case SUICIDAL:
+            updateToFinalState(ExecutableState.SUICIDAL, this::onExecuteSuicidalHook, result.getShortErrMsg());
+            break;
+        case ERROR:
+        case PAUSED:
+        case PENDING:
+            if (isStoppedNonVoluntarily()) {
+                logger.info("Execute finished  {} which is stopped nonvoluntarily, state: {}",
+                        this.getDisplayName(), getOutput().getState());
                 break;
-            case DISCARDED:
-                updateToFinalState(ExecutableState.DISCARDED, this::onExecuteDiscardHook, result.getShortErrMsg());
-                break;
-            case SUICIDAL:
-                updateToFinalState(ExecutableState.SUICIDAL, this::onExecuteSuicidalHook, result.getShortErrMsg());
-                break;
-            case ERROR:
-            case PAUSED:
-            case READY:
-                if (isStoppedNonVoluntarily()) {
-                    logger.info("Execute finished  {} which is stopped nonvoluntarily, state: {}",
-                            this.getDisplayName(), getOutput().getState());
-                    return null;
-                }
-                Consumer<String> hook = null;
-                Map<String, String> info = null;
-                String output = null;
-                String shortErrMsg = null;
-                if (state == ExecutableState.ERROR) {
-                    logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
-                    notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-                    info = result.getExtraInfo();
-                    output = result.getErrorMsg();
-                    hook = this::onExecuteErrorHook;
-                    shortErrMsg = result.getShortErrMsg();
-                }
-                updateJobOutput(getProject(), getId(), state, info, output, shortErrMsg, hook);
-                break;
-            default:
-                throw new IllegalArgumentException("Illegal state when job finished: " + state);
             }
-            return null;
-
-        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
+            Consumer<String> hook = null;
+            Map<String, String> info = null;
+            String output = null;
+            String shortErrMsg = null;
+            if (state == ExecutableState.ERROR) {
+                logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
+                notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+                info = result.getExtraInfo();
+                output = result.getErrorMsg();
+                hook = this::onExecuteErrorHook;
+                shortErrMsg = result.getShortErrMsg();
+            }
+            updateJobOutput(getProject(), getId(), state, info, output, shortErrMsg, hook);
+            break;
+        default:
+            throw new IllegalArgumentException("Illegal state when job finished: " + state);
+        }
 
         // dispatch job-finished message out
         EventBusFactory.getInstance()

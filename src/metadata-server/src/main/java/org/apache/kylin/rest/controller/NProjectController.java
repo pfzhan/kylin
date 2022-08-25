@@ -44,6 +44,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.FileUtils;
+import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
+import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
@@ -86,6 +88,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -93,6 +96,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -149,8 +153,9 @@ public class NProjectController extends NBasicController {
     @ApiOperation(value = "deleteProjects", tags = { "SM" })
     @DeleteMapping(value = "/{project:.+}")
     @ResponseBody
-    public EnvelopeResponse<String> dropProject(@PathVariable("project") String project) {
-        projectService.dropProject(project);
+    public EnvelopeResponse<String> dropProject(@PathVariable("project") String project,
+            @RequestHeader HttpHeaders headers) {
+        projectService.dropProject(project, headers);
         projectService.clearManagerCache(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -492,5 +497,19 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("jdbc_source_enabled", request.getJdbcSourceEnable());
         projectService.updateJdbcInfo(project, request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/feign/save_async_task")
+    @ResponseBody
+    public void saveAsyncTask(@RequestParam("project") String project, @RequestBody AsyncAccelerationTask task) {
+        projectService.saveAsyncTask(project, task);
+    }
+
+    @PostMapping(value = "/feign/update_rule")
+    @ResponseBody
+    public void updateRule(@RequestBody List<FavoriteRule.AbstractCondition> conditions,
+            @RequestParam("isEnabled") boolean isEnabled, @RequestParam("ruleName") String ruleName,
+            @RequestParam("project") String project) {
+        projectService.updateRule(conditions, isEnabled, ruleName, project);
     }
 }

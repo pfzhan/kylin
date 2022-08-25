@@ -23,7 +23,6 @@ import java.io.IOException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -39,6 +38,8 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.recommendation.ref.OptRecManagerV2;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
@@ -149,10 +150,11 @@ public class ModelBrokenListener {
                 } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
                     dataflowManager.fillDf(dataflow);
                 }
-                val jobManager = JobManager.getInstance(config, project);
+                final JobParam jobParam = new JobParam(model.getId(), "ADMIN");
+                jobParam.setProject(project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project,
-                        () -> jobManager.addIndexJob(new JobParam(model.getId(), "ADMIN")));
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

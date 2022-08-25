@@ -42,7 +42,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DaemonThreadFactory;
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.rest.cluster.ClusterManager;
@@ -85,7 +85,7 @@ public class Broadcaster implements Closeable {
                 new DaemonThreadFactory("BroadcastEvent-handler"), new ThreadPoolExecutor.DiscardPolicy());
 
         this.eventPollExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("BroadcastEvent-poll"));
-        eventPollExecutor.submit(() -> consumeEvent());
+        eventPollExecutor.submit(this::consumeEvent);
     }
 
     public void announce(BroadcastEventReadyNotifier event) {
@@ -150,26 +150,21 @@ public class Broadcaster implements Closeable {
     }
 
     private void remoteHandle(String node, BroadcastEventReadyNotifier notifier) throws IOException {
-        RestClient client = restClientMap.get(node);
-        if (client == null) {
-            client = new RestClient(node);
-            restClientMap.put(node, client);
-        }
-        RestClient finalClient = client;
-        finalClient.notify(notifier);
+        RestClient client = restClientMap.computeIfAbsent(node, k -> new RestClient(node));
+        client.notify(notifier);
     }
 
     private Set<String> getBroadcastNodes(BroadcastEventReadyNotifier notifier) {
         Set<String> nodes;
         switch (notifier.getBroadcastScope()) {
         case LEADER_NODES:
-            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB);
+            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.METADATA);
             break;
         case ALL_NODES:
             nodes = getNodesByModes(ServerModeEnum.ALL);
             break;
         case JOB_NODES:
-            nodes = getNodesByModes(ServerModeEnum.JOB);
+            nodes = getNodesByModes(ServerModeEnum.JOB, ServerModeEnum.DATA_LOADING);
             break;
         case QUERY_NODES:
             nodes = getNodesByModes(ServerModeEnum.QUERY);
@@ -178,7 +173,8 @@ public class Broadcaster implements Closeable {
             nodes = getNodesByModes(ServerModeEnum.QUERY, ServerModeEnum.ALL);
             break;
         default:
-            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY);
+            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY,
+                    ServerModeEnum.DATA_LOADING, ServerModeEnum.METADATA, ServerModeEnum.SMART);
         }
         if (!notifier.needBroadcastSelf()) {
             String identity = AddressUtil.getLocalInstance();

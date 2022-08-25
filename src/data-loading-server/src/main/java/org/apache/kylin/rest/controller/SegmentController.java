@@ -18,10 +18,10 @@
 
 package org.apache.kylin.rest.controller;
 
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_EMPTY_ID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_MERGE_LESS_THAN_TWO;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_EMPTY;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +31,7 @@ import java.util.List;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
 import org.apache.kylin.rest.request.IncrementBuildSegmentsRequest;
@@ -42,6 +41,8 @@ import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentFixRequest;
 import org.apache.kylin.rest.request.SegmentsRequest;
 import org.apache.kylin.rest.response.BuildIndexResponse;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.JobInfoResponse;
 import org.apache.kylin.rest.response.JobInfoResponseWithFailure;
 import org.apache.kylin.rest.response.MergeSegmentCheckResponse;
@@ -90,6 +91,9 @@ public class SegmentController extends BaseController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildService modelBuildService;
+
+    @Autowired(required = false)
+    private ModelMetadataInvoker modelMetadataInvoker;
 
     @ApiOperation(value = "buildIndicesManually", tags = { "DW" }, notes = "Update URL: {model}")
     @PostMapping(value = "/{model:.+}/indices")
@@ -183,14 +187,14 @@ public class SegmentController extends BaseController {
         checkProjectName(project);
 
         if (purge) {
-            modelService.purgeModelManually(dataflowId, project);
+            modelMetadataInvoker.purgeModelManually(dataflowId, project);
         } else {
             checkSegmentParams(ids, names);
             String[] idsDeleted = modelService.convertSegmentIdWithName(dataflowId, project, ids, names);
             if (ArrayUtils.isEmpty(idsDeleted)) {
                 throw new KylinException(SEGMENT_EMPTY_ID);
             }
-            modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
+            modelMetadataInvoker.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
@@ -325,7 +329,7 @@ public class SegmentController extends BaseController {
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) {
         checkProjectName(deleteSegmentsRequest.getProject());
-        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
+        modelMetadataInvoker.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

@@ -42,21 +42,20 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.ExecutableApplication;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.common.persistence.AuditLog;
 import org.apache.kylin.common.persistence.ImageDesc;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.event.Event;
 import org.apache.kylin.common.persistence.event.ResourceCreateOrUpdateEvent;
 import org.apache.kylin.common.persistence.event.ResourceDeleteEvent;
+import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MetadataChecker;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegDetails;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -65,6 +64,7 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.metadata.user.NKylinUserManager;
 import org.apache.kylin.tool.general.RollbackStatusEnum;
@@ -319,8 +319,8 @@ public class RollbackTool extends ExecutableApplication {
 
         for (String project : updateProjects) {
 
-            val currentExecutableManager = NExecutableManager.getInstance(currentConfig, project);
-            val restoreExecutableManager = NExecutableManager.getInstance(restoreConfig, project);
+            val currentExecutableManager = ExecutableManager.getInstance(currentConfig, project);
+            val restoreExecutableManager = ExecutableManager.getInstance(restoreConfig, project);
 
             restoreExecutableManager.getAllExecutables().stream().forEach(e -> {
                 if (currentExecutableManager.getJob(e.getId()) != null) {

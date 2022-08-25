@@ -24,17 +24,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.engine.spark.job.NSparkCubingJob;
-import org.apache.kylin.engine.spark.job.NSparkCubingStep;
-import org.apache.kylin.engine.spark.merger.AfterBuildResourceMerger;
+import org.apache.kylin.job.execution.NSparkCubingJob;
+import org.apache.kylin.job.execution.merger.AfterBuildResourceMerger;
+import org.apache.kylin.job.execution.step.NSparkCubingStep;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -43,6 +41,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.Assert;
 
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
@@ -82,7 +82,7 @@ public class IndexDataConstructor {
         }
     }
 
-    public static String firstFailedJobErrorMessage(NExecutableManager execMgr, ChainedExecutable job) {
+    public static String firstFailedJobErrorMessage(ExecutableManager execMgr, ChainedExecutable job) {
         return job.getTasks().stream()
                 .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
                 .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
@@ -157,7 +157,7 @@ public class IndexDataConstructor {
             return;
         }
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
 
         List<NSparkCubingJob> jobs = Lists.newArrayList();
         for (BuildInfo buildInfo : buildInfos) {
@@ -217,7 +217,7 @@ public class IndexDataConstructor {
             return;
         }
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, project);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
 
         List<NSparkCubingJob> jobs = Lists.newArrayList();
         for (BuildInfo buildInfo : buildInfos) {

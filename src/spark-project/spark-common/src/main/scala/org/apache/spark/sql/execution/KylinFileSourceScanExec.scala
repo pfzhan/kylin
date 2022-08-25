@@ -154,7 +154,7 @@ class KylinFileSourceScanExec(
       FilePartition(shardId, filesToPartitionId.getOrElse(shardId, Nil).toArray)
     }
 
-    new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions)
+    new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions,requiredSchema)
   }
 
   /**
@@ -234,7 +234,7 @@ class KylinFileSourceScanExec(
       currentFiles += file
     }
     closePartition()
-    new FileScanRDD(fsRelation.sparkSession, readFile, partitions)
+    new FileScanRDD(fsRelation.sparkSession, readFile, partitions,requiredSchema)
   }
 
   private def getBlockLocations(file: FileStatus): Array[BlockLocation] = file match {

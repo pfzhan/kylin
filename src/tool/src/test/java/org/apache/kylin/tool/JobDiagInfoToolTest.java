@@ -27,8 +27,10 @@ import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.tool.constant.SensitiveConfigKeysConstant;
 import org.apache.kylin.tool.obf.KylinConfObfuscatorTest;
+import org.apache.kylin.tool.util.JobMetadataWriter;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -57,6 +59,17 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         createTestMetadata();
         KylinConfObfuscatorTest.prepare();
+    }
+
+    public void createTestMetadata(String... overlay) {
+        super.createTestMetadata(overlay);
+        JobMetadataWriter.writeJobMetaData(getTestConfig());
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @After

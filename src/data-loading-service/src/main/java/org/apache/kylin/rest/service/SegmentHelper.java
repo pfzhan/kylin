@@ -24,14 +24,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -40,6 +35,11 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,14 +154,14 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
 
     private void handleJobAndOldSeg(String project, NDataSegment seg, NDataflow df, NDataflowManager dfMgr)
             throws IOException {
-        val jobManager = getManager(NExecutableManager.class, project);
-        val jobs = jobManager.getAllExecutables();
+        val executableManager = getManager(ExecutableManager.class, project);
+        val jobs = executableManager.getAllExecutables();
         var segmentDeleted = false;
         for (val job : jobs) {
-            if (!job.getStatus().isFinalState()) {
+            if (!job.getStatusInMem().isFinalState()) {
                 if (job.getTargetSegments().contains(seg.getId())) {
                     logger.info("Cancel and discard the job {} related with segment {}.", job.getId(), seg.getId());
-                    jobManager.discardJob(job.getId());
+                    executableManager.discardJob(job.getId());
                     segmentDeleted = true;
                 }
             }
@@ -174,7 +174,7 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
         logger.info("Drop segment {} and rebuild it immediately.", seg.getId());
     }
 
-    @Override
+    @Deprecated
     public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 

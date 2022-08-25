@@ -27,7 +27,7 @@ import lombok.experimental.Accessors;
 public class NDataflowUpdate {
 
     @Getter
-    private final String dataflowId;
+    private String dataflowId;
 
     @Getter
     private NDataSegment[] toAddSegs = null;
@@ -56,8 +56,10 @@ public class NDataflowUpdate {
     }
 
     public NDataflowUpdate setToAddSegs(NDataSegment... toAddSegs) {
-        for (NDataSegment seg : toAddSegs)
-            seg.checkIsNotCachedAndShared();
+        if (toAddSegs != null) {
+            for (NDataSegment seg : toAddSegs)
+                seg.checkIsNotCachedAndShared();
+        }
 
         this.toAddSegs = toAddSegs;
         return this;
@@ -74,16 +76,20 @@ public class NDataflowUpdate {
     }
 
     public NDataflowUpdate setToUpdateSegs(NDataSegment... toUpdateSegs) {
-        for (NDataSegment seg : toUpdateSegs)
-            seg.checkIsNotCachedAndShared();
+        if (toUpdateSegs != null) {
+            for (NDataSegment seg : toUpdateSegs)
+                seg.checkIsNotCachedAndShared();
+        }
 
         this.toUpdateSegs = toUpdateSegs;
         return this;
     }
 
     public void setToAddOrUpdateLayouts(NDataLayout... toAddCuboids) {
-        for (NDataLayout cuboid : toAddCuboids)
-            cuboid.checkIsNotCachedAndShared();
+        if (toAddCuboids != null) {
+            for (NDataLayout cuboid : toAddCuboids)
+                cuboid.checkIsNotCachedAndShared();
+        }
 
         this.toAddOrUpdateLayouts = toAddCuboids;
     }

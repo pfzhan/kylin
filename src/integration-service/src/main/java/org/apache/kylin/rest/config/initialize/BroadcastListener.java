@@ -20,8 +20,6 @@ package org.apache.kylin.rest.config.initialize;
 import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.common.persistence.transaction.AccessBatchGrantEventNotifier;
 import org.apache.kylin.common.persistence.transaction.AccessGrantEventNotifier;
 import org.apache.kylin.common.persistence.transaction.AccessRevokeEventNotifier;
@@ -32,12 +30,13 @@ import org.apache.kylin.common.persistence.transaction.AuditLogBroadcastEventNot
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.common.persistence.transaction.EpochCheckBroadcastNotifier;
 import org.apache.kylin.common.persistence.transaction.StopQueryBroadcastEventNotifier;
-import org.apache.kylin.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.broadcaster.Broadcaster;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.AclTCRService;
 import org.apache.kylin.rest.service.AuditLogService;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.service.QueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -90,10 +89,6 @@ public class BroadcastListener {
             accessService.updateAccessFromRemote(null, (AccessBatchGrantEventNotifier) notifier, null);
         } else if (notifier instanceof AccessRevokeEventNotifier) {
             accessService.updateAccessFromRemote(null, null, (AccessRevokeEventNotifier) notifier);
-        } else if (notifier instanceof UpdateJobStatusEventNotifier) {
-            UpdateJobStatusEventNotifier updateJobStatusEventNotifier = (UpdateJobStatusEventNotifier) notifier;
-            jobService.batchUpdateGlobalJobStatus(updateJobStatusEventNotifier.getJobIds(),
-                    updateJobStatusEventNotifier.getAction(), updateJobStatusEventNotifier.getStatuses());
         } else if (notifier instanceof AclTCRRevokeEventNotifier) {
             AclTCRRevokeEventNotifier aclTCRRevokeEventNotifier = (AclTCRRevokeEventNotifier) notifier;
             aclTCRService.revokeAclTCR(aclTCRRevokeEventNotifier.getSid(), aclTCRRevokeEventNotifier.isPrinciple());

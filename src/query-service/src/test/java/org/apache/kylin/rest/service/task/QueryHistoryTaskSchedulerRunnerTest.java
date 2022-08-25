@@ -23,7 +23,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
 import org.junit.Assert;

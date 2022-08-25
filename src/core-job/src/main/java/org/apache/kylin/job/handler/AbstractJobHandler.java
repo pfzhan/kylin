@@ -32,17 +32,17 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 
 import com.google.common.collect.Maps;
 
@@ -69,7 +69,7 @@ public abstract class AbstractJobHandler {
         return true;
     }
 
-    protected final void doHandle(JobParam jobParam) {
+    public final void doHandle(JobParam jobParam) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (needComputeJobBucket()) {
             ExecutableUtil.computeJobBucket(jobParam);
@@ -85,8 +85,8 @@ public abstract class AbstractJobHandler {
         job.setTag(jobParam.getTag());
         log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();
-        val po = NExecutableManager.toPO(job, project);
-        NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
+        val po = ExecutableManager.toPO(job, project);
+        ExecutableManager executableManager = getExecutableManager(project, kylinConfig);
         executableManager.addJob(po);
 
         if (job instanceof ChainedExecutable) {
@@ -95,9 +95,8 @@ public abstract class AbstractJobHandler {
             Map<String, String> info = Maps.newHashMap();
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
             executableManager.updateJobOutput(po.getId(), null, info, null, null);
-            JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, project);
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            jobStatisticsManager.updateStatistics(startOfDay, jobParam.getModel(), 0, 0, 1);
+            JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
         }
     }
 
@@ -110,7 +109,7 @@ public abstract class AbstractJobHandler {
         checkNotNull(model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);
-        val execManager = NExecutableManager.getInstance(kylinConfig, project);
+        val execManager = ExecutableManager.getInstance(kylinConfig, project);
         List<AbstractExecutable> executables;
         if (jobParam.isMultiPartitionJob()) {
             executables = execManager.listMultiPartitionModelExec(model, ExecutableState::isRunning,
@@ -162,7 +161,7 @@ public abstract class AbstractJobHandler {
         return false;
     }
 
-    protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
-        return NExecutableManager.getInstance(config, project);
+    protected ExecutableManager getExecutableManager(String project, KylinConfig config) {
+        return ExecutableManager.getInstance(config, project);
     }
 }

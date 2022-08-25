@@ -87,7 +87,7 @@ public class NSparkCubingUtil {
 
     }
 
-    static Set<String> toSegmentIds(Segments<NDataSegment> segments) {
+    public static Set<String> toSegmentIds(Segments<NDataSegment> segments) {
         Set<String> s = Sets.newLinkedHashSet();
         s.addAll(segments.stream().map(NDataSegment::getId).collect(Collectors.toList()));
         return s;
@@ -99,7 +99,7 @@ public class NSparkCubingUtil {
         return s;
     }
 
-    static Set<Long> toLayoutIds(Set<LayoutEntity> layouts) {
+    public static Set<Long> toLayoutIds(Set<LayoutEntity> layouts) {
         Set<Long> r = new LinkedHashSet<>();
         for (LayoutEntity layout : layouts) {
             r.add(layout.getId());

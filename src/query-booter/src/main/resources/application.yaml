@@ -71,16 +71,16 @@ spring:
   session:
     store-type: JDBC
     jdbc:
-      table-name: ${kylin.metadata.url.identifier}_session
+      table-name: ${kylin.metadata.url.identifier}_session_v2
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
-  saas:
-    nacos:
-      server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:localhost:8848}
-      discovery:
-        group: ${TENANT_ID:default}
-        public-group: ${DISCOVERY_PUBLIC_GROUP:default}
-        application-name: ${spring.application.name}
+saas:
+  nacos:
+    server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:localhost:8848}
+    discovery:
+      group: ${TENANT_ID:default}
+      public-group: ${DISCOVERY_PUBLIC_GROUP:default}
+      application-name: ${spring.application.name}
 
 logging:
   level:

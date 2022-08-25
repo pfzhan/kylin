@@ -57,6 +57,7 @@ import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -121,8 +122,8 @@ public abstract class ExecutableUtil {
             }
             jobParam.getProcessLayouts().forEach(layout -> partitions.forEach(partition -> buckets
                     .add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition))));
-            dfm.updateDataflow(df.getId(),
-                    copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
+            ModelMetadataBaseInvoker.getInstance().updateDataflow(df.getProject(), df.getId(), targetSegment,
+                    bucketStart.get());
         }
         jobParam.setTargetBuckets(buckets);
     }

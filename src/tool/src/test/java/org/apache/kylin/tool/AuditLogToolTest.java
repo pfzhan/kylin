@@ -43,17 +43,19 @@ import java.util.stream.Collectors;
 import org.apache.commons.cli.Option;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.AuditLog;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.common.persistence.AuditLog;
 import org.apache.kylin.common.persistence.metadata.JdbcAuditLogStore;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.tool.util.JobMetadataWriter;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -107,11 +109,12 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
     public void testDumpJobAuditLog() throws Exception {
-        val job = NExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
+        val job = ExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
         val junitFolder = temporaryFolder.getRoot();
         val tool = new AuditLogTool(getTestConfig());
         tool.execute(new String[] { "-project", project, "-job", jobId, "-dir", junitFolder.getAbsolutePath() });
@@ -120,7 +123,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDumpFullAuditLog() throws Exception {
-        val job = NExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
+        val job = ExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
         val start = job.getStartTime() + TimeUnit.HOURS.toMillis(-10);
         val end = job.getEndTime() + TimeUnit.HOURS.toMillis(10);
         val junitFolder = temporaryFolder.getRoot();
@@ -297,6 +300,9 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
             metadata.forEach(x -> resourceStore.checkAndPutResource(x.getResPath(), x.getByteSource(), -1));
             return 0;
         }).maxRetry(1).build());
+
+        JobMetadataWriter.writeJobMetaData(getTestConfig(), metadata);
+
         val auditLogStore = (JdbcAuditLogStore) getStore().getAuditLogStore();
         auditLogStore.batchInsert(auditLog);
     }

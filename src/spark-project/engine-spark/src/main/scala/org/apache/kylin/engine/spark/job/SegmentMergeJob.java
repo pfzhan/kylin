@@ -18,9 +18,9 @@
 
 package org.apache.kylin.engine.spark.job;
 
-import static org.apache.kylin.engine.spark.job.StageType.MERGE_COLUMN_BYTES;
-import static org.apache.kylin.engine.spark.job.StageType.MERGE_FLAT_TABLE;
-import static org.apache.kylin.engine.spark.job.StageType.MERGE_INDICES;
+import static org.apache.kylin.job.execution.stage.StageType.MERGE_COLUMN_BYTES;
+import static org.apache.kylin.job.execution.stage.StageType.MERGE_FLAT_TABLE;
+import static org.apache.kylin.job.execution.stage.StageType.MERGE_INDICES;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;

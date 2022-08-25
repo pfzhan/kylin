@@ -18,8 +18,8 @@
 
 package org.apache.kylin.engine.spark.application;
 
-import static org.apache.kylin.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
 import static org.apache.kylin.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
+import static org.apache.kylin.job.execution.stage.StageType.WAITE_FOR_RESOURCE;
 
 import java.io.BufferedReader;
 import java.io.IOException;

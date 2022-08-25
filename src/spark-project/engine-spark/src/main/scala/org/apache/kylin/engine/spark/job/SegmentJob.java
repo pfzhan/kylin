@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.scheduler.JobRuntime;
+import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -143,7 +143,7 @@ public abstract class SegmentJob extends SparkApplication {
         return Boolean.parseBoolean(s);
     }
 
-    protected boolean isPartitioned() {
+    public boolean isPartitioned() {
         return Objects.nonNull(indexPlan.getModel().getMultiPartitionDesc());
     }
 

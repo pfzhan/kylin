@@ -119,19 +119,16 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
-import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
@@ -196,10 +193,19 @@ import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
+import org.apache.kylin.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataContract;
+import org.apache.kylin.rest.request.AddSegmentRequest;
+import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
 import org.apache.kylin.rest.request.ModelParatitionDescRequest;
 import org.apache.kylin.rest.request.ModelRequest;
+import org.apache.kylin.rest.request.ModelSuggestionRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
+import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
 import org.apache.kylin.rest.response.AffectedModelsResponse;
@@ -223,6 +229,8 @@ import org.apache.kylin.rest.response.NDataModelOldParams;
 import org.apache.kylin.rest.response.NDataModelResponse;
 import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.response.NModelDescResponse;
+import org.apache.kylin.rest.response.OpenRecApproveResponse;
+import org.apache.kylin.rest.response.OptRecResponse;
 import org.apache.kylin.rest.response.PurgeModelAffectedResponse;
 import org.apache.kylin.rest.response.RefreshAffectedSegmentsResponse;
 import org.apache.kylin.rest.response.RelatedModelResponse;
@@ -230,6 +238,7 @@ import org.apache.kylin.rest.response.SegmentCheckResponse;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.response.SegmentRangeResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
+import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
@@ -240,7 +249,6 @@ import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.ModelTriple;
 import org.apache.kylin.rest.util.ModelUtils;
 import org.apache.kylin.rest.util.PagingUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.kylin.streaming.event.StreamingJobDropEvent;
@@ -283,11 +291,12 @@ import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
+import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("modelService")
-public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter {
+public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
@@ -305,11 +314,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
-
-    @Setter
-    @Autowired(required = false)
-    @Qualifier("segmentHelper")
-    private SegmentHelperSupporter segmentHelper;
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -332,9 +336,21 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
 
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
+
     @Setter
     @Autowired(required = false)
     private List<ModelChangeSupporter> modelChangeSupporters = Lists.newArrayList();
+
+    @Delegate
+    private ModelMetadataBaseService modelMetadataBaseService = new ModelMetadataBaseService();
+
+    @Autowired(required = false)
+    private ModelSmartSupporter modelSmartService;
+
+    @Autowired(required = false)
+    private OptRecSupport optRecService;
 
     public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
@@ -352,6 +368,23 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         return nDataModel;
+    }
+
+    @Override
+    public List<String> getModelNamesByFuzzyName(String fuzzyName, String project) {
+        if (StringUtils.isNotEmpty(project)) {
+            NDataModelManager modelManager = getManager(NDataModelManager.class, project);
+            return modelManager.getModelNamesByFuzzyName(fuzzyName);
+        }
+
+        List<String> modelIds = new ArrayList<>();
+        // query from all projects
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
+        for (ProjectInstance projectInstance : projectInstances) {
+            NDataModelManager modelManager = getManager(NDataModelManager.class, projectInstance.getName());
+            modelIds.addAll(modelManager.getModelNamesByFuzzyName(fuzzyName));
+        }
+        return modelIds;
     }
 
     /**
@@ -934,16 +967,17 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private List<AbstractExecutable> getAllRunningExecutable(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
-        return execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
-                JobTypeEnum.SUB_PARTITION_BUILD);
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
+        return JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(project, "isRunning",
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO)
+                .collect(Collectors.toList());
     }
 
     private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
-        return execManager.listPartialExec(path -> StringUtils.endsWith(path, modelId), ExecutableState::isRunning,
-                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD);
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
+        return execManager.listPartialExec(modelId, ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
+                JobTypeEnum.SUB_PARTITION_BUILD);
     }
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
@@ -1176,8 +1210,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val dataflowManager = getManager(NDataflowManager.class, project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
-        val errorExecutables = getManager(NExecutableManager.class, project)
-                .getExecutablesByStatus(ExecutableState.ERROR);
+        val errorExecutablePOs = jobMetadataInvoker.getExecutablePOsByStatus(project, ExecutableState.ERROR);
+        ExecutableManager executableManager = getManager(ExecutableManager.class, project);
+        val errorExecutables = errorExecutablePOs.stream().map(executableManager::fromPO).collect(Collectors.toList());
         for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             val model = dataModelDesc.getUuid();
@@ -1258,6 +1293,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
+
         dataModelManager.dropModel(dataModelDesc);
     }
 
@@ -1689,6 +1725,72 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }, project);
     }
 
+    public void batchCreateModel(ModelSuggestionRequest request) {
+        batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
+    }
+
+    public void updateRecommendationsCount(String project, String modelId, int size) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel dataModel = mgr.getDataModelDesc(modelId);
+            if (dataModel != null && !dataModel.isBroken() && dataModel.getRecommendationsCount() != size) {
+                mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+            }
+            return null;
+        }, project);
+    }
+
+    @VisibleForTesting
+    public void saveRecResult(SuggestionResponse modelSuggestionResponse, String project) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            for (SuggestionResponse.ModelRecResponse response : modelSuggestionResponse.getReusedModels()) {
+
+                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                        modelMgr.getDataModelDesc(response.getId()), false);
+                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
+                    copyForWrite.setJoinTables(response.getJoinTables());
+                    copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
+                    copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
+                    copyForWrite.setAllMeasures(response.getAllMeasures());
+                });
+                NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                val targetIndexPlan = response.getIndexPlan();
+                indexMgr.updateIndexPlan(response.getId(),
+                        copyForWrite -> copyForWrite.setIndexes(targetIndexPlan.getIndexes()));
+                baseIndexUpdater.update(indexPlanService);
+            }
+            return null;
+        }, project);
+    }
+
+    public void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            for (SuggestionResponse.ModelRecResponse response : reusedModels) {
+                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
+                    List<JoinTableDesc> newJoinTables = response.getJoinTables();
+                    if (newJoinTables.size() != copyForWrite.getJoinTables().size()) {
+                        copyForWrite.setJoinTables(newJoinTables);
+                        copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
+                        copyForWrite.setAllMeasures(response.getAllMeasures());
+                        copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
+                    }
+                });
+            }
+            return null;
+        }, project);
+    }
+
+    public OptRecResponse approve(String project, OptRecRequest request) {
+        return optRecService.approveImpl(project, request);
+    }
+
+    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId,
+                                                                        String modelAlias, String recActionType) {
+        return optRecService.approveAllRecItemsImpl(project, modelId, modelAlias, recActionType);
+    }
+
     public void checkNewModels(String project, List<ModelRequest> newModels) {
         aclEvaluate.checkProjectWritePermission(project);
         checkDuplicateAliasInModelRequests(newModels);
@@ -1699,6 +1801,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
+    @Transaction(project = 0)
     public void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
         if (CollectionUtils.isEmpty(newModels)) {
             return;
@@ -2155,6 +2258,16 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     }
 
+    @Override
+    public NDataSegment appendSegment(AddSegmentRequest request) {
+        String project = request.getProject();
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val df = getManager(NDataflowManager.class, project).getDataflow(request.getModelId());
+            return getManager(NDataflowManager.class, project).appendSegment(df, request.getSegRange(),
+                    request.getStatus(), request.getMultiPartitionValues());
+        }, project);
+    }
+
     private Pair<String, String> getPartitionColMinMaxValue(String project, String table, PartitionDesc desc)
             throws Exception {
         Preconditions.checkNotNull(desc);
@@ -2246,6 +2359,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     }
 
+    @Override
     public void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -2287,17 +2401,35 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                             .cleanTableData(tableData -> needDeleteLayoutIds.contains(tableData.getLayoutID())));
                     tablePlan.update(t -> t.cleanTable(needDeleteLayoutIds));
 
-                    val jobHandler = new SecondStorageIndexCleanJobHandler();
                     final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId,
                             BasicService.getUsername(), new HashSet<>(indexIds), new HashSet<>(segmentIds));
-                    getManager(JobManager.class, project).addJob(param, jobHandler);
+                    JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+                    jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.INDEX_CLEAN.name());
+                    jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
                 });
             }
             return null;
         }, project);
     }
 
-    ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).appendPartitions(dfId, segId,
+                partitionValues);
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataflow(mergeSegmentRequest.getIndexPlanUuid());
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegments(df,
+                mergeSegmentRequest.getSegRange(), mergeSegmentRequest.isForce(), mergeSegmentRequest.getFileLayer(),
+                mergeSegmentRequest.getNewSegId());
+    }
+
+    public ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
         val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
         request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
@@ -2646,6 +2778,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         getManager(NDataModelManager.class, project).updateDataModelDesc(dataModel);
     }
 
+    @Override
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -2674,13 +2807,48 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
         if (SecondStorageUtil.isModelEnable(project, model)) {
             SecondStorageUtil.cleanSegments(project, model, idsToDelete);
-            val jobHandler = new SecondStorageSegmentCleanJobHandler();
             final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model,
                     BasicService.getUsername(), idsToDelete);
-            getManager(JobManager.class, project).addJob(param, jobHandler);
+            JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+            jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_CLEAN.name());
+            jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
         }
-        segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
+        removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
+    }
+    
+    public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        NDataflow df = dfMgr.getDataflow(dataflowId);
+        if (CollectionUtils.isEmpty(tobeRemoveSegmentIds)) {
+            return;
+        }
+
+        List<NDataSegment> dataSegments = Lists.newArrayList();
+        for (String tobeRemoveSegmentId : tobeRemoveSegmentIds) {
+            NDataSegment dataSegment = df.getSegment(tobeRemoveSegmentId);
+            if (dataSegment == null) {
+                continue;
+            }
+            dataSegments.add(dataSegment);
+        }
+
+        if (CollectionUtils.isNotEmpty(dataSegments)) {
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
+            dfMgr.updateDataflow(update);
+        }
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfManager.getDataflow(indexPlanUuid);
+        NDataSegment segment = df.getSegment(segmentId);
+        return dfManager.refreshSegment(df, segment.getSegRange());
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
@@ -2826,12 +2994,13 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (!SecondStorage.enabled()) {
             throw new KylinException(JobErrorCode.JOB_CONFIGURATION_ERROR, "!!!No Tiered Storage is installed!!!");
         }
-        val jobHandler = new SecondStorageSegmentLoadJobHandler();
 
         final JobParam param = SecondStorageJobParamUtil.of(project, model, BasicService.getUsername(),
                 Stream.of(segmentIds));
+        JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
+        jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_LOAD.name());
         return Collections.singletonList(new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
-                getManager(JobManager.class, project).addJob(param, jobHandler)));
+                jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest)));
     }
 
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
@@ -3375,8 +3544,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         val response = new PurgeModelAffectedResponse();
         val byteSize = getManager(NDataflowManager.class, project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
-        long jobSize = getManager(NExecutableManager.class, project).countByModelAndStatus(model,
-                ExecutableState::isProgressing);
+        long jobSize = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, model, "isProgressing");
         response.setRelatedJobSize(jobSize);
         return response;
     }

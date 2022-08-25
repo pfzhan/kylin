@@ -21,6 +21,9 @@ package org.apache.kylin.rest.service;
 import java.util.List;
 import java.util.Set;
 
-public interface TableSamplingSupporter {
-    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue, Object tag);
+import org.apache.kylin.rest.delegate.TableSamplingContract;
+
+public interface TableSamplingSupporter extends TableSamplingContract {
+    List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
+                          Object tag);
 }

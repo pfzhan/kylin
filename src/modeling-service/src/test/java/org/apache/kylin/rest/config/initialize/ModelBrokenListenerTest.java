@@ -23,20 +23,21 @@ import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
-import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.rest.delegate.JobMetadataContract;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.service.AclTCRServiceSupporter;
 import org.apache.kylin.rest.service.FusionModelService;
-import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.SourceTestCase;
 import org.apache.kylin.rest.service.TableExtService;
 import org.apache.kylin.rest.service.TableService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -74,8 +75,8 @@ public class ModelBrokenListenerTest extends SourceTestCase {
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
-    @InjectMocks
-    private final JobSupporter jobService = Mockito.spy(JobSupporter.class);
+    @Mock
+    private final JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
 
     @Before
     public void setup() {
@@ -90,7 +91,9 @@ public class ModelBrokenListenerTest extends SourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
-        ReflectionTestUtils.setField(tableService, "jobService", jobService);
+        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
+        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
+        JobMetadataInvoker.setDelegate(jobMetadataContract);
     }
 
     @After

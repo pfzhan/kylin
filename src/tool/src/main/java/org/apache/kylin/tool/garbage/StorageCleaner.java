@@ -49,19 +49,18 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.persistence.TrashRecord;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.CliCommandExecutor.CliCmdExecResult;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.common.persistence.TrashRecord;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.metadata.cube.model.LayoutPartition;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegDetails;
@@ -71,6 +70,10 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.tool.util.ProjectTemporaryTableCleanerHelper;
 
 import com.google.common.collect.Lists;
@@ -634,8 +637,8 @@ public class StorageCleaner {
 
         private void collectJobTmp(String project) {
             val config = KylinConfig.getInstanceFromEnv();
-            val executableManager = NExecutableManager.getInstance(config, project);
-            Set<String> activeJobs = executableManager.getAllExecutables().stream()
+            List<ExecutablePO> executablePOList = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project);
+            Set<String> activeJobs = executablePOList.stream()
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             for (StorageItem item : allFileSystems) {
                 item.getProject(project).getJobTmps().removeIf(node -> activeJobs.contains(node.getRelativePath()));
@@ -729,15 +732,18 @@ public class StorageCleaner {
         }
 
         public void execute() {
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            Set<String> activeJobs = executableManager.getAllExecutables().stream()
-                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            List<AbstractExecutable> projectAllJobs = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project)
+                    .stream().map(executablePO -> executableManager.fromPO(executablePO)).collect(Collectors.toList());
+            Set<String> activeJobs = projectAllJobs.stream().map(e -> project + JOB_TMP_ROOT + "/" + e.getId())
+                    .collect(Collectors.toSet());
             List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();
-            Set<String> discardJobs = executableManager.getAllExecutables().stream()
-                    .filter(e -> e.getStatus() == ExecutableState.DISCARDED)
+            Set<String> discardJobs = projectAllJobs.stream()
+                    .filter(e -> e.getStatusInMem() == ExecutableState.DISCARDED)
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps, activeJobs, discardJobs));
         }
+
 
         private void doExecuteCmd(String cmd) {
             try {

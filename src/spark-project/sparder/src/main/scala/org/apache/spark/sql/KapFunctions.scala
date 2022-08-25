@@ -151,7 +151,8 @@ object KapFunctions {
     def this(child: Expression) = this(child, Literal(0))
 
     private lazy val scaleV: Any = scale.eval(EmptyRow)
-    private lazy val _scale: Int = scaleV.asInstanceOf[Int]
+
+    override protected lazy val _scale: Int = scaleV.asInstanceOf[Int]
 
     override lazy val dataType: DataType = child.dataType match {
       // if the new scale is bigger which means we are scaling up,

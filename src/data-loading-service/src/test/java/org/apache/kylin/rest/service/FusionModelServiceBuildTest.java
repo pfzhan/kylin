@@ -22,17 +22,23 @@ import java.util.Arrays;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.common.scheduler.EventBusFactory;
+import org.apache.kylin.job.dao.JobInfoDao;
+import org.apache.kylin.job.delegate.JobMetadataDelegate;
+import org.apache.kylin.job.service.JobInfoService;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.ManagementType;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.rest.config.initialize.ModelUpdateListener;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.IndexesToSegmentsRequest;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,17 +106,31 @@ public class FusionModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(fusionModelService, "modelBuildService", modelBuildService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
+        ModelMetadataInvoker.setDelegate(modelService);
+        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", modelMetadataInvoker);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
+        ModelMetadataInvoker.setDelegate(modelService);
+
+        JobInfoService jobInfoService = new JobInfoService();
+        JobContextUtil.cleanUp();
+        JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
+        ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
+        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
+        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
+        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test

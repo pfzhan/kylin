@@ -26,9 +26,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.BOOLEAN_TYPE_CHECK;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INTEGER_NON_NEGATIVE_CHECK;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_CONFLICT_PARAMETER;
@@ -44,10 +44,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,26 +66,31 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.transaction.TransactionException;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.job.JobContext;
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.streaming.KafkaConfigManager;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
+import org.apache.kylin.rest.request.Validation;
 import org.apache.kylin.rest.response.ErrorResponse;
+import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
-import org.apache.kylin.common.persistence.transaction.TransactionException;
-import org.apache.kylin.common.util.Unsafe;
-import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.metadata.streaming.KafkaConfigManager;
-import org.apache.kylin.rest.request.Validation;
-import org.apache.kylin.rest.service.ProjectService;
+import org.apache.kylin.tool.restclient.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -111,6 +118,9 @@ public class BaseController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired(required = false)
+    private JobContext jobContext;
 
     @Autowired
     protected UserService userService;
@@ -429,4 +439,31 @@ public class BaseController {
         }
     }
 
+    protected Map<String, List<String>> splitJobIdsByScheduleInstance(List<String> ids) {
+        Map<String, List<String>> nodeWithJobs = new HashMap<>();
+        for (String jobId : ids) {
+            String host = jobContext.getJobScheduler().getJobNode(jobId);
+            List<String> jobIds = nodeWithJobs.getOrDefault(host, new ArrayList<>());
+            jobIds.add(jobId);
+            nodeWithJobs.put(host, jobIds);
+        }
+        return nodeWithJobs;
+    }
+
+    protected boolean needRouteToOtherInstance(Map<String, List<String>> nodeWithJobs, String action,
+            HttpHeaders headers) {
+        if ("true".equals(headers.getFirst(RestClient.ROUTED))
+                || JobActionEnum.RESUME.name().equalsIgnoreCase(action)) {
+            return false;
+        }
+        Set<String> targetNodes = nodeWithJobs.keySet();
+        String local = AddressUtil.getLocalInstance();
+        return targetNodes.size() > 1 || targetNodes.size() == 1 && !targetNodes.contains(local);
+    }
+
+    protected void forwardRequestToTargetNode(byte[] requestEntity, HttpHeaders headers, String node, String url)
+            throws IOException {
+        RestClient client = new RestClient(node);
+        client.forwardPut(requestEntity, headers, url);
+    }
 }

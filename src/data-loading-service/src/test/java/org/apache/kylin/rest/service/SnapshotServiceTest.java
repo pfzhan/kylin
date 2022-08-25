@@ -34,11 +34,12 @@ import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.NSparkSnapshotJob;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -56,6 +57,7 @@ import org.apache.kylin.rest.response.SnapshotPartitionsResponse;
 import org.apache.kylin.rest.response.TableNameResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -116,6 +118,15 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(snapshotService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -155,7 +166,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> databases = Sets.newHashSet();
         snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 0, null, null);
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
@@ -222,7 +233,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> databases = Sets.newHashSet(database);
         Set<String> tables = Sets.newHashSet();
         snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3, null, null);
-        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        val executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         long expectedTableSize = tableManager.listAllTables().stream()
@@ -262,7 +273,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         snapshotService.buildSnapshots(PROJECT, databases, tables, ImmutableMap.of(table1, option), false, 3, null,
                 null);
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
@@ -317,7 +328,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         // initialize a sampling job and assert the status of it
         String table = "DEFAULT.TEST_KYLIN_FACT";
         snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null, null);
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
 

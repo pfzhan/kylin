@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -45,6 +46,7 @@ import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.delegate.TableMetadataContract;
 import org.apache.kylin.rest.request.S3TableExtInfo;
 import org.apache.kylin.rest.request.UpdateAWSTableExtDescRequest;
 import org.apache.kylin.rest.response.LoadTableResponse;
@@ -63,8 +65,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import lombok.experimental.Delegate;
+
 @Component("tableExtService")
-public class TableExtService extends BasicService {
+public class TableExtService extends BasicService implements TableMetadataContract {
     private static final Logger logger = LoggerFactory.getLogger(TableExtService.class);
 
     @Autowired
@@ -74,6 +78,22 @@ public class TableExtService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Delegate
+    private final TableMetadataBaseService tableMetadataBaseServer = new TableMetadataBaseService();
+
+    @Autowired
+    private ProjectService projectService;
+
+    /**
+     * Load a group of  tables
+     *
+     * @return an array of table name sets:
+     * [0] : tables that loaded successfully
+     * [1] : tables that didn't load due to running sample job todo
+     * [2] : tables that didn't load due to other error
+     * @throws Exception if reading hive metadata error
+     */
+    @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadDbTables(String[] dbTables, String project, boolean isDb) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables, isDb);
@@ -312,5 +332,21 @@ public class TableExtService extends BasicService {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSameTableNameExist(), tableDesc.getIdentity()));
         }
+    }
+
+    @Override
+    public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {
+        if (StringUtils.isNotEmpty(project)) {
+            NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
+            return nTableMetadataManager.getTableNamesByFuzzyKey(fuzzyKey);
+        }
+        List<String> tableNames = new ArrayList<>();
+        // query from all projects
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
+        for (ProjectInstance projectInstance : projectInstances) {
+            NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, projectInstance.getName());
+            tableNames.addAll(nTableMetadataManager.getTableNamesByFuzzyKey(fuzzyKey));
+        }
+        return tableNames;
     }
 }

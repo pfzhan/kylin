@@ -23,11 +23,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.common.metrics.MetricsGroup;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -89,7 +89,7 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
 
         ProjectDropListener projectDropListener = new ProjectDropListener();
         PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
-        projectDropListener.onDelete(project);
+        projectDropListener.onDelete(project, null, null);
 
         Assert.assertFalse(fs.exists(path));
     }

@@ -34,14 +34,6 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.common.event.ModelAddEvent;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
@@ -50,6 +42,13 @@ import org.apache.kylin.common.metrics.MetricsTag;
 import org.apache.kylin.common.metrics.prometheus.PrometheusMetrics;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.scheduler.EventBusFactory;
+import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.job.JobContext;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
@@ -57,7 +56,9 @@ import org.apache.kylin.metadata.cube.storage.StorageVolumeInfo;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.metadata.user.NKylinUserManager;
 import org.apache.kylin.query.util.LoadCounter;
@@ -179,12 +180,15 @@ public class MetricsRegistry {
         }
         MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
         Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(),
-                () -> Objects.isNull(scheduler.getContext()) ? 0
-                        : scheduler.getContext().getRunningJobs().values().stream()
-                                .filter(job -> ExecutableState.RUNNING.equals(job.getOutput().getState())).count())
-                .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
+
+        if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
+            Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(), () -> {
+                JobContext jobContext = JobContextUtil.getJobContext(kylinConfig);
+                return Objects.isNull(jobContext) ? 0
+                        : jobContext.getJobScheduler().getRunningJob().values().stream().map(pair -> pair.getFirst())
+                                .filter(jobExecutable -> project.equals(jobExecutable.getProject())).count();
+            }).tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
+        }
     }
 
     public static void registerHostMetrics(String host) {
@@ -219,7 +223,7 @@ public class MetricsRegistry {
     }
 
     static void registerJobMetrics(KylinConfig config, String project) {
-        final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        final ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.JOB_ERROR_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<ExecutablePO> list = executableManager.getAllJobs();
             return list == null ? 0
@@ -229,13 +233,15 @@ public class MetricsRegistry {
             List<ExecutablePO> list = executableManager.getAllJobs();
             return list == null ? 0 : list.stream().filter(e -> {
                 String status = e.getOutput().getStatus();
-                return ExecutableState.RUNNING.name().equals(status) || ExecutableState.READY.name().equals(status);
+                return ExecutableState.RUNNING.name().equals(status) || ExecutableState.READY.name().equals(status)
+                        || ExecutableState.PENDING.name().equals(status);
             }).count();
         });
         MetricsGroup.newGauge(MetricsName.JOB_PENDING_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<ExecutablePO> list = executableManager.getAllJobs();
             return list == null ? 0
-                    : list.stream().filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus())).count();
+                    : list.stream().filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus())
+                            || ExecutableState.PENDING.name().equals(e.getOutput().getStatus())).count();
         });
     }
 

@@ -31,18 +31,18 @@ import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
-import org.apache.kylin.common.util.OptionBuilder;
-import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -63,10 +63,10 @@ public class MigrateJobTool extends ExecutableApplication {
     private static final Map<String, String> JOB_TYPE_HANDLER_MAP = new HashMap<>();
 
     static {
-        JOB_TYPE_HANDLER_MAP.put("INDEX_BUILD", "org.apache.kylin.engine.spark.job.ExecutableAddCuboidHandler");
-        JOB_TYPE_HANDLER_MAP.put("INC_BUILD", "org.apache.kylin.engine.spark.job.ExecutableAddSegmentHandler");
-        JOB_TYPE_HANDLER_MAP.put("INDEX_MERGE", "org.apache.kylin.engine.spark.job.ExecutableMergeOrRefreshHandler");
-        JOB_TYPE_HANDLER_MAP.put("INDEX_REFRESH", "org.apache.kylin.engine.spark.job.ExecutableMergeOrRefreshHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_BUILD", "org.apache.kylin.job.execution.handler.ExecutableAddCuboidHandler");
+        JOB_TYPE_HANDLER_MAP.put("INC_BUILD", "org.apache.kylin.job.execution.handler.ExecutableAddSegmentHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_MERGE", "org.apache.kylin.job.execution.handler.ExecutableMergeOrRefreshHandler");
+        JOB_TYPE_HANDLER_MAP.put("INDEX_REFRESH", "org.apache.kylin.job.execution.handler.ExecutableMergeOrRefreshHandler");
     }
 
     private KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -111,7 +111,7 @@ public class MigrateJobTool extends ExecutableApplication {
      * @param projectInstance
      */
     private void updateExecute(ProjectInstance projectInstance) {
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, projectInstance.getName());
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, projectInstance.getName());
 
         List<AbstractExecutable> executeJobs = executableManager.getAllExecutables().stream()
                 .filter(executable -> JobTypeEnum.INC_BUILD == executable.getJobType()
@@ -120,9 +120,9 @@ public class MigrateJobTool extends ExecutableApplication {
                         || JobTypeEnum.INDEX_REFRESH == executable.getJobType()
                         || JobTypeEnum.SUB_PARTITION_REFRESH == executable.getJobType()
                         || JobTypeEnum.INDEX_MERGE == executable.getJobType())
-                .filter(executable -> ExecutableState.RUNNING == executable.getStatus()
-                        || ExecutableState.ERROR == executable.getStatus()
-                        || ExecutableState.PAUSED == executable.getStatus())
+                .filter(executable -> ExecutableState.RUNNING == executable.getStatusInMem()
+                        || ExecutableState.ERROR == executable.getStatusInMem()
+                        || ExecutableState.PAUSED == executable.getStatusInMem())
                 .collect(Collectors.toList());
 
         for (AbstractExecutable executeJob : executeJobs) {
@@ -180,7 +180,7 @@ public class MigrateJobTool extends ExecutableApplication {
 
                 taskNode.put("name", "Update Metadata");
 
-                taskNode.put("type", "org.apache.kylin.engine.spark.job.NSparkUpdateMetadataStep");
+                taskNode.put("type", "org.apache.kylin.job.execution.step.NSparkUpdateMetadataStep");
 
                 if (taskNode.has("params")) {
                     ObjectNode paramsNode = (ObjectNode) taskNode.get("params");

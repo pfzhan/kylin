@@ -36,6 +36,8 @@
 
 package org.apache.kylin.job.execution;
 
+import org.apache.kylin.job.JobContext;
+
 /**
  */
 public class SelfStopExecutable extends BaseTestExecutable {
@@ -51,7 +53,7 @@ public class SelfStopExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) {
+    protected ExecuteResult doWork(JobContext context) {
         doingWork = true;
         try {
             for (int i = 0; i < 20; i++) {
@@ -81,3 +83,4 @@ public class SelfStopExecutable extends BaseTestExecutable {
         }
     }
 }
+

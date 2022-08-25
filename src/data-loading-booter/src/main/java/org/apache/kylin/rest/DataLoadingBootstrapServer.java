@@ -18,6 +18,7 @@
 
 package org.apache.kylin.rest;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
@@ -30,6 +31,7 @@ import org.springframework.context.annotation.ImportResource;
 @EnableDiscoveryClient
 @EnableCaching
 @EnableFeignClients(basePackages = { "io.kyligence", "org.apache.kylin" })
+@MapperScan("io.kyligence.kap.job.mapper")
 public class DataLoadingBootstrapServer {
 
     public static void main(String[] args) {

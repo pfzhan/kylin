@@ -193,8 +193,11 @@ public class UnitOfWork {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
         checkEpoch(params);
-        val lock = params.getTempLockName() == null ? TransactionLock.getLock(project, readonly)
+        TransactionLock lock = params.getTempLockName() == null ? TransactionLock.getLock(project, readonly)
                 : TransactionLock.getLock(params.getTempLockName(), readonly);
+        if (params.isTransparent()) {
+            lock = TransactionLock.getLock("_fake_lock", true);
+        }
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
@@ -206,7 +209,7 @@ public class UnitOfWork {
         unitOfWork.setParams(params);
         threadLocals.set(unitOfWork);
 
-        if (readonly || !params.isUseSandbox()) {
+        if (readonly || !params.isUseSandbox() || params.isTransparent()) {
             unitOfWork.setLocalConfig(null);
             return unitOfWork;
         }
@@ -227,7 +230,7 @@ public class UnitOfWork {
 
     private static <T> void checkEpoch(UnitOfWorkParams<T> params) throws Exception {
         val checker = params.getEpochChecker();
-        if (checker != null && !params.isReadonly()) {
+        if (checker != null && !params.isReadonly() && !params.isTransparent()) {
             checker.process();
         }
     }
@@ -242,7 +245,7 @@ public class UnitOfWork {
     static <T> void endTransaction(String traceId, UnitOfWorkParams<T> params) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val work = get();
-        if (work.isReadonly() || !work.isUseSandbox()) {
+        if (work.isReadonly() || !work.isUseSandbox() || work.isTransparent()) {
             work.cleanResource();
             return;
         }

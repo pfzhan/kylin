@@ -23,18 +23,20 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
+import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NSparkCubingJob;
+import org.apache.kylin.job.execution.NSparkExecutable;
+import org.apache.kylin.job.execution.NSparkMergingJob;
+import org.apache.kylin.job.execution.NTableSamplingJob;
+import org.apache.kylin.job.execution.step.NResourceDetectStep;
+import org.apache.kylin.job.execution.step.NSparkCleanupAfterMergeStep;
+import org.apache.kylin.job.execution.step.SparkCleanupTransactionalTableStep;
+import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -42,6 +44,10 @@ import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,7 +67,6 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() {
-        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
 
@@ -208,7 +213,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
         NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
                 Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null, null));
-        NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
-        return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
+        ExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
+        return ExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }
 }

@@ -55,24 +55,18 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.NSparkSnapshotJob;
 import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclPermissionUtil;
-import org.apache.kylin.rest.util.PagingUtil;
-import org.apache.kylin.source.ISource;
-import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
@@ -86,6 +80,12 @@ import org.apache.kylin.rest.response.SnapshotColResponse;
 import org.apache.kylin.rest.response.SnapshotInfoResponse;
 import org.apache.kylin.rest.response.SnapshotPartitionsResponse;
 import org.apache.kylin.rest.response.TableNameResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.apache.kylin.rest.util.PagingUtil;
+import org.apache.kylin.source.ISource;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,7 +137,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private Set<TableDesc> skipLoadedTable(Set<TableDesc> tablesOfDatabases, String project) {
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
 
@@ -179,7 +179,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             JobManager.checkStorageQuota(project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> {
                 for (TableDesc tableDesc : tables) {
-                    NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
+                    ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
                     JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
                     jobStatisticsManager.updateStatistics(TimeUtil.getDayStart(System.currentTimeMillis()), 0, 0, 1);
 
@@ -195,7 +195,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, BasicService.getUsername(),
                             option.getPartitionCol(), option.isIncrementalBuild(), option.getPartitionsToBuild(),
                             isRefresh, yarnQueue, tag);
-                    ExecutablePO po = NExecutableManager.toPO(job, project);
+                    ExecutablePO po = ExecutableManager.toPO(job, project);
                     po.setPriority(priority);
                     execMgr.addJob(po);
 
@@ -284,7 +284,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
 
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-        NExecutableManager execManager = getManager(NExecutableManager.class, project);
+        ExecutableManager execManager = getManager(ExecutableManager.class, project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
 
@@ -321,7 +321,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
 
-        NExecutableManager execManager = getManager(NExecutableManager.class, project);
+        ExecutableManager execManager = getManager(ExecutableManager.class, project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
 
@@ -347,7 +347,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private void checkTableSnapshotExist(String project, Set<TableDesc> tables) {
-        NExecutableManager execManager = getManager(NExecutableManager.class, project);
+        ExecutableManager execManager = getManager(ExecutableManager.class, project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
         List<String> tablesWithEmptySnapshot = tables.stream()
@@ -368,7 +368,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private void checkRunningSnapshotTask(String project, Set<String> needBuildSnapshotTables) {
         //check whether snapshot task is running on current project
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
 
@@ -414,7 +414,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
         if (table == null)
@@ -637,7 +637,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         aclEvaluate.checkProjectReadPermission(project);
         NInitTablesResponse response = new NInitTablesResponse();
         NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
         Set<String> databases = nTableMetadataManager.listDatabases();
@@ -688,7 +688,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     public List<TableNameResponse> getTableNameResponses(String project, String database, String tablePattern) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
         aclEvaluate.checkProjectReadPermission(project);
@@ -785,7 +785,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         Set<String> finalTables = Optional.ofNullable(tables).orElse(Sets.newHashSet());
         Set<String> finalDatabase = Optional.ofNullable(databases).orElse(Sets.newHashSet());
-        val execManager = NExecutableManager.getInstance(getConfig(), project);
+        val execManager = ExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
 

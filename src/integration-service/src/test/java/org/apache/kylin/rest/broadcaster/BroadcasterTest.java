@@ -23,7 +23,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.junit.annotation.MetadataInfo;
 import org.apache.kylin.rest.cluster.ClusterManager;

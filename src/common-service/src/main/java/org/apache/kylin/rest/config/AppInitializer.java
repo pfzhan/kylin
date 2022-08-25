@@ -90,8 +90,14 @@ public class AppInitializer {
         NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
         boolean isJob = kylinConfig.isJobNode();
+        boolean isDataLoading = kylinConfig.isDataLoadingNode();
+        boolean isMetadata = kylinConfig.isMetadataNode();
 
-        if (isJob) {
+        // set kylin.metadata.distributed-lock.jdbc.url
+        // before kylin.metadata.url is changed
+        kylinConfig.setJDBCDistributedLockURL(kylinConfig.getJDBCDistributedLockURL().toString());
+
+        if (isJob || isDataLoading || isMetadata) {
             // restore from metadata, should not delete
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.setChecker((e) -> {
@@ -99,15 +105,19 @@ public class AppInitializer {
                 String localIdentify = EpochOrchestrator.getOwnerIdentity().split("\\|")[0];
                 return localIdentify.equalsIgnoreCase(instance);
             });
-            streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
+            if (isJob || isDataLoading) {
+                // register scheduler listener
+                EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
+                streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
 
-            // register scheduler listener
-            EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
-            EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
-            EventBusFactory.getInstance().register(epochChangedListener, false);
-            //            EventBusFactory.getInstance().registerBroadcast(broadcastListener);
+                // register scheduler listener
+                EventBusFactory.getInstance().register(new StreamingJobListener(), true);
+            }
+            if (isJob || isMetadata) {
+                EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
+                EventBusFactory.getInstance().register(epochChangedListener, false);
+            }
             EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
-            EventBusFactory.getInstance().register(new StreamingJobListener(), true);
 
             ExecutableUtils.initJobFactory();
         } else {
@@ -163,7 +173,7 @@ public class AppInitializer {
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         setFsUrlStreamHandlerFactory();
-        if (kylinConfig.isJobNode()) {
+        if (kylinConfig.isJobNode() || kylinConfig.isMetadataNode()) {
             new EpochOrchestrator(kylinConfig);
         }
         if (kylinConfig.getJStackDumpTaskEnabled()) {

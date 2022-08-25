@@ -73,10 +73,13 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
 import org.apache.kylin.metadata.epoch.EpochManager;
+import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
+import org.apache.kylin.metadata.favorite.AsyncTaskManager;
+import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NDataModelManager;
@@ -87,8 +90,12 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
 import org.apache.kylin.rest.aspect.Transaction;
+import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.initialize.ProjectDropListener;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.ProjectMetadataContract;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
 import org.apache.kylin.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.kylin.rest.request.JdbcRequest;
@@ -118,6 +125,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -137,7 +145,7 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
 @Component("projectService")
-public class ProjectService extends BasicService {
+public class ProjectService extends BasicService implements ProjectMetadataContract {
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
     @Autowired
@@ -153,17 +161,23 @@ public class ProjectService extends BasicService {
     @Autowired
     private AccessService accessService;
 
-    //    @Autowired
-    //    AsyncQueryService asyncQueryService;
-
     @Autowired(required = false)
     private ProjectModelSupporter projectModelSupporter;
 
     @Autowired(required = false)
     private ProjectSmartServiceSupporter projectSmartService;
 
+    @Autowired(required = false)
+    private ProjectSmartSupporter projectSmartSupporter;
+
     @Autowired
     UserService userService;
+
+    @Autowired
+    private JobMetadataInvoker jobMetadataInvoker;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -345,8 +359,6 @@ public class ProjectService extends BasicService {
                     projectSmartService.cleanupGarbage(project.getName());
                     GarbageCleaner.cleanMetadata(project.getName());
                     EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
-                    //                    asyncQueryService.cleanOldQueryResult(project.getName(),
-                    //                            KylinConfig.getInstanceFromEnv().getAsyncQueryResultRetainDays());
                 } catch (Exception e) {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
                 }
@@ -409,24 +421,20 @@ public class ProjectService extends BasicService {
             throw new KylinException(PROJECT_NOT_EXIST, project);
         }
         encryptJdbcPassInOverrideKylinProps(overrideKylinProps);
-        projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
-        });
+        projectManager.updateProject(project, copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .putAll(KylinConfig.trimKVFromMap(overrideKylinProps)));
     }
 
     private void encryptJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
-        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
-            if (overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY) != null) {
-                overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY,
-                        EncryptUtil.encryptWithPrefix(overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY)));
-            }
+        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)
+                && overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY) != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY,
+                    EncryptUtil.encryptWithPrefix(overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY)));
         }
     }
 
     private void clearJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
-        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
-            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY, HIDDEN_VALUE);
-        }
+        overrideKylinProps.computeIfPresent(KYLIN_SOURCE_JDBC_PASS_KEY, (k, v) -> HIDDEN_VALUE);
     }
 
     @Transaction(project = 0)
@@ -453,7 +461,7 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void updateJdbcInfo(String project, JdbcSourceInfoRequest jdbcSourceInfoRequest) {
-        if (jdbcSourceInfoRequest.getJdbcSourceEnable()) {
+        if (jdbcSourceInfoRequest.getJdbcSourceEnable().booleanValue()) {
             validateJdbcConfig(project, jdbcSourceInfoRequest);
         }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
@@ -754,21 +762,29 @@ public class ProjectService extends BasicService {
         backupAndDeleteKeytab(projectKerberosInfoRequest.getPrincipal());
     }
 
+    // for UT only
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project) {
+        dropProject(project, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void dropProject(String project, HttpHeaders headers) {
         if (SecondStorageUtil.isProjectEnable(project)) {
             throw new KylinException(PROJECT_DROP_FAILED,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
         }
 
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager nExecutableManager = NExecutableManager.getInstance(kylinConfig, project);
-        List<String> jobIds = nExecutableManager.getJobs().stream().map(nExecutableManager::getJob)
-                .filter(Objects::nonNull)
-                .filter(abstractExecutable -> (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.RUNNING)
-                        || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.PENDING)
-                        || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.STOPPED))
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<String> jobIds = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project).stream()
+                .map(executableManager::fromPO).filter(Objects::nonNull)
+                .filter(executable -> (executable.getStatusInMem().toJobStatus() == JobStatusEnum.RUNNING)
+                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.PENDING)
+                        // yinglong dataloading-scheduler, READY --> READY
+                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.READY)
+                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.STOPPED))
                 .map(AbstractExecutable::getId).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
                 JobStatusEnum.STOPPING);
@@ -784,7 +800,7 @@ public class ProjectService extends BasicService {
 
         NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
-        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
+        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project, clusterManager, headers));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }
 
@@ -927,9 +943,8 @@ public class ProjectService extends BasicService {
 
     private void resetProjectRecommendationConfig(String project) {
         getManager(FavoriteRuleManager.class, project).resetRule();
-        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
-            projectModelSupporter.onModelUpdate(project, model.getUuid());
-        });
+        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels()
+                .forEach(model -> projectModelSupporter.onModelUpdate(project, model.getUuid()));
     }
 
     private void resetGarbageCleanupConfig(String project) {
@@ -957,9 +972,8 @@ public class ProjectService extends BasicService {
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST, project);
         }
-        projectManager.updateProject(project, copyForWrite -> {
-            toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
-        });
+        projectManager.updateProject(project,
+                copyForWrite -> toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove));
     }
 
     private void resetProjectKerberosConfig(String project) {
@@ -985,7 +999,7 @@ public class ProjectService extends BasicService {
         return allProjects.stream().filter(filter).collect(Collectors.toList());
     }
 
-    public File backupAndDeleteKeytab(String principal) throws Exception {
+    public File backupAndDeleteKeytab(String principal) throws IOException {
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
         File kTempFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
         File kFile = new File(kylinConfHome, principal + KerberosLoginManager.KEYTAB_SUFFIX);
@@ -996,7 +1010,7 @@ public class ProjectService extends BasicService {
         return kFile;
     }
 
-    public File generateTempKeytab(String principal, MultipartFile keytabFile) throws Exception {
+    public File generateTempKeytab(String principal, MultipartFile keytabFile) throws IOException {
         Message msg = MsgPicker.getMsg();
         if (null == principal || principal.isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, msg.getPrincipalEmpty());
@@ -1046,5 +1060,16 @@ public class ProjectService extends BasicService {
         // Use JDBC Source
         overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_JDBC));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
+    @Transaction(project = 3)
+    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName,
+                           String project) {
+        getManager(FavoriteRuleManager.class, project).updateRule(conditions, isEnabled, ruleName);
+    }
+
+    @Transaction(project = 0)
+    public void saveAsyncTask(String project, AsyncAccelerationTask task) {
+        AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(task);
     }
 }

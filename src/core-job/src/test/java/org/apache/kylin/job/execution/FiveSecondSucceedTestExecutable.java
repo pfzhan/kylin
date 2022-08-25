@@ -36,6 +36,8 @@
 
 package org.apache.kylin.job.execution;
 
+import org.apache.kylin.job.JobContext;
+
 /**
  */
 public class FiveSecondSucceedTestExecutable extends BaseTestExecutable {
@@ -57,7 +59,7 @@ public class FiveSecondSucceedTestExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) {
+    protected ExecuteResult doWork(JobContext context) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException e) {

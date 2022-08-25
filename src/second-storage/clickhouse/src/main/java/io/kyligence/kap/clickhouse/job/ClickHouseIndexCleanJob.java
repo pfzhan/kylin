@@ -18,29 +18,31 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import com.google.common.base.Preconditions;
-import org.apache.kylin.metadata.cube.model.NBatchConstants;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.Manager;
-import io.kyligence.kap.secondstorage.metadata.TableFlow;
-import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.metadata.model.SegmentRange;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import lombok.val;
 
 public class ClickHouseIndexCleanJob extends DefaultChainedExecutable {
 
@@ -101,7 +103,7 @@ public class ClickHouseIndexCleanJob extends DefaultChainedExecutable {
 
     public static class IndexCleanJobFactory extends JobFactory {
         @Override
-        protected AbstractExecutable create(JobBuildParams jobBuildParams) {
+        protected AbstractExecutable create(JobFactory.JobBuildParams jobBuildParams) {
             SecondStorageCleanJobBuildParams params = (SecondStorageCleanJobBuildParams) jobBuildParams;
             val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), params.getProject());
             val param = ClickHouseCleanJobParam.builder()

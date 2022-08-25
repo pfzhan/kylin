@@ -31,18 +31,20 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.tool.garbage.StorageCleaner;
 import org.junit.After;
 import org.junit.Assert;
@@ -61,12 +63,17 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws IOException {
         createTestMetadata();
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobContext(getTestConfig());
+
         prepare();
     }
 
     @After
     public void teardown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -153,9 +160,10 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanup_WithRunningJobs() throws Exception {
-        val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
+        val jobMgr = ExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
         job1.setProject("default");
+        job1.setJobType(JobTypeEnum.INC_BUILD);
         val task1 = new ShellExecutable();
         job1.addTask(task1);
         jobMgr.addJob(job1);
@@ -166,6 +174,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
                 "/default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT/invalid/keep" };
 
         extra.put(AbstractExecutable.DEPENDENT_FILES, StringUtils.join(dependFiles, ","));
+        jobMgr.updateJobOutput(job1.getId(), ExecutableState.PENDING, extra, null, null);
         jobMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING, extra, null, null);
 
         val cleaner = new StorageCleaner();
@@ -263,11 +272,13 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
         val dfMgr = NDataflowManager.getInstance(config, "default");
         val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        val execMgr = NExecutableManager.getInstance(config, "default");
+        val execMgr = ExecutableManager.getInstance(config, "default");
         val job1 = new DefaultChainedExecutable();
         job1.setId("job1");
+        job1.setJobType(JobTypeEnum.INC_BUILD);
         execMgr.addJob(job1);
         val job2 = new DefaultChainedExecutable();
+        job2.setJobType(JobTypeEnum.INC_BUILD);
         job2.setId("job2");
         execMgr.addJob(job2);
     }

@@ -27,16 +27,18 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -101,10 +103,11 @@ public class SegmentUtil {
 
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
-        val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, INDEX_BUILD,
-                SUB_PARTITION_BUILD);
-        return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
+        List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
+                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
+        return executablePOS.stream().map(execManager::fromPO)
+                .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }
 
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment, List<AbstractExecutable> executables) {
@@ -145,7 +148,7 @@ public class SegmentUtil {
      */
     public static Segments<NDataSegment> getValidSegments(String modelId, String project) {
         val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
-        val executables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        val executables = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
         val runningSegs = new Segments<NDataSegment>();
         executables.stream().filter(e -> e.getTargetSegments() != null) //

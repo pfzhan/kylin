@@ -21,16 +21,13 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EpochStartedNotifier;
 import org.apache.kylin.common.scheduler.ProjectControlledNotifier;
 import org.apache.kylin.common.scheduler.ProjectEscapedNotifier;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.service.task.QueryHistoryTaskScheduler;
 import org.apache.kylin.rest.service.task.RecommendationTopNUpdateScheduler;
 import org.apache.kylin.rest.util.CreateAdminUserUtils;
@@ -75,29 +72,10 @@ public class EpochChangedListener {
                 return;
             }
 
-            val oldScheduler = NDefaultScheduler.getInstance(project);
-
-            if (oldScheduler.hasStarted()
-                    && epochManager.checkEpochId(oldScheduler.getContext().getEpochId(), project)) {
-                return;
-            }
-
-            // if epoch id check failed, shutdown first
-            if (oldScheduler.hasStarted()) {
-                oldScheduler.forceShutdown();
-            }
-
             log.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                scheduler.init(new JobEngineConfig(kylinConfig));
-                if (!scheduler.hasStarted()) {
-                    throw new RuntimeException("Scheduler for " + project + " has not been started");
-                }
-                StreamingScheduler ss = StreamingScheduler.getInstance(project);
-                ss.init();
-                if (!ss.getHasStarted().get()) {
-                    throw new RuntimeException("Streaming Scheduler for " + project + " has not been started");
+                if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
+                    initSchedule(kylinConfig, project);
                 }
 
                 QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler.getInstance(project);
@@ -122,6 +100,14 @@ public class EpochChangedListener {
         }
     }
 
+    private void initSchedule(KylinConfig kylinConfig, String project) {
+        StreamingScheduler ss = StreamingScheduler.getInstance(project);
+        ss.init();
+        if (!ss.getHasStarted().get()) {
+            throw new RuntimeException("Streaming Scheduler for " + project + " has not been started");
+        }
+    }
+
     @Subscribe
     public void onProjectEscaped(ProjectEscapedNotifier notifier) {
         String project = notifier.getProject();
@@ -129,9 +115,7 @@ public class EpochChangedListener {
         if (!GLOBAL.equals(project)) {
             log.info("Shutdown related thread: {}", project);
             try {
-                NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
-                NDefaultScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
                 recommendationUpdateScheduler.removeProject(project);
             } catch (Exception e) {

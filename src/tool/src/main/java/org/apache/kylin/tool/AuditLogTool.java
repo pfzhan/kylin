@@ -47,17 +47,17 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.util.ExecutableApplication;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.common.constant.Constant;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AuditLog;
 import org.apache.kylin.common.persistence.metadata.JdbcAuditLogStore;
+import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -164,7 +164,7 @@ public class AuditLogTool extends ExecutableApplication {
         if (StringUtils.isEmpty(jobId)) {
             throw new KylinException(PARAMETER_EMPTY, "job");
         }
-        AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
+        AbstractExecutable job = ExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         long startTs = job.getStartTime();
         long endTs = job.getEndTime();
 

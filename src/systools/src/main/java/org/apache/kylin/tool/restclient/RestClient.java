@@ -42,15 +42,20 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -60,6 +65,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -68,10 +74,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
+import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -86,11 +93,16 @@ public class RestClient {
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
     private static final int HTTP_CONNECTION_TIMEOUT_MS = 30000;
     private static final int HTTP_SOCKET_TIMEOUT_MS = 120000;
-    private static final String ROUTED = "routed";
+    public static final String ROUTED = "routed";
     protected static Pattern fullRestPattern = Pattern.compile("(?:([^:]+)[:]([^@]+)[@])?([^:]+)(?:[:](\\d+))?");
-    protected String host;
+
+    public static boolean matchFullRestPattern(String uri) {
+        Matcher m = fullRestPattern.matcher(uri);
+        return m.matches();
+    }
 
     // ============================================================================
+    protected String host;
     protected int port;
     protected String baseUrl;
     protected String userName;
@@ -115,11 +127,6 @@ public class RestClient {
 
     public RestClient(String host, int port, String userName, String password) {
         init(host, port, userName, password);
-    }
-
-    public static boolean matchFullRestPattern(String uri) {
-        Matcher m = fullRestPattern.matcher(uri);
-        return m.matches();
     }
 
     private void init(String host, int port, String userName, String password) {
@@ -213,6 +220,55 @@ public class RestClient {
             }
         } finally {
             cleanup(post, response);
+        }
+        return response;
+    }
+
+    public HttpResponse forwardPut(byte[] requestEntity, HttpHeaders headers, String targetUrl) throws IOException {
+        String url = baseUrl + targetUrl;
+        HttpPut put = newPut(url);
+        put.addHeader(ROUTED, "true");
+        put.addHeader("Authorization", headers.getFirst("Authorization"));
+        put.addHeader("Cookie", headers.getFirst("Cookie"));
+        HttpResponse response = null;
+        try {
+            put.setEntity(new ByteArrayEntity(requestEntity, ContentType.APPLICATION_JSON));
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_FORWARD_METADATA_ACTION, "Invalid response "
+                        + response.getStatusLine().getStatusCode() + " with url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(put, response);
+        }
+        return response;
+    }
+
+    public HttpResponse forwardPostWithUrlEncodedForm(String targetUrl, HttpHeaders headers, Map<String, String> form)
+            throws IOException {
+        String url = baseUrl + targetUrl;
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.addHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
+        httpPost.addHeader("Authorization", headers.getFirst("Authorization"));
+        httpPost.addHeader(ROUTED, "true");
+        httpPost.addHeader("Cookie", headers.getFirst("Cookie"));
+        List<NameValuePair> nameValuePairs = new ArrayList<>();
+        if (null != form) {
+            form.entrySet()
+                    .forEach(entry -> nameValuePairs.add(new BasicNameValuePair(entry.getKey(), entry.getValue())));
+        }
+        HttpResponse response = null;
+        try {
+            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, "UTF-8"));
+            response = client.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_FORWARD_METADATA_ACTION, "Invalid response "
+                        + response.getStatusLine().getStatusCode() + " with url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(httpPost, response);
         }
         return response;
     }

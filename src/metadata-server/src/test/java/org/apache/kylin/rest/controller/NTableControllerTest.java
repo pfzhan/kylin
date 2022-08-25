@@ -34,6 +34,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.apache.kylin.rest.request.AWSTableLoadRequest;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.DateRangeRequest;
@@ -51,7 +52,6 @@ import org.apache.kylin.rest.response.TablesAndColumnsResponse;
 import org.apache.kylin.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.kylin.rest.service.ModelService;
 import org.apache.kylin.rest.service.TableExtService;
-import org.apache.kylin.rest.service.TableSamplingService;
 import org.apache.kylin.rest.service.TableService;
 import org.junit.After;
 import org.junit.Assert;
@@ -97,7 +97,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     private TableExtService tableExtService;
 
     @Mock
-    private TableSamplingService tableSamplingService;
+    private TableSamplingInvoker tableSamplingInvoker;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -582,7 +582,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
         initMockito(loadTableResponse, tableLoadRequest);
-        Assert.assertNotNull(tableSamplingService);
+        Assert.assertNotNull(tableSamplingInvoker);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //

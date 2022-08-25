@@ -128,7 +128,6 @@ import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.blacklist.SQLBlacklistItem;
 import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.calcite.KEDialect;
-import org.apache.kylin.query.engine.AsyncQueryJob;
 import org.apache.kylin.query.engine.PrepareSqlStateParam;
 import org.apache.kylin.query.engine.QueryExec;
 import org.apache.kylin.query.engine.QueryRoutingEngine;

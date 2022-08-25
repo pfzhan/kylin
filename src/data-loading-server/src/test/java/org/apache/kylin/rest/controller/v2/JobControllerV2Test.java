@@ -24,12 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.job.constant.JobActionEnum;
+import org.apache.kylin.job.rest.JobFilter;
+import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
-import org.apache.kylin.rest.request.JobFilter;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -54,6 +55,9 @@ public class JobControllerV2Test {
 
     @Mock
     private JobService jobService;
+
+    @Mock
+    private JobInfoService jobInfoService;
 
     @InjectMocks
     private final JobControllerV2 jobControllerV2 = Mockito.spy(new JobControllerV2());
@@ -81,13 +85,13 @@ public class JobControllerV2Test {
     public void tesResume() throws Exception {
         String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de";
         ExecutableResponse response = new ExecutableResponse();
-        Mockito.when(jobService.getJobInstance(jobId)).thenReturn(response);
-        Mockito.when(jobService.manageJob(jobId, response, JobActionEnum.RESUME.toString()))
+        Mockito.when(jobInfoService.getJobInstance(jobId)).thenReturn(response);
+        Mockito.when(jobInfoService.manageJob(jobId, response, JobActionEnum.RESUME.toString()))
                 .thenReturn(new ExecutableResponse());
 
         mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/jobs/{jobId}/resume", jobId).contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                        MockMvcRequestBuilders.put("/api/jobs/{jobId}/resume", jobId).contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(jobControllerV2).resume(jobId);
@@ -99,11 +103,11 @@ public class JobControllerV2Test {
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter(Lists.newArrayList("NEW"), jobNames, 4, "", "", "default", "job_name",
                 false);
-        Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
+        Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
-                .param("timeFilter", "1").param("jobName", "").param("status", "0")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                        .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
+                        .param("timeFilter", "1").param("jobName", "").param("status", "0")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(jobControllerV2).getJobList(new Integer[] { 0 }, 1, "", "default", null, 0, 10, "last_modified",

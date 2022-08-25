@@ -18,13 +18,13 @@
 
 package org.apache.kylin.rest.controller;
 
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,25 +45,32 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.apache.kylin.metadata.cube.model.IndexPlan;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.exception.LookupTableException;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
+import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.AggShardByColumnsRequest;
 import org.apache.kylin.rest.request.ComputedColumnCheckRequest;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
+import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelCheckRequest;
 import org.apache.kylin.rest.request.ModelCloneRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
 import org.apache.kylin.rest.request.ModelRequest;
+import org.apache.kylin.rest.request.ModelSuggestionRequest;
 import org.apache.kylin.rest.request.ModelUpdateRequest;
 import org.apache.kylin.rest.request.ModelValidationRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
+import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.PartitionColumnRequest;
 import org.apache.kylin.rest.request.UnlinkModelRequest;
@@ -72,21 +80,29 @@ import org.apache.kylin.rest.response.AggShardByColumnsResponse;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.ComputedColumnCheckResponse;
 import org.apache.kylin.rest.response.ComputedColumnUsageResponse;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ExistedDataRangeResponse;
 import org.apache.kylin.rest.response.IndicesResponse;
 import org.apache.kylin.rest.response.InvalidIndexesResponse;
 import org.apache.kylin.rest.response.ModelConfigResponse;
 import org.apache.kylin.rest.response.ModelSaveCheckResponse;
 import org.apache.kylin.rest.response.MultiPartitionValueResponse;
+import org.apache.kylin.rest.response.OpenRecApproveResponse;
+import org.apache.kylin.rest.response.OptRecResponse;
 import org.apache.kylin.rest.response.PurgeModelAffectedResponse;
+import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.service.FusionIndexService;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.IndexPlanService;
 import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.tool.bisync.BISyncModel;
 import org.apache.kylin.tool.bisync.SyncContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -109,6 +125,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@EnableDiscoveryClient
+@EnableFeignClients
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
     public static final String MODEL_ID = "modelId";
@@ -367,7 +385,7 @@ public class NModelController extends NBasicController {
             String json = modelService.getModelJson(modelId, project);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, json, "");
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("can not get model json " + e);
+            throw new KylinRuntimeException("can not get model json " + e);
         }
     }
 
@@ -383,7 +401,7 @@ public class NModelController extends NBasicController {
             String sql = modelService.getModelSql(modelId, project);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sql, "");
         } catch (Exception e) {
-            throw new RuntimeException("can not get model sql, " + e);
+            throw new KylinRuntimeException("can not get model sql, " + e);
         }
     }
 
@@ -797,4 +815,176 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    // feign API for smart module
+
+    @PostMapping(value = "/feign/batch_save_models")
+    @ResponseBody
+    public void batchCreateModel(@RequestBody ModelSuggestionRequest request) {
+        modelService.batchCreateModel(request);
+    }
+
+    @PostMapping(value = "/feign/update_recommendations_count")
+    @ResponseBody
+    public void updateRecommendationsCount(@RequestParam("project") String project,
+                                           @RequestParam("modelId") String modelId, @RequestParam("size") int size) {
+        modelService.updateRecommendationsCount(project, modelId, size);
+    }
+
+    @PostMapping(value = "/feign/approve")
+    @ResponseBody
+    public OptRecResponse approve(@RequestParam("project") String project, @RequestBody OptRecRequest request) {
+        return modelService.approve(project, request);
+    }
+
+    @PostMapping(value = "/feign/approve_all_rec_items")
+    @ResponseBody
+    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(@RequestParam("project") String project,
+                                                                        @RequestParam("modelId") String modelId, @RequestParam("modelAlias") String modelAlias,
+                                                                        @RequestParam("recActionType") String recActionType) {
+        return modelService.approveAllRecItems(project, modelId, modelAlias, recActionType);
+    }
+
+    @PostMapping(value = "/feign/save_new_models_and_indexes")
+    @ResponseBody
+    public void saveNewModelsAndIndexes(@RequestParam("project") String project,
+                                        @RequestBody List<ModelRequest> newModels) {
+        modelService.saveNewModelsAndIndexes(project, newModels);
+    }
+
+    @PostMapping(value = "/feign/save_rec_result")
+    @ResponseBody
+    public void saveRecResult(@RequestBody SuggestionResponse modelSuggestionResponse,
+                              @RequestParam("project") String project) {
+        modelService.saveRecResult(modelSuggestionResponse, project);
+    }
+
+    @PostMapping(value = "/feign/update_models")
+    @ResponseBody
+    public void updateModels(@RequestBody List<SuggestionResponse.ModelRecResponse> reusedModels,
+                             @RequestParam("project") String project) {
+        modelService.updateModels(reusedModels, project);
+    }
+
+    // feign API for data_loading module
+
+    @PostMapping(value = "/feign/get_model_id_by_fuzzy_name")
+    @ResponseBody
+    public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
+            @RequestParam("project") String project) {
+        return modelService.getModelNamesByFuzzyName(fuzzyName, project);
+    }
+
+    @PostMapping(value = "/feign/get_model_name_by_id")
+    @ResponseBody
+    public String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project) {
+        return modelService.getModelNameById(modelId, project);
+    }
+
+    @PostMapping(value = "/feign/get_segment_by_range")
+    @ResponseBody
+    public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
+        return modelService.getSegmentsByRange(modelId, project, start, end);
+    }
+
+    @PostMapping(value = "/feign/update_second_storage_model")
+    @ResponseBody
+    public String updateSecondStorageModel(@RequestParam("project") String project,
+                                           @RequestParam("modelId") String modelId) {
+        return modelService.updateSecondStorageModel(project, modelId);
+    }
+
+    @PostMapping(value = "/feign/update_data_model_semantic")
+    @ResponseBody
+    public void updateDataModelSemantic(@RequestParam("project") String project, @RequestBody ModelRequest request) {
+        modelService.updateDataModelSemantic(project, request);
+    }
+
+    @PostMapping(value = "/feign/save_data_format_if_not_exist")
+    @ResponseBody
+    public void saveDateFormatIfNotExist(@RequestParam("project") String project,
+                                         @RequestParam("modelId") String modelId, @RequestParam("format") String format) {
+        modelService.saveDateFormatIfNotExist(project, modelId, format);
+    }
+
+    @PostMapping(value = "/feign/append_segment")
+    @ResponseBody
+    public NDataSegment appendSegment(@RequestBody AddSegmentRequest request) {
+        return modelService.appendSegment(request);
+    }
+
+    @PostMapping(value = "/feign/refresh_segment")
+    @ResponseBody
+    public NDataSegment refreshSegment(@RequestParam("project") String project,
+                                       @RequestParam("indexPlanUuid") String indexPlanUuid, @RequestParam("segmentId") String segmentId) {
+        return modelService.refreshSegment(project, indexPlanUuid, segmentId);
+    }
+
+    @PostMapping(value = "/feign/append_partitions")
+    @ResponseBody
+    public NDataSegment appendPartitions(@RequestParam("project") String project, @RequestParam("dfIF") String dfId,
+                                         @RequestParam("segId") String segId, @RequestBody List<String[]> partitionValues) {
+        return modelService.appendPartitions(project, dfId, segId, partitionValues);
+    }
+
+    @PostMapping(value = "/feign/merge_segments")
+    @ResponseBody
+    NDataSegment mergeSegments(@RequestParam("project") String project,
+                               @RequestBody MergeSegmentRequest mergeSegmentRequest) {
+        return modelService.mergeSegments(project, mergeSegmentRequest);
+    }
+
+    @PostMapping(value = "/feign/purge_model_manually")
+    @ResponseBody
+    public void purgeModelManually(@RequestParam("dataflowId") String dataflowId, @RequestParam("project") String project) {
+        modelService.purgeModelManually(dataflowId, project);
+    }
+
+    @PostMapping(value = "/feign/delete_segment_by_id")
+    @ResponseBody
+    public void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
+                                  @RequestBody String[] ids, @RequestParam("force") boolean force) {
+        modelService.deleteSegmentById(model, project, ids, force);
+    }
+
+    @PostMapping(value = "/feign/remove_indexes_from_segments")
+    @ResponseBody
+    public void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                          @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds) {
+        modelService.removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
+    }
+
+    @PostMapping(value = "/feign/update_index")
+    @ResponseBody
+    public void updateIndex(@RequestParam("project") String project, @RequestParam("epochId") long epochId,
+                            @RequestParam("modelId") String modelId, @RequestBody Set<Long> toBeDeletedLayoutIds,
+                            @RequestParam("deleteAuto") boolean deleteAuto, @RequestParam("deleteManual") boolean deleteManual) {
+        modelService.updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);
+    }
+
+    @PostMapping(value = "/feign/update_dataflow")
+    @ResponseBody
+    public void updateDataflow(@RequestBody DataFlowUpdateRequest dataFlowUpdateRequest) {
+        modelService.updateDataflow(dataFlowUpdateRequest);
+    }
+
+    @PostMapping(value = "/feign/update_dataflow_maxBucketId")
+    @ResponseBody
+    public void updateDataflow(@RequestParam("project") String project, @RequestParam("dfId") String dfId,
+            @RequestParam("segmentId") String segmentId, @RequestParam("maxBucketId") long maxBucketIt) {
+        modelService.updateDataflow(project, dfId, segmentId, maxBucketIt);
+    }
+
+    @PostMapping(value = "/feign/update_index_plan")
+    @ResponseBody
+    public void updateIndexPlan(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                                @RequestBody IndexPlan indexplan, @RequestParam("action") String action) {
+        modelService.updateIndexPlan(project, uuid, indexplan, action);
+    }
+
+    @PostMapping(value = "/feign/update_dataflow_status")
+    @ResponseBody
+    public void updateDataflowStatus(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                                     @RequestParam("status") RealizationStatusEnum status) {
+        modelService.updateDataflowStatus(project, uuid, status);
+    }
 }

@@ -29,8 +29,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -46,7 +47,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.ReflectionUtils;
 
-import io.kyligence.kap.guava20.shaded.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList;
+
 import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -56,26 +58,29 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({SecondStorageNodeHelper.class, NExecutableManager.class})
+@PrepareForTest({SecondStorageNodeHelper.class, ExecutableManager.class})
 public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private Manager<TableFlow> tableFlowManager = Mockito.mock(Manager.class);
-    private NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+    private ExecutableManager executableManager = Mockito.mock(ExecutableManager.class);
 
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void tearDown() throws Exception {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     private void prepareManger() {
-        PowerMockito.stub(PowerMockito.method(NExecutableManager.class, "getInstance", KylinConfig.class, String.class)).toReturn(executableManager);
+        PowerMockito.stub(PowerMockito.method(ExecutableManager.class, "getInstance", KylinConfig.class, String.class)).toReturn(executableManager);
     }
 
     private TableFlow prepareTableFlow() throws NoSuchFieldException {
@@ -165,12 +170,12 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void findSecondStorageJobByProject() {
         prepareManger();
-        List<String> jobs = Arrays.asList("job1", "job2");
         AbstractExecutable job1 = Mockito.mock(AbstractExecutable.class);
         AbstractExecutable job2 = Mockito.mock(AbstractExecutable.class);
+        List<AbstractExecutable> jobs = Arrays.asList(job1, job2);
         Mockito.when(job1.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD);
         Mockito.when(job2.getJobType()).thenReturn(JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
-        Mockito.when(executableManager.getJobs()).thenReturn(jobs);
+        Mockito.when(executableManager.getExecutablesByJobType(Mockito.anySet())).thenReturn(jobs);
         Mockito.when(executableManager.getJob("job1")).thenReturn(job1);
         Mockito.when(executableManager.getJob("job2")).thenReturn(job2);
         Assert.assertEquals(2, SecondStorageUtil.findSecondStorageRelatedJobByProject("test").size());

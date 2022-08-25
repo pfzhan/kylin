@@ -21,10 +21,11 @@ package org.apache.kylin.job.execution;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
 
@@ -62,8 +63,8 @@ public abstract class ExecutableHandler {
 
     public abstract void handleDiscardOrSuicidal();
 
-    protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
-        return NExecutableManager.getInstance(config, project);
+    protected ExecutableManager getExecutableManager(String project, KylinConfig config) {
+        return ExecutableManager.getInstance(config, project);
     }
 
     protected void addJob(String segmentId, JobTypeEnum jobTypeEnum) {
@@ -90,7 +91,7 @@ public abstract class ExecutableHandler {
         if (RealizationStatusEnum.ONLINE == status && isOffline) {
             dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
         } else if (RealizationStatusEnum.OFFLINE == status && !isOffline) {
-            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
+            ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(project, df.getId(), RealizationStatusEnum.ONLINE);
         }
     }
 }

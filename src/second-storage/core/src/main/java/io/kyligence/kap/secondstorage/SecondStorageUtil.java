@@ -39,18 +39,13 @@ import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.metadata.model.SegmentRange;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -60,7 +55,13 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -162,9 +163,8 @@ public class SecondStorageUtil {
 
     public static List<AbstractExecutable> findSecondStorageRelatedJobByProject(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
-        return executableManager.getJobs().stream().map(executableManager::getJob)
-                .filter(job -> RELATED_JOBS.contains(job.getJobType())).collect(Collectors.toList());
+        ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
+        return executableManager.getExecutablesByJobType(RELATED_JOBS);
     }
 
     public static void validateProjectLock(String project, List<String> requestLocks) {
@@ -174,7 +174,7 @@ public class SecondStorageUtil {
     public static void validateDisableModel(String project, String modelId) {
         validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         List<AbstractExecutable> jobs = SecondStorageUtil.findSecondStorageRelatedJobByProject(project);
-        if (jobs.stream().filter(job -> RUNNING_STATE.contains(job.getStatus()))
+        if (jobs.stream().filter(job -> RUNNING_STATE.contains(job.getStatusInMem()))
                 .anyMatch(job -> job.getTargetSubject().equals(modelId))) {
             String name = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDesc(modelId).getAlias();
@@ -380,24 +380,31 @@ public class SecondStorageUtil {
     }
 
     public static ExecutableState getJobStatus(String project, String jobId) {
-        NExecutableManager manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        return manager.getJob(jobId).getStatus();
+        ExecutableManager manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return manager.getJob(jobId).getStatusInMem();
     }
 
     public static void checkJobRestart(String project, String jobId) {
-        if (!isProjectEnable(project))
-            return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ExecutablePO executablePO = JobContextUtil.getJobInfoDao(config).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(config, project)
+                .fromPO(executablePO);
+        checkJobRestart(project, jobId, executable);
+    }
+
+    public static void checkJobRestart(String project, String jobId, AbstractExecutable abstractExecutable) {
+        if (!isProjectEnable(project)) return;
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         JobTypeEnum type = abstractExecutable.getJobType();
         boolean canRestart = type != JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
 
-        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
-                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
+        ExecutablePO jobDetail = executableManager.getExecutablePO(jobId);
+        if (null == jobDetail) {
+            throw new IllegalStateException("Job not found");
+        }
+
         if (BUILD_JOBS.contains(jobDetail.getJobType())) {
-            long finishedCount = jobDetail.getTasks().stream()
-                    .filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
             // build job can't restart when second storage step is running
             canRestart = finishedCount < 3;
         }
@@ -423,17 +430,22 @@ public class SecondStorageUtil {
             throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSegmentDropFailed());
         }
     }
-
+    
     public static void checkJobResume(String project, String jobId) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ExecutablePO executablePO = JobContextUtil.getJobInfoDao(config).getExecutablePOByUuid(jobId);
+        AbstractExecutable executable = ExecutableManager.getInstance(config, project)
+                .fromPO(executablePO);
+        checkJobResume(project, jobId, executable, executablePO);
+    }
+
+    public static void checkJobResume(String project, String jobId, AbstractExecutable abstractExecutable,
+            ExecutablePO jobDetail) {
         if (!isProjectEnable(project))
             return;
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
         JobTypeEnum type = abstractExecutable.getJobType();
         boolean secondStorageLoading = type == JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
-        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
-                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
+
         if (BUILD_JOBS.contains(jobDetail.getJobType())) {
             secondStorageLoading = true;
             long finishedCount = jobDetail.getTasks().stream()
@@ -443,9 +455,9 @@ public class SecondStorageUtil {
                 secondStorageLoading = false;
             }
         }
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream()
-                .filter(id -> id.startsWith(jobId)).count();
+        long runningJobsCount = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv())
+                .fetchAllRunningJobs(project, null, null).stream()
+                .filter(jobInfo -> jobInfo.getJobId().startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
             throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());
         }

@@ -18,11 +18,11 @@
 
 package org.apache.kylin.rest.controller;
 
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_RELOAD_PARTITION_FAILED;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
 import java.util.Locale;
@@ -31,13 +31,14 @@ import java.util.Set;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.job.service.SnapshotJobService;
 import org.apache.kylin.rest.constant.SnapshotStatus;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.request.SnapshotTableConfigRequest;
 import org.apache.kylin.rest.request.TablePartitionsRequest;
 import org.apache.kylin.rest.request.TableReloadPartitionColRequest;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.JobInfoResponse;
 import org.apache.kylin.rest.response.NInitTablesResponse;
 import org.apache.kylin.rest.response.SnapshotCheckResponse;
@@ -45,7 +46,6 @@ import org.apache.kylin.rest.response.SnapshotColResponse;
 import org.apache.kylin.rest.response.SnapshotInfoResponse;
 import org.apache.kylin.rest.response.SnapshotPartitionsResponse;
 import org.apache.kylin.rest.response.TableNameResponse;
-import org.apache.kylin.rest.service.SnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,8 +73,8 @@ public class SnapshotController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotController.class);
 
     @Autowired
-    @Qualifier("snapshotService")
-    private SnapshotService snapshotService;
+    @Qualifier("snapshotJobService")
+    private SnapshotJobService snapshotService;
 
     @ApiOperation(value = "config partition col for snapshot Tables", tags = { "AI" }, notes = "config partition col")
     @PostMapping(value = "/config")

@@ -254,7 +254,9 @@
             </scr:headers>
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="unauthorisedEntryPoint"/>
-
+            <scr:intercept-url pattern="/api/jobs/feign/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/models/feign/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/tables/feign/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/streaming_jobs/spark" access="permitAll"/>
             <scr:intercept-url pattern="/api/streaming_jobs/stats" access="permitAll"/>
             <scr:intercept-url pattern="/api/streaming_jobs/dataflow/**" access="permitAll"/>

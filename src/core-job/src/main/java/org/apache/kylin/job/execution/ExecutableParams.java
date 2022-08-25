@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.job.execution.AbstractExecutable.NOTIFY_LIST;

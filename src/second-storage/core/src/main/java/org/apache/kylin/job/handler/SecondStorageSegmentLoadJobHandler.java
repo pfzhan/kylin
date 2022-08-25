@@ -18,24 +18,11 @@
 
 package org.apache.kylin.job.handler;
 
-import org.apache.kylin.metadata.cube.model.NDataLayout;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflow;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_ADD_JOB_FAILED;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.exception.JobSubmissionException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.job.model.JobParam;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 
 import java.util.HashSet;
 import java.util.List;
@@ -43,9 +30,23 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX;
-import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.exception.JobSubmissionException;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflow;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+
 
 public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
 
@@ -91,7 +92,7 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
         checkNotNull(project);
         checkNotNull(model);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
         List<AbstractExecutable> executables = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, JobTypeEnum.EXPORT_TO_SECOND_STORAGE);
         NDataflow dataflow = dataflowManager.getDataflow(jobParam.getModel());

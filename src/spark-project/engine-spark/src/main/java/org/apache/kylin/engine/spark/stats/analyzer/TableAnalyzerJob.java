@@ -17,7 +17,7 @@
  */
 package org.apache.kylin.engine.spark.stats.analyzer;
 
-import static org.apache.kylin.engine.spark.job.StageType.TABLE_SAMPLING;
+import static org.apache.kylin.job.execution.stage.StageType.TABLE_SAMPLING;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
@@ -28,16 +28,16 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.job.TableAnalysisJob;
 import org.apache.kylin.engine.spark.job.exec.TableAnalyzerExec;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;

@@ -43,6 +43,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.apache.kylin.job.constant.JobStatusEnum;
 
 import com.google.common.base.Supplier;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -51,7 +52,7 @@ import com.google.common.collect.Multimaps;
  */
 public enum ExecutableState {
 
-    READY, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL, SKIP;
+    READY, PENDING, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL, SKIP;
 
     private static Multimap<ExecutableState, ExecutableState> VALID_STATE_TRANSFER;
 
@@ -65,11 +66,16 @@ public enum ExecutableState {
                     }
                 });
 
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.RUNNING);
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.ERROR);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PENDING);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
-        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
+
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.READY);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.RUNNING);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.ERROR);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.SUICIDAL);
+        VALID_STATE_TRANSFER.put(ExecutableState.PENDING, ExecutableState.PAUSED);
 
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.READY);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUCCEED);
@@ -91,12 +97,16 @@ public enum ExecutableState {
 
     }
 
+    public static ExecutableState[] getFinalStates() {
+        return new ExecutableState[] {SUCCEED, DISCARDED, SUICIDAL};
+    }
+
     public boolean isProgressing() {
-        return this == READY || this == RUNNING;
+        return this == READY || this == RUNNING || this == PENDING;
     }
 
     public boolean isFinalState() {
-        return this == SUCCEED || this == DISCARDED || this == SUICIDAL;
+        return Lists.newArrayList(getFinalStates()).contains(this);
     }
 
     public boolean isRunning() {
@@ -118,23 +128,25 @@ public enum ExecutableState {
 
     public JobStatusEnum toJobStatus() {
         switch (this) {
-        case SKIP:
-            return JobStatusEnum.SKIP;
-        case READY:
-            return JobStatusEnum.PENDING;
-        case RUNNING:
-            return JobStatusEnum.RUNNING;
-        case ERROR:
-            return JobStatusEnum.ERROR;
-        case SUCCEED:
-            return JobStatusEnum.FINISHED;
-        case PAUSED:
-            return JobStatusEnum.STOPPED;
-        case SUICIDAL:
-        case DISCARDED:
-            return JobStatusEnum.DISCARDED;
-        default:
-            throw new RuntimeException("invalid state:" + this);
+            case SKIP:
+                return JobStatusEnum.SKIP;
+            case READY:
+                return JobStatusEnum.READY;
+            case PENDING:
+                return JobStatusEnum.PENDING;
+            case RUNNING:
+                return JobStatusEnum.RUNNING;
+            case ERROR:
+                return JobStatusEnum.ERROR;
+            case SUCCEED:
+                return JobStatusEnum.FINISHED;
+            case PAUSED:
+                return JobStatusEnum.STOPPED;
+            case SUICIDAL:
+            case DISCARDED:
+                return JobStatusEnum.DISCARDED;
+            default:
+                throw new RuntimeException("invalid state:" + this);
         }
     }
 }

@@ -564,3 +564,6 @@ kylin.env.log-rotate-check-cron,String,日志滚动的 cron 表达式,cron for l
 kylin.env.log-rotate-enabled,boolean,是否开启日志滚动,whether to enable log rotate,FALSE,TRUE
 kylin.model.measure-name-check-enabled,boolean,是否校验度量名称,whether to validate measure's name,FALSE,TRUE
 kylin.security.acl.row-filter-limit-threshold,int,行级权限过滤条件的最大个数,max count for row filter values,FALSE,TRUE
+kyligence.kyiam.sdk.tenant-id,string,iam 租户ID,iam tenant id,TRUE,TRUE
+kyligence.kyiam.sdk.security.gateway-path-filter.ignore-url,string,,iam gateway ignore url,TRUE,TRUE
+kyligence.kyiam.sdk.security.gateway-path-filter.forbid-url,string,,iam gateway forbid url,TRUE,TRUE

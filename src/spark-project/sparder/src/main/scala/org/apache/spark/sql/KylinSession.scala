@@ -18,15 +18,12 @@
 
 package org.apache.spark.sql
 
-import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter, PrintWriter}
-import java.net.URI
-import java.nio.file.Paths
-import org.apache.kylin.query.util.ExtractFactory
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
+import org.apache.kylin.common.util.{AddressUtil, HadoopUtil, Unsafe}
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.common.util.{HadoopUtil, Unsafe}
 import org.apache.kylin.metadata.query.BigQueryThresholdUpdater
+import org.apache.kylin.query.util.ExtractFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
@@ -38,8 +35,11 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.expression.common.TemplateParserContext
 import org.springframework.expression.spel.standard.SpelExpressionParser
 
-import java.util
+import java.io._
+import java.net.URI
+import java.nio.file.Paths
 import scala.collection.JavaConverters._
+
 
 class KylinSession(
                     @transient val sc: SparkContext,
@@ -227,7 +227,13 @@ object KylinSession extends Logging {
         sparkConf.set("hive.metastore.sasl.enabled", "true")
       }
 
-      kapConfig.getSparkConf.asScala.foreach {
+      // job node init with spark local mode, ignore the spark.master
+      val isLocalMode = sparkConf.get("spark.master").startsWith("local")
+      kapConfig.getSparkConf.asScala.foreach{
+        case (k, v) =>
+          sparkConf.set(k, v)
+      }
+      kapConfig.getSparkConf.asScala.filterKeys(isLocalMode && !"spark.master".equals(_)).foreach {
         case (k, v) =>
           sparkConf.set(k, v)
       }
@@ -272,6 +278,13 @@ object KylinSession extends Logging {
         } else {
           sparkConf.set("spark.jars", kapConfig.sparderJars)
           sparkConf.set("spark.files", kapConfig.sparderFiles())
+        }
+
+        // spark on k8s with client mode, set the spark.driver.host = local ip
+        if (sparkConf.get("spark.master").startsWith("k8s") && "client".equals(sparkConf.get("spark.submit.deployMode", "client"))) {
+          if (!sparkConf.contains("spark.driver.host")) {
+            sparkConf.set("spark.driver.host", AddressUtil.getLocalHostExactAddress)
+          }
         }
 
         val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath

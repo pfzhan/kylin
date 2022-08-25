@@ -27,7 +27,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
@@ -35,6 +34,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.cube.model.SegmentPartition;
 import org.apache.kylin.metadata.model.ManagementType;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
 
@@ -78,8 +79,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
             return;
         }
 
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        dfManager.updateDataflowStatus(dataflow.getId(), RealizationStatusEnum.LAG_BEHIND);
+        ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(project, dataflow.getId(), RealizationStatusEnum.LAG_BEHIND);
     }
 
     private NDataflow getDataflow(String jobId) {
@@ -157,7 +157,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
             return false;
         }
         val model = ((DefaultChainedExecutableOnModel) parent).getTargetModel();
-        return NExecutableManager.getInstance(getConfig(), getProject()).countCuttingInJobByModel(model, parent) > 0;
+        return ExecutableManager.getInstance(getConfig(), getProject()).countCuttingInJobByModel(model, parent) > 0;
     }
 
     @Override

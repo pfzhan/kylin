@@ -33,12 +33,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TempMetadataBuilder;
-import org.apache.kylin.engine.spark.job.NSparkMergingJob;
-import org.apache.kylin.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
-import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.execution.NSparkMergingJob;
+import org.apache.kylin.job.execution.merger.AfterMergeOrRefreshResourceMerger;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -154,14 +153,10 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void init() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+
+        JobContextUtil.getJobContextForTest(getTestConfig());
     }
 
     public static void populateSSWithCSVData(KylinConfig kylinConfig, String project, SparkSession sparkSession) {
@@ -290,7 +285,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                 SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
         NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
                 RandomUtil.randomUUIDStr());
-        NExecutableManager execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+
+        ExecutableManager execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
         // launch the job
         execMgr.addJob(job);
 

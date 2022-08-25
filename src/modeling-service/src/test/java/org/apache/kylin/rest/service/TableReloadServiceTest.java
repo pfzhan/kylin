@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -46,11 +45,13 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.engine.spark.job.NSparkCubingJob;
-import org.apache.kylin.engine.spark.job.NTableSamplingJob;
+import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.NSparkCubingJob;
+import org.apache.kylin.job.execution.NTableSamplingJob;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -73,7 +74,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.rest.constant.Constant;
@@ -98,8 +98,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.clickhouse.MockSecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -145,6 +143,15 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
 
+        JobContextUtil.cleanUp();
+        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
+        try {
+            // need not start job scheduler
+            jobContext.destroy();
+        } catch (Exception e) {
+            log.error("Destroy jobContext failed.");
+            throw new RuntimeException("Destroy jobContext failed.", e);
+        }
     }
 
     @After
@@ -157,6 +164,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         super.cleanup();
+        JobContextUtil.cleanUp();
     }
 
     @Test
@@ -315,7 +323,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }, false);
 
         val jobs = tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
-        val execManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        val execManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         val executables = execManager.getRunningExecutables(PROJECT, MODEL_ID);
         val indexPlan = indexManager.getIndexPlan(MODEL_ID);
         Assert.assertEquals(
@@ -1048,7 +1056,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCheckEffectedJobs() throws Exception {
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         AbstractExecutable job1 = new NTableSamplingJob();
         job1.setTargetSubject("DEFAULT.TEST_ORDER");
         job1.setJobType(JobTypeEnum.TABLE_SAMPLING);
@@ -1528,32 +1536,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());
-    }
-
-    @Test
-    public void testReloadTableWithSecondStorage() throws Exception {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
-        removeColumn(tableIdentity, "IS_EFFECTUAL");
-        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
-
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
     }
 
     @Test

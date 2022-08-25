@@ -21,6 +21,8 @@ package org.apache.kylin.job.execution;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.kylin.job.JobContext;
+
 /**
  */
 public class SucceedTestExecutable extends BaseTestExecutable {
@@ -34,12 +36,8 @@ public class SucceedTestExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) {
-        Map<String, String> info = new HashMap<String, String>() {
-            {
-                put("runningStatus", "inRunning");
-            }
-        };
+    protected ExecuteResult doWork(JobContext context) {
+        Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};
         updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, info, null, null);
         try {
             Thread.sleep(1000);

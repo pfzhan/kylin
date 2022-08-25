@@ -18,7 +18,7 @@
 
 package org.apache.kylin.engine.spark.job;
 
-import static org.apache.kylin.engine.spark.job.StageType.SNAPSHOT_BUILD;
+import static org.apache.kylin.job.execution.stage.StageType.SNAPSHOT_BUILD;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,15 +32,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringSplitter;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.builder.SnapshotBuilder;
 import org.apache.kylin.engine.spark.builder.SnapshotPartitionBuilder;
@@ -49,6 +45,10 @@ import org.apache.kylin.engine.spark.utils.FileNames;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

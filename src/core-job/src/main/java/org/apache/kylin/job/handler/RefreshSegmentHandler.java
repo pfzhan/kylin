@@ -20,14 +20,20 @@ package org.apache.kylin.job.handler;
 
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.cube.model.NDataSegDetails;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 
 import com.google.common.collect.Sets;
 
@@ -56,7 +62,9 @@ public class RefreshSegmentHandler extends AbstractJobHandler {
             });
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setToUpdateSegs(segment);
-            dfm.updateDataflow(dfUpdate);
+            List<NDataSegDetails> segDetails = Collections.singletonList(segment.getSegDetails());
+            ModelMetadataBaseInvoker.getInstance().updateDataflow(new DataFlowUpdateRequest(segment.getProject(),
+                    dfUpdate, segDetails.toArray(new NDataSegDetails[0]), new Integer[] { 0 }));
         }
 
         return JobFactory.createJob(CUBE_JOB_FACTORY,
