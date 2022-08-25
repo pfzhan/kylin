@@ -225,26 +225,31 @@ public class ExecutableManager {
         }
     }
 
+    // checked invoked by job-tx
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus) {
         updateJobOutput(taskOrJobId, newStatus, null, null, null);
     }
 
+    // checked invoked by job-tx
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, null, null);
     }
 
+    // checked invoked by job-tx
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-                                Set<String> removeInfo, String output) {
+            Set<String> removeInfo, String output) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, 0);
     }
 
+    // checked invoked by job-tx
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-                                Set<String> removeInfo, String output, long byteSize) {
+            Set<String> removeInfo, String output, long byteSize) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, byteSize, null);
     }
 
+    // checked invoked by job-tx
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-                                Set<String> removeInfo, String output, long byteSize, String failedMsg) {
+            Set<String> removeInfo, String output, long byteSize, String failedMsg) {
         val jobId = extractJobId(taskOrJobId);
         jobInfoDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
@@ -326,18 +331,18 @@ public class ExecutableManager {
         }
 
         switch (newStatus) {
-            case RUNNING:
-                jobOutput.addStartTime(time);
-                jobOutput.addLastRunningStartTime(time);
-                break;
-            case SKIP:
-            case SUICIDAL:
-            case DISCARDED:
-                jobOutput.addStartTime(time);
-                jobOutput.addEndTime(time);
-                break;
-            default:
-                break;
+        case RUNNING:
+            jobOutput.addStartTime(time);
+            jobOutput.addLastRunningStartTime(time);
+            break;
+        case SKIP:
+        case SUICIDAL:
+        case DISCARDED:
+            jobOutput.addStartTime(time);
+            jobOutput.addEndTime(time);
+            break;
+        default:
+            break;
         }
     }
 
@@ -597,10 +602,9 @@ public class ExecutableManager {
         return jobOutput;
     }
 
-
     /** just used to update job error mess */
     public void updateJobError(String taskOrJobId, String failedStepId, String failedSegmentId, String failedStack,
-                               String failedReason) {
+            String failedReason) {
         val jobId = extractJobId(taskOrJobId);
 
         jobInfoDao.updateJob(jobId, job -> {
@@ -615,7 +619,7 @@ public class ExecutableManager {
         });
     }
 
-    public void resumeJob(String jobId){
+    public void resumeJob(String jobId) {
         resumeJob(jobId, false);
     }
 
@@ -643,7 +647,8 @@ public class ExecutableManager {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream()
-                    .filter(task -> task.getStatusInMem().isNotProgressing() || task.getStatusInMem() == ExecutableState.RUNNING)
+                    .filter(task -> task.getStatusInMem().isNotProgressing()
+                            || task.getStatusInMem() == ExecutableState.RUNNING)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
@@ -656,7 +661,7 @@ public class ExecutableManager {
                                     .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.RUNNING
                                             || stage.getStatusInMem(entry.getKey()).isNotProgressing())//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
                         }
                     }
                 }
@@ -674,8 +679,7 @@ public class ExecutableManager {
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream()
-                    .filter(task -> task.getStatusInMem() == ExecutableState.READY)
+            tasks.stream().filter(task -> task.getStatusInMem() == ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
@@ -687,7 +691,7 @@ public class ExecutableManager {
                                     .stream() //
                                     .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.READY)//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
                         }
                     }
                 }
@@ -699,12 +703,12 @@ public class ExecutableManager {
 
     /** just used to update stage */
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
-                                  Map<String, String> updateInfo, String failedMsg) {
+            Map<String, String> updateInfo, String failedMsg) {
         updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, failedMsg, false);
     }
 
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
-                                  Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
+            Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         val jobId = extractJobId(taskOrJobId);
         jobInfoDao.updateJob(jobId, job -> {
             final List<Map<String, List<ExecutablePO>>> collect = job.getTasks().stream()//
@@ -751,7 +755,7 @@ public class ExecutableManager {
     }
 
     public boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
-                                  Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
+            Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
         if (newStatus != null && oldStatus != newStatus) {
             if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
@@ -783,7 +787,7 @@ public class ExecutableManager {
     }
 
     public void restartJob(String jobId) {
-        JobContextUtil.withTxAndRetry(()->{
+        JobContextUtil.withTxAndRetry(() -> {
             restartJob(jobId, getJob(jobId));
             return true;
         });
@@ -840,7 +844,7 @@ public class ExecutableManager {
                                     .stream()//
                                     .filter(stage -> stage.getStatusInMem(entry.getKey()) != ExecutableState.READY)
                                     .forEach(stage -> // when restart, reset stage
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null, true));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null, true));
                         }
                     }
                 }
@@ -871,7 +875,7 @@ public class ExecutableManager {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
                         }
                     }
                 }
@@ -890,18 +894,22 @@ public class ExecutableManager {
 
     // for ut
     public void pauseJob(String jobId, ExecutablePO executablePO, AbstractExecutable job) {
-        if (job == null) {
-            return;
-        }
-        if (!job.getStatusInMem().isProgressing()) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatusInMem());
-        }
-        updateStagePaused(job);
-        Map<String, String> info = getWaiteTime(executablePO, job);
-        updateJobOutput(jobId, ExecutableState.PAUSED, info, null, null, 0, null);
-        // pauseJob may happen when the job has not been scheduled
-        // then call this hook after updateJobOutput
-        job.onExecuteStopHook();
+        JobContextUtil.withTxAndRetry(() -> {
+            if (job == null) {
+                return false;
+            }
+            if (!job.getStatusInMem().isProgressing()) {
+                throw new KylinException(JOB_UPDATE_STATUS_FAILED, "PAUSE", jobId, job.getStatusInMem());
+            }
+            updateStagePaused(job);
+            Map<String, String> info = getWaiteTime(executablePO, job);
+            updateJobOutput(jobId, ExecutableState.PAUSED, info, null, null, 0, null);
+            // pauseJob may happen when the job has not been scheduled
+            // then call this hook after updateJobOutput
+            job.onExecuteStopHook();
+
+            return true;
+        });
     }
 
     public void errorJob(String jobId) {
@@ -925,7 +933,7 @@ public class ExecutableManager {
                                     .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.ERROR
                                             && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
                         }
                     }
                 }
@@ -983,7 +991,8 @@ public class ExecutableManager {
                                     .orElse(Lists.newArrayList());
                             if (CollectionUtils.isNotEmpty(stageBases)) {
                                 final StageBase firstStage = stageBases.get(0);
-                                val firstStageStartTime = getOutput(firstStage.getId(), executablePO, segmentId).getStartTime();
+                                val firstStageStartTime = getOutput(firstStage.getId(), executablePO, segmentId)
+                                        .getStartTime();
                                 val stageWaiteTIme = firstStageStartTime - taskStartTime > 0
                                         ? firstStageStartTime - taskStartTime
                                         : 0;
@@ -1003,14 +1012,14 @@ public class ExecutableManager {
     }
 
     public void discardJob(String jobId) {
-        JobContextUtil.withTxAndRetry(()->{
+        JobContextUtil.withTxAndRetry(() -> {
             discardJob(jobId, getJob(jobId));
             return true;
         });
     }
 
     public void deleteAllJobsOfProject() {
-        JobContextUtil.withTxAndRetry(() ->{
+        JobContextUtil.withTxAndRetry(() -> {
             jobInfoDao.deleteJobsByProject(project);
             return true;
         });
@@ -1072,7 +1081,7 @@ public class ExecutableManager {
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUCCEED, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUCCEED, null, null));
                         }
                     }
                 }
@@ -1097,7 +1106,7 @@ public class ExecutableManager {
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//
                                     .forEach(stage -> //
-                                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
                         }
                     }
                 }
@@ -1138,7 +1147,7 @@ public class ExecutableManager {
         }
         return ret;
     }
-    
+
     private List<ExecutablePO> getExecutablePOByModelId(String project, String modelId) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
@@ -1160,13 +1169,13 @@ public class ExecutableManager {
     }
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                                                            JobTypeEnum... jobTypes) {
+            JobTypeEnum... jobTypes) {
         return listExecutablePOByModelAndStatus(model, predicate, jobTypes).stream().map(this::fromPO)
                 .collect(Collectors.toList());
     }
 
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                               List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+            List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
         boolean allPass = Array.isEmpty(jobTypes);
         return jobs.stream() //
                 .filter(job -> job.getTargetModel() != null) //
@@ -1257,7 +1266,8 @@ public class ExecutableManager {
     }
 
     public List<AbstractExecutable> getExecutablesByJobType(Set<JobTypeEnum> RELATED_JOBS) {
-        List<String> jobTypeNames = RELATED_JOBS.stream().map(jobTypeEnum -> jobTypeEnum.name()).collect(Collectors.toList());
+        List<String> jobTypeNames = RELATED_JOBS.stream().map(jobTypeEnum -> jobTypeEnum.name())
+                .collect(Collectors.toList());
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setJobNames(jobTypeNames);
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
@@ -1269,13 +1279,12 @@ public class ExecutableManager {
         return jobInfoDao.getExecutablePOByUuid(jobId);
     }
 
-
     public List<String> getJobs() {
         return getAllJobs().stream().sorted(Comparator.comparing(ExecutablePO::getCreateTime))
                 .sorted(Comparator.comparing(ExecutablePO::getPriority)).map(RootPersistentEntity::resourceName)
                 .collect(Collectors.toList());
     }
-    
+
     public List<ExecutablePO> getAllJobs() {
         return jobInfoDao.getJobs(project);
     }
@@ -1380,7 +1389,7 @@ public class ExecutableManager {
 
             FileStatus fileStatus = fs.getFileStatus(path);
             try (FSDataInputStream din = fs.open(path);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(din, Charset.defaultCharset()))) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(din, Charset.defaultCharset()))) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();
@@ -1420,8 +1429,8 @@ public class ExecutableManager {
 
             FileStatus lastFileStatus = fs.getFileStatus(lPath);
             try (FSDataInputStream fdin = fs.open(fPath);
-                 BufferedReader fReader = new BufferedReader(new InputStreamReader(fdin, Charset.defaultCharset()));
-                 FSDataInputStream ldin = fs.open(lPath)) {
+                    BufferedReader fReader = new BufferedReader(new InputStreamReader(fdin, Charset.defaultCharset()));
+                    FSDataInputStream ldin = fs.open(lPath)) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();
@@ -1458,7 +1467,7 @@ public class ExecutableManager {
      * @throws IOException
      */
     private String tailHdfsFileInputStream(FSDataInputStream hdfsDin, final long startPos, final long endPos,
-                                           final int nLines) throws IOException {
+            final int nLines) throws IOException {
         Preconditions.checkNotNull(hdfsDin);
         Preconditions.checkArgument(startPos < endPos && startPos >= 0);
         Preconditions.checkArgument(nLines >= 0);
@@ -1656,7 +1665,7 @@ public class ExecutableManager {
     }
 
     public long getMaxDurationRunningExecDurationByModel(String modelId, List<ExecutablePO> jobs,
-                                                         JobTypeEnum... jobTypes) {
+            JobTypeEnum... jobTypes) {
         List<ExecutablePO> executables = listExecutablePOByModelAndStatus(modelId,
                 state -> ExecutableState.RUNNING == state, jobs, jobTypes);
         if (CollectionUtils.isEmpty(executables)) {

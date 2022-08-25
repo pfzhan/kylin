@@ -133,15 +133,14 @@ public class JobContextUtil {
         }
     }
 
-    private static void addPluginForSqlSessionManager(SqlSessionManager sqlSessionManager){
+    private static void addPluginForSqlSessionManager(SqlSessionManager sqlSessionManager) {
         List<Interceptor> interceptors = sqlSessionManager.getConfiguration().getInterceptors();
 
-        if (!interceptors.contains(jobTableInterceptor)){
+        if (!interceptors.contains(jobTableInterceptor)) {
             sqlSessionManager.getConfiguration().addInterceptor(jobTableInterceptor);
         }
 
     }
-
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource) throws SQLException, IOException {
         log.info("Start to build data loading SqlSessionFactory");
@@ -164,8 +163,8 @@ public class JobContextUtil {
         ResourcePatternResolver resourceResolver = new PathMatchingResourcePatternResolver();
         Resource[] resources = resourceResolver.getResources("classpath:/mybatis-mapper/*Mapper.xml");
         for (Resource resource : resources) {
-            XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(resource.getInputStream(),
-                    configuration, resource.toString(), configuration.getSqlFragments());
+            XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(resource.getInputStream(), configuration,
+                    resource.toString(), configuration.getSqlFragments());
             xmlMapperBuilder.parse();
         }
     }
@@ -249,7 +248,15 @@ public class JobContextUtil {
     }
 
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer) {
-        DataSourceTransactionManager txManager = SpringContext.getBean(DataSourceTransactionManager.class);
-        return JdbcUtil.withTxAndRetry(txManager, consumer);
+        return withTxAndRetry(consumer, 3);
+    }
+
+    public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer, int retryLimit) {
+        DataSourceTransactionManager txManager = transactionManager;
+        if (txManager == null) {
+            // not init, use spring-context
+            txManager = SpringContext.getBean(DataSourceTransactionManager.class);
+        }
+        return JdbcUtil.withTxAndRetry(txManager, consumer, retryLimit);
     }
 }

@@ -190,8 +190,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     public void waiteForResourceStart(JobContext context) {
         // mark waiteForResource stage start
-        getExecutableManager(getProject()) //
-                .updateStageStatus(getId() + "_00", null, ExecutableState.RUNNING, null, null);
+        JobContextUtil.withTxAndRetry(() -> {
+            getExecutableManager(getProject()) //
+                    .updateStageStatus(getId() + "_00", null, ExecutableState.RUNNING, null, null);
+
+            return true;
+        });
     }
 
     @Override
@@ -243,7 +247,11 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
         if (!isResumable()) {
             // set resumable when metadata and props attached
-            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
+            JobContextUtil.withTxAndRetry(() -> {
+                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
+
+                return true;
+            });
         }
 
         sparkJobHandler.prepareEnviroment(project, jobId, getParams());
@@ -401,7 +409,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             if (StringUtils.isNotEmpty(updateInfo.get("process_id"))) {
                 try {
                     updateInfo.remove("output");
-                    JdbcUtil.withTransaction(JobContextUtil.getTransactionManager(getConfig()), () -> {
+                    JobContextUtil.withTxAndRetry(() -> {
                         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .updateJobOutput(getParentId(), getStatus(), updateInfo, null, null);
                         return null;

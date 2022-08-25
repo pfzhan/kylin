@@ -194,12 +194,12 @@ public class JdbcJobScheduler implements JobScheduler {
                     return;
                 }
 
-                if (JobCheckUtil.markSuicideJob(jobId, jobContext)){
+                if (JobCheckUtil.markSuicideJob(jobId, jobContext)) {
                     logger.info("suicide job = {} on produce", jobId);
                     continue;
                 }
 
-                JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
+                JobContextUtil.withTxAndRetry(() -> {
                     int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
                     if (r > 0) {
                         JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
@@ -276,7 +276,7 @@ public class JdbcJobScheduler implements JobScheduler {
     private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId) {
         try {
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-            if (jobInfo == null){
+            if (jobInfo == null) {
                 logger.warn("can not find job info {}", jobId);
                 jobContext.getJobLockMapper().removeLock(jobId, null);
                 return null;
@@ -350,7 +350,8 @@ public class JdbcJobScheduler implements JobScheduler {
         return jobLock;
     }
 
-    private boolean checkJobStatusBeforeExecute(AbstractJobExecutable jobExecutable, JdbcJobLock jobLock) throws LockException {
+    private boolean checkJobStatusBeforeExecute(AbstractJobExecutable jobExecutable, JdbcJobLock jobLock)
+            throws LockException {
         AbstractExecutable executable = (AbstractExecutable) jobExecutable;
         ExecutableState jobStatus = executable.getStatus();
         if (ExecutableState.PENDING == jobStatus) {

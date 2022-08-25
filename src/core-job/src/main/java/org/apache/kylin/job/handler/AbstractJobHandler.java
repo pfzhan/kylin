@@ -94,7 +94,10 @@ public abstract class AbstractJobHandler {
                     .flatMap(j -> j.getDependencies(kylinConfig).stream()).collect(Collectors.toSet());
             Map<String, String> info = Maps.newHashMap();
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
-            executableManager.updateJobOutput(po.getId(), null, info, null, null);
+            JobContextUtil.withTxAndRetry(() -> {
+                executableManager.updateJobOutput(po.getId(), null, info, null, null);
+                return true;
+            });
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
             JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
         }

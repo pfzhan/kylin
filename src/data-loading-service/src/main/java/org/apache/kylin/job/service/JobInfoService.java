@@ -378,7 +378,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
     public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
         for (String project : projectService.getOwnedProjects()) {
             aclEvaluate.checkProjectOperationPermission(project);
-            batchDropJob0(project, jobIds, filterStatuses);
+            JobContextUtil.withTxAndRetry(() -> {
+                batchDropJob0(project, jobIds, filterStatuses);
+                return true;
+            });
         }
     }
 
@@ -402,7 +405,11 @@ public class JobInfoService extends BasicService implements JobSupporter {
         logger.info("Owned projects is {}", projectService.getOwnedProjects());
         for (String project : projectService.getOwnedProjects()) {
             aclEvaluate.checkProjectOperationPermission(project);
-            batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
+            JobContextUtil.withTxAndRetry(() -> {
+                batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
+
+                return true;
+            });
         }
     }
 
@@ -504,7 +511,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
         extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
 
-        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+        JobContextUtil.withTxAndRetry(() -> {
+            executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+            return true;
+        });
     }
 
     public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
@@ -517,7 +527,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
             return;
         }
 
-        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+        JobContextUtil.withTxAndRetry(() -> {
+            executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+            return true;
+        });
     }
 
     public String getJobOutput(String project, String jobId) {
@@ -915,24 +928,24 @@ public class JobInfoService extends BasicService implements JobSupporter {
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();
         switch (status) {
-            case SUICIDAL:
-            case DISCARDED:
-                return ExecutableState.SUICIDAL;
-            case ERROR:
-                return ExecutableState.ERROR;
-            case FINISHED:
-                return ExecutableState.SUCCEED;
-            case NEW:
-            case READY:
-                return ExecutableState.READY;
-            case PENDING:
-                return ExecutableState.PENDING;
-            case RUNNING:
-                return ExecutableState.RUNNING;
-            case STOPPED:
-                return ExecutableState.PAUSED;
-            default:
-                throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
+        case SUICIDAL:
+        case DISCARDED:
+            return ExecutableState.SUICIDAL;
+        case ERROR:
+            return ExecutableState.ERROR;
+        case FINISHED:
+            return ExecutableState.SUCCEED;
+        case NEW:
+        case READY:
+            return ExecutableState.READY;
+        case PENDING:
+            return ExecutableState.PENDING;
+        case RUNNING:
+            return ExecutableState.RUNNING;
+        case STOPPED:
+            return ExecutableState.PAUSED;
+        default:
+            throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
         }
     }
 

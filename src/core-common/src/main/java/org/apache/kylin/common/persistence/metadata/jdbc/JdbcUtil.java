@@ -57,12 +57,20 @@ public class JdbcUtil {
         return withTxAndRetry(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ, 3);
     }
 
+    public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer, int retryLimit){
+        return withTxAndRetry(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ, retryLimit);
+    }
+
+    public static boolean isInExistingTx(){
+        return txThreadLocal.get() != null;
+    }
+
     public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer,
             int isolationLevel, int retryLimit) {
         boolean inExistingTx = false;
         int retryCount = 0;
         try {
-            inExistingTx = txThreadLocal.get() != null;
+            inExistingTx = isInExistingTx();
             if (!inExistingTx) {
                 txThreadLocal.set(new Object());
             }

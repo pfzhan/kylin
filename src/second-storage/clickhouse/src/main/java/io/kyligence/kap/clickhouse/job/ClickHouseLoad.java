@@ -365,7 +365,10 @@ public class ClickHouseLoad extends AbstractExecutable {
         info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, saveEmpty ? LoadContext.emptyState() : loadContext.serializeToString());
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val manager = this.getManager();
-            manager.updateJobOutput(getParentId(), null, info, null, null);
+            JobContextUtil.withTxAndRetry(() -> {
+                manager.updateJobOutput(getParentId(), null, info, null, null);
+                return true;
+            });
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }

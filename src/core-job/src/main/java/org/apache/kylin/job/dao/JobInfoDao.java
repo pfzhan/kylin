@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -98,6 +99,11 @@ public class JobInfoDao {
     }
 
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
+
+        if(!KylinConfig.getInstanceFromEnv().isUTEnv() && !JdbcUtil.isInExistingTx()){
+            throw new RuntimeException("not in tx");
+        }
+
         JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);
         Preconditions.checkNotNull(jobInfo);
         val job = JobInfoUtil.deserializeExecutablePO(jobInfo);
@@ -110,6 +116,7 @@ public class JobInfoDao {
             if (updateAffect == 0) {
                 String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
                         job.getId(), jobInfo.getMvcc());
+                logger.warn(errorMeg);
                 throw new OptimisticLockingFailureException(errorMeg);
             }
         }

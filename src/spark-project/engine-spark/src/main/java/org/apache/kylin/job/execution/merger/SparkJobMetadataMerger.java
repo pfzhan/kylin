@@ -90,11 +90,17 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         for (NDataLayout dataCuboid : addOrUpdateCuboids) {
             byteSize += dataCuboid.getByteSize();
         }
+        Long byteSizeWrapper = byteSize;
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         long startOfDay = TimeUtil.getDayStart(buildEndTime);
-        // update
-        ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
-        executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null, byteSize);
+        JobContextUtil.withTxAndRetry(() -> {
+            // update
+            ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
+            executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null,
+                    byteSizeWrapper.longValue());
+
+            return true;
+        });
         JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, model, duration, byteSize, 0);
     }
 
