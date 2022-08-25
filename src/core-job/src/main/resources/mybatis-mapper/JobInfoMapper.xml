@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="io.kyligence.kap.job.mapper.JobInfoMapper">
-  <resultMap id="BaseResultMap" type="io.kyligence.kap.job.domain.JobInfo">
+<mapper namespace="org.apache.kylin.job.mapper.JobInfoMapper">
+  <resultMap id="BaseResultMap" type="org.apache.kylin.job.domain.JobInfo">
     <id column="id" jdbcType="BIGINT" property="id" />
     <id column="mvcc" jdbcType="BIGINT" property="mvcc" />
     <result column="job_id" jdbcType="VARCHAR" property="jobId" />
@@ -14,7 +14,7 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
     <result column="job_duration_millis" jdbcType="BIGINT" property="jobDurationMillis" />
   </resultMap>
-  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="io.kyligence.kap.job.domain.JobInfo">
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="org.apache.kylin.job.domain.JobInfo">
     <result column="job_content" jdbcType="LONGVARBINARY" property="jobContent" />
   </resultMap>
   <sql id="Base_Column_List">
@@ -27,7 +27,7 @@
   <delete id="deleteAllJob">
     delete from ${jobInfoTable}
   </delete>
-  <insert id="insert" parameterType="io.kyligence.kap.job.domain.JobInfo">
+  <insert id="insert" parameterType="org.apache.kylin.job.domain.JobInfo">
     insert into ${jobInfoTable} (id, job_id, job_type, 
       job_status, project, subject, 
       model_id, create_time, update_time, 
@@ -56,7 +56,7 @@
     delete from ${jobInfoTable}
     where project = #{project,jdbcType=VARCHAR}
   </delete>
-  <insert id="insertJobInfoSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+  <insert id="insertJobInfoSelective" parameterType="org.apache.kylin.job.domain.JobInfo">
     insert into ${jobInfoTable}
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="jobId != null">
@@ -137,7 +137,7 @@
     from ${jobInfoTable}
     where job_id = #{jobId,jdbcType=VARCHAR}
   </select>
-  <update id="updateByJobIdSelective" parameterType="io.kyligence.kap.job.domain.JobInfo">
+  <update id="updateByJobIdSelective" parameterType="org.apache.kylin.job.domain.JobInfo">
     update ${jobInfoTable}
     <set>
       <if test="jobType != null">
@@ -178,7 +178,7 @@
     ORDER BY create_time ASC
 	LIMIT #{batchSize,jdbcType=SMALLINT}
   </select>
-  <select id="selectByJobFilter" parameterType="io.kyligence.kap.job.rest.JobMapperFilter" resultMap="ResultMapWithBLOBs">
+  <select id="selectByJobFilter" parameterType="org.apache.kylin.job.rest.JobMapperFilter" resultMap="ResultMapWithBLOBs">
     select
     <include refid="Base_Column_List" />
     ,
