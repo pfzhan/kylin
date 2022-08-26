@@ -3484,7 +3484,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public double getJobSchedulerMasterRenewalRatio() {
-        return Double.parseDouble(this.getOptional("kylin.job.scheduler.master-lock-renew-ratio", "0.85"));
+        return Double.parseDouble(this.getOptional("kylin.job.master-lock-renew-ratio", "0.85"));
     }
 
     public long getJobSchedulerMasterRenewalSec() {
@@ -3492,7 +3492,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getJobSchedulerMasterPollIntervalSec() {
-        return Long.parseLong(this.getOptional("kylin.job.scheduler.master-poll-interval-second", "30"));
+        return Long.parseLong(this.getOptional("kylin.job.master-poll-interval-second", "30"));
     }
 
     public int getJobSchedulerMasterPollBatchSize() {
@@ -3512,7 +3512,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getParallelJobCountThreshold() {
-        return Integer.parseInt(this.getOptional("kylin.job.master-produce-job-size", "20"));
+        return Integer.parseInt(this.getOptional("kylin.job.parallel-job-size", "20"));
     }
 
     public int getJobLockClientRenewalMaxThreads() {
