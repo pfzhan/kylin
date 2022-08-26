@@ -119,7 +119,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;

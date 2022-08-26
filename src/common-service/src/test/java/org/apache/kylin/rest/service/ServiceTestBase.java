@@ -72,7 +72,7 @@ import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
-@WebAppConfiguration(value = "../yinglong-common-service/src/main/resources")
+@WebAppConfiguration(value = "../common-service/src/test/resources")
 @TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @TestPropertySource(properties = {"spring.session.store-type = NONE"})
 @ActiveProfiles({ "testing", "test" })

@@ -29,7 +29,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.delegate.JobMetadataDelegate;
@@ -78,7 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
-@PowerMockIgnore({ "javax.management.*", "javax.script.*" })
+@PowerMockIgnore({ "javax.management.*", "javax.script.*", "org.apache.hadoop.*", "javax.security.*", "java.security.*", "com.sun.security.*" })
 @Slf4j
 public class TableReloadServiceWithSecondStorageTest extends NLocalFileMetadataTestCase {
 

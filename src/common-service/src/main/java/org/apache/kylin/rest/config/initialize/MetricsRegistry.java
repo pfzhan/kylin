@@ -42,7 +42,7 @@ import org.apache.kylin.common.metrics.MetricsTag;
 import org.apache.kylin.common.metrics.prometheus.PrometheusMetrics;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.scheduler.EventBusFactory;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableManager;

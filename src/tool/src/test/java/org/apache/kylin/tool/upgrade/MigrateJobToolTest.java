@@ -98,17 +98,17 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
 
             switch (job.getJobType()) {
                 case INDEX_BUILD:
-                    Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableAddCuboidHandler",
+                    Assert.assertEquals("org.apache.kylin.job.execution.handler.ExecutableAddCuboidHandler",
                             job.getHandler().getClass().getName());
                     break;
                 case INC_BUILD:
-                    Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableAddSegmentHandler",
+                    Assert.assertEquals("org.apache.kylin.job.execution.handler.ExecutableAddSegmentHandler",
                             job.getHandler().getClass().getName());
                     break;
                 case INDEX_REFRESH:
                 case SUB_PARTITION_REFRESH:
                 case INDEX_MERGE:
-                    Assert.assertEquals("io.kyligence.kap.job.execution.handler.ExecutableMergeOrRefreshHandler",
+                    Assert.assertEquals("org.apache.kylin.job.execution.handler.ExecutableMergeOrRefreshHandler",
                             job.getHandler().getClass().getName());
                     break;
                 default:

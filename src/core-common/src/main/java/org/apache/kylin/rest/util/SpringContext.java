@@ -34,7 +34,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.common.util;
+package org.apache.kylin.rest.util;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;

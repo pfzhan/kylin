@@ -42,6 +42,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -58,6 +59,7 @@ import lombok.val;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ NProjectManager.class, SecondStorageUtil.class, ExecutableManager.class, UserGroupInformation.class,
         AbstractExecutable.class })
+@PowerMockIgnore({ "javax.management.*", "javax.script.*", "org.apache.hadoop.*", "javax.security.*", "java.security.*", "com.sun.security.*" })
 public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
     private ExecutableManager executableManager = Mockito.mock(ExecutableManager.class);

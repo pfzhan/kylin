@@ -18,15 +18,16 @@
 
 package org.apache.kylin.rest.security.config;
 
+import org.apache.kylin.junit.annotation.MetadataInfo;
+import org.apache.kylin.rest.security.StaticAuthenticationProvider;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.AclService;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
-import org.apache.kylin.rest.security.StaticAuthenticationProvider;
 import org.apache.kylin.rest.service.OpenUserGroupService;
 import org.apache.kylin.rest.service.OpenUserService;
 import org.apache.kylin.rest.service.StaticUserGroupService;
 import org.apache.kylin.rest.service.StaticUserService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.web.client.RestTemplate;
 
+@MetadataInfo(onlyProps = true)
 class CustomProfileConfigurationTest {
 
     private SpringApplication application;

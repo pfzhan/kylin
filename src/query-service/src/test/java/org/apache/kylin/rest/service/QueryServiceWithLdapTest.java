@@ -36,12 +36,19 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ldap.test.unboundid.LdapTestUtils;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.ContextHierarchy;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -53,6 +60,13 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextHierarchy({@ContextConfiguration(locations = {"classpath:applicationContext.xml"}),
+        @ContextConfiguration(locations = {"classpath:kylinSecurity.xml"})})
+@WebAppConfiguration(value = "src/main/resources")
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
+@TestPropertySource(properties = {"spring.session.store-type = NONE"})
+@ActiveProfiles({"ldap", "ldap-test", "test"})
 public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
 
     private static final String LDAP_CONFIG = "ut_ldap/ldap-config.properties";

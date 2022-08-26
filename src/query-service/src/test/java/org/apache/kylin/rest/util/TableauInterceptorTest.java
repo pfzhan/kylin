@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.query.util.RawSqlParser;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class TableauInterceptorTest {
 
     Logger logger = LoggerFactory.getLogger(TableauInterceptorTest.class);
 
+    @Ignore
     @Test
     public void testTableauIntercept() throws IOException {
         List<String> sqls = Files.walk(Paths.get("../kap-it/src/test/resources/query/tableau_probing"))

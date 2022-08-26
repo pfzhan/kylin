@@ -33,7 +33,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.rest.util.AclPermissionUtil;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.acls.domain.ConsoleAuditLogger;

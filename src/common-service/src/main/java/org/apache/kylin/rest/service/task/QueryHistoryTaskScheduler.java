@@ -54,7 +54,7 @@ import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.QuerySmartSupporter;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;

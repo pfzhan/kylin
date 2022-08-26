@@ -28,10 +28,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.exception.UserStopQueryException;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
@@ -40,11 +36,16 @@ import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryMetrics;
 import org.apache.kylin.metadata.query.QueryMetricsContext;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.engine.QueryExec;
+import org.apache.kylin.query.exception.UserStopQueryException;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.KapQueryUtil;
+import org.apache.kylin.query.util.QueryParams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -56,6 +57,7 @@ import com.google.common.collect.Sets;
 
 import lombok.val;
 
+@Ignore
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private static final String QUERY_ID = "3395dd9a-a8fb-47c0-b586-363271ca52e2";

@@ -80,9 +80,9 @@ public class SourceTestCase extends NLocalFileMetadataTestCase {
     protected void setupPushdownEnv() throws Exception {
         Class.forName("org.h2.Driver");
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
+                "org.apache.kylin.query.pushdown.PushDownRunnerJdbcImpl");
         getTestConfig().setProperty("kylin.query.pushdown.partition-check.runner-class-name",
-                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
+                "org.apache.kylin.query.pushdown.PushDownRunnerJdbcImpl");
         getTestConfig().setProperty("kylin.query.pushdown-enabled", "true");
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");

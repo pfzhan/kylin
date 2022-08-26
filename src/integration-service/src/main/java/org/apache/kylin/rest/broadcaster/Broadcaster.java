@@ -42,7 +42,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DaemonThreadFactory;
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.rest.cluster.ClusterManager;

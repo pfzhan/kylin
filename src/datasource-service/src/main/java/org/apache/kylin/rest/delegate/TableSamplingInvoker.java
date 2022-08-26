@@ -21,7 +21,7 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.rest.service.TableSamplingSupporter;
 import org.springframework.stereotype.Component;
 

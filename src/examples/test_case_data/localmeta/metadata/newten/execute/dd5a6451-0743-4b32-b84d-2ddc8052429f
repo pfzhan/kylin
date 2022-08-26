@@ -91,7 +91,7 @@
       "wait_time" : 405838
     }
   } ],
-  "type" : "org.apache.kylin.job.execution.step.NSparkCubingJob",
+  "type" : "org.apache.kylin.job.execution.NSparkCubingJob",
   "params" : {
     "submitter" : "ADMIN",
     "jobId" : "dd5a6451-0743-4b32-b84d-2ddc8052429f",

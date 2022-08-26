@@ -19,7 +19,7 @@ package org.apache.kylin.rest.delegate;
 
 import java.util.List;
 
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
 import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.rest.service.ProjectService;

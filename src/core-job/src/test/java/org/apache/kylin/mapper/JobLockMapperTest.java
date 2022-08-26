@@ -24,20 +24,23 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.config.JobTableInterceptor;
 import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.mapper.JobLockMapper;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(value = { "classpath:applicationContext.xml" })
 @TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })

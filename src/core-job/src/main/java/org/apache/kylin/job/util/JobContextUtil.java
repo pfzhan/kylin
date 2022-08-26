@@ -48,7 +48,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.logging.LogOutputStream;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
-import org.apache.kylin.common.util.SpringContext;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.config.JobTableInterceptor;
 import org.apache.kylin.job.dao.JobInfoDao;
@@ -56,6 +55,7 @@ import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.metadata.transaction.SpringManagedTransactionFactory;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -246,6 +246,5 @@ public class JobContextUtil {
             log.error("JobContextUtil clean up failed.");
             throw new RuntimeException("JobContextUtil clean up failed.", e);
         }
-
     }
 }

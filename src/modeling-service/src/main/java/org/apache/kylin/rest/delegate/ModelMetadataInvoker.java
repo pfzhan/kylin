@@ -21,7 +21,7 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.common.util.SpringContext;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.Segments;
