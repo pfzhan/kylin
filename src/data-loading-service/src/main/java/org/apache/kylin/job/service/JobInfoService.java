@@ -378,7 +378,6 @@ public class JobInfoService extends BasicService implements JobSupporter {
         return executableStepList;
     }
 
-    @Transaction(project = 0)
     public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
         aclEvaluate.checkProjectOperationPermission(project);
         batchDropJob0(project, jobIds, filterStatuses);
@@ -479,14 +478,16 @@ public class JobInfoService extends BasicService implements JobSupporter {
         }
     }
 
-    @Transaction(project = 0)
     public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
             String failedStack, String failedReason) {
         if (StringUtils.isBlank(failedStepId)) {
             return;
         }
-        val executableManager = getManager(ExecutableManager.class, project);
-        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
+        JobContextUtil.withTxAndRetry(() -> {
+            val executableManager = getManager(ExecutableManager.class, project);
+            executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
+            return true;
+        });
     }
 
     public void updateStageStatus(String project, String taskId, String segmentId, String status,
