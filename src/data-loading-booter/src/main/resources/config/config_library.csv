@@ -577,3 +577,4 @@ kylin.job.slave-pull-batch-size,Integer,,Job Scheduler Slave fetch size,TRUE,TRU
 kylin.job.parallel-job-size,Integer,,PENDING status execute max size,TRUE,TRUE
 kylin.job.lock-client-renewal-threads,Integer,,Lock client renewal size,TRUE,TRUE
 kylin.job.metadata.url,String,Kyligence Enterprise 构建任务元数据库路径。,Kyligence Enterprise job meta database path.,TRUE,TRUE
+kylin.metadata.distributed-lock.jdbc.url,String,jdbc distribute lock url,jdbc distribute lock url,TRUE,TRUE
