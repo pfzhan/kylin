@@ -78,8 +78,7 @@ public class JobCheckUtil {
         String project = jobExecutable.getProject();
         try {
             if (jobContext.isProjectReachQuotaLimit(project)) {
-                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(jobId, executablePO,
-                        (AbstractExecutable) jobExecutable);
+                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(jobId);
                 logger.info("Job {} paused due to no available storage quota.", jobId);
                 logger.info("Please clean up low-efficient storage in time, "
                         + "increase the low-efficient storage threshold, "

@@ -454,8 +454,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
             EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType));
             break;
         case PAUSE:
-            killExistApplication(executable);
             executableManager.pauseJob(jobId);
+            killExistApplication(executable);
             break;
         default:
             throw new IllegalStateException("This job can not do this action: " + action);
