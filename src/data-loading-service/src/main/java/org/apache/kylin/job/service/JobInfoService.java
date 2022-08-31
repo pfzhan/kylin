@@ -268,6 +268,16 @@ public class JobInfoService extends BasicService implements JobSupporter {
         return result;
     }
 
+    public long countJobs(final JobFilter jobFilter){
+        // TODO check permission when 'project' is empty
+        if (StringUtils.isNotEmpty(jobFilter.getProject())) {
+            aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
+        }
+        JobMapperFilter jobMapperFilter = JobFilterUtil.getJobMapperFilter(jobFilter, 0, 0,
+                modelMetadataInvoker, tableMetadataInvoker);
+        return jobInfoDao.countByFilter(jobMapperFilter);
+    }
+
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
         ExecutablePO executablePO = jobInfoDao.getExecutablePOByUuid(jobId);

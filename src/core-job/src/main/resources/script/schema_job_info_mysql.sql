@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_status varchar(50) NOT NULL,
   project varchar(512) NOT NULL,
   subject varchar(512) NOT NULL,
-  model_id varchar(50) NOT NULL,
+  model_id varchar(512) NOT NULL,
   mvcc bigint(10),
   job_content longblob NOT NULL,
   create_time datetime DEFAULT CURRENT_TIMESTAMP,

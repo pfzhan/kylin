@@ -310,11 +310,16 @@ public class BaseController {
     }
 
     public HashMap<String, Object> getDataResponse(String name, List<?> result, int offset, int limit) {
+        return getDataResponse(name, result, result.size(), offset, limit);
+    }
+
+    public HashMap<String, Object> getDataResponse(String name, List<?> result, int count, int offset, int limit) {
         HashMap<String, Object> data = new HashMap<>();
         data.put(name, PagingUtil.cutPage(result, offset, limit));
-        data.put("size", result.size());
+        data.put("size", count);
         return data;
     }
+
 
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {

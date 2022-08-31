@@ -75,6 +75,10 @@ public class JobInfoDao {
         List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
         return jobInfoList;
     }
+
+    public long countByFilter(JobMapperFilter jobMapperFilter){
+        return jobInfoMapper.countByJobFilter(jobMapperFilter);
+    }
     
     public List<ExecutablePO> getJobs(String project) {
         JobMapperFilter filter = new JobMapperFilter();

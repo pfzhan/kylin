@@ -249,7 +249,7 @@ public class Message {
     }
 
     public String getJobSortByError() {
-        return "The parameter \"sort_by\" only supports 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'total_duration'.";
+        return "The parameter \"sort_by\" only supports 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'duration'.";
     }
 
     public String getIllegalExecutableState() {

@@ -227,4 +227,46 @@
       limit ${offset}, ${limit}
     </if>
   </select>
+
+  <select id="countByJobFilter" parameterType="io.kyligence.kap.job.rest.JobMapperFilter" resultType="long">
+    select
+    count(1)
+    from ${jobInfoTable}
+    <where>
+      <if test="project != null">
+        project = #{project}
+      </if>
+      <if test="queryStartTime != null">
+        AND update_time &gt;= #{queryStartTime}
+      </if>
+      <if test="statuses != null">
+        <foreach close=")" collection="statuses" index="index" item="item" open="AND job_status in (" separator=",">
+          #{item}
+        </foreach>
+      </if>
+      <if test="jobNames != null">
+        <foreach close=")" collection="jobNames" index="index" item="item" open="AND job_type in (" separator=",">
+          #{item}
+        </foreach>
+      </if>
+      <if test="modelIds != null">
+        <foreach close=")" collection="modelIds" index="index" item="item" open="AND model_id in (" separator=",">
+          #{item}
+        </foreach>
+      </if>
+      <if test="jobId != null">
+        AND job_id like #{jobId}
+      </if>
+      <if test="jobIds != null">
+        <foreach close=")" collection="jobIds" index="index" item="item" open="AND job_id in (" separator=",">
+          #{item}
+        </foreach>
+      </if>
+      <if test="subjects != null">
+        <foreach close=")" collection="subjects" index="index" item="item" open="AND subject in (" separator=",">
+          #{item}
+        </foreach>
+      </if>
+    </where>
+  </select>
 </mapper>
