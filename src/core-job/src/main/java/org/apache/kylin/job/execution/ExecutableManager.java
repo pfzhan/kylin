@@ -704,7 +704,10 @@ public class ExecutableManager {
     /** just used to update stage */
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
             Map<String, String> updateInfo, String failedMsg) {
-        updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, failedMsg, false);
+        JobContextUtil.withTxAndRetry(() -> {
+            updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, failedMsg, false);
+            return true;
+        });
     }
 
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
