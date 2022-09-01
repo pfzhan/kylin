@@ -99,7 +99,7 @@ public class JobContextUtil {
     synchronized public static JobContext getJobContextForTest(KylinConfig config) {
         initMappers(config);
         if (null == jobContext) {
-            config.setProperty("kylin.job.scheduler.master-poll-interval-second", "1");
+            config.setProperty("kylin.job.master-poll-interval-second", "1");
             config.setProperty("kylin.job.scheduler.poll-interval-second", "1");
             jobContext = new JobContext();
             jobContext.setKylinConfig(config);
