@@ -98,7 +98,8 @@ public class JobControllerV2 extends BaseController {
                 project, sortBy, reverse);
         List<ExecutableResponse> executables = jobInfoService.listJobs(jobFilter);
         executables = jobInfoService.addOldParams(executables);
-        Map<String, Object> result = getDataResponse("jobs", executables, pageOffset, pageSize);
+        long count = jobInfoService.countJobs(jobFilter);
+        Map<String, Object> result = getDataResponse("jobs", executables, (int)count, pageOffset, pageSize);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 }

@@ -107,6 +107,12 @@ public class JobInfoMapperTest extends NLocalFileMetadataTestCase {
         List<JobInfo> jobInfos = jobInfoMapper.selectByJobFilter(jobMapperFilter);
         Assert.assertEquals(1, jobLists.size());
 
+        long countLong = jobInfoMapper.countByJobFilter(jobMapperFilter);
+        Assert.assertEquals(1L, countLong);
+
+        countLong = jobInfoMapper.countByJobFilter(JobMapperFilter.builder().jobId("mock_job_id_not_existing").build());
+        Assert.assertEquals(0L, countLong);
+
         // update
         JobInfo jobInfoDb = jobInfos.get(0);
         jobInfoDb.setJobStatus(JobStatusEnum.DISCARDED.name());

@@ -47,4 +47,7 @@ public interface JobInfoMapper {
     List<String> findJobIdListByStatusBatch(@Param("status") String status, @Param("batchSize") int batchSize);
 
     List<JobInfo> selectByJobFilter(JobMapperFilter jobMapperFilter);
+
+    long countByJobFilter(JobMapperFilter jobMapperFilter);
+
 }
