@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.metadata.recommendation.util;
+package org.apache.kylin.metadata.favorite;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -42,30 +42,27 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.logging.LogOutputStream;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
-import org.apache.kylin.metadata.recommendation.candidate.RawRecItemMapper;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class RawRecStoreUtil {
-
+public class QueryHistoryIdOffsetUtil {
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
-    public static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
-    public static final String CREATE_INDEX = "create.rawrecommendation.store.index";
+    public static final String CREATE_OFFSET_TABLE = "create.queryhistoryoffset.store.table";
 
-    private RawRecStoreUtil() {
+    private QueryHistoryIdOffsetUtil() {
     }
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName) {
-        return Singletons.getInstance("raw-recommendation-sql-session-factory", SqlSessionFactory.class, clz -> {
+        return Singletons.getInstance("query-history-offset-sql-session-factory", SqlSessionFactory.class, clz -> {
             log.info("Start to build SqlSessionFactory");
             TransactionFactory transactionFactory = new SpringManagedTransactionFactory();
-            Environment environment = new Environment("raw recommendation", transactionFactory, dataSource);
+            Environment environment = new Environment("query history offset", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
             configuration.setUseGeneratedKeys(true);
             configuration.setJdbcTypeForNull(JdbcType.NULL);
-            configuration.addMapper(RawRecItemMapper.class);
+            configuration.addMapper(QueryHistoryIdOffsetMapper.class);
             createTableIfNotExist((BasicDataSource) dataSource, tableName);
             return new SqlSessionFactoryBuilder().build(configuration);
         });
@@ -79,8 +76,7 @@ public class RawRecStoreUtil {
         }
 
         Properties properties = JdbcUtil.getProperties(dataSource);
-        String createTableStmt = String.format(Locale.ROOT, properties.getProperty(CREATE_REC_TABLE), tableName);
-        String crateIndexStmt = String.format(Locale.ROOT, properties.getProperty(CREATE_INDEX), tableName, tableName);
+        String createTableStmt = String.format(Locale.ROOT, properties.getProperty(CREATE_OFFSET_TABLE), tableName);
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
             sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
@@ -88,8 +84,6 @@ public class RawRecStoreUtil {
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes(DEFAULT_CHARSET)),
                     DEFAULT_CHARSET));
             log.debug("create table finished");
-            sr.runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes(DEFAULT_CHARSET)),
-                    DEFAULT_CHARSET));
         }
 
         if (!JdbcUtil.isTableExists(dataSource.getConnection(), tableName)) {

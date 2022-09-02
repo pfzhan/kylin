@@ -47,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -118,6 +119,7 @@ import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.security.KerberosLoginManager;
+import org.apache.kylin.rest.service.task.QueryHistoryMetaUpdateScheduler;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
 import org.apache.kylin.tool.garbage.GarbageCleaner;
@@ -357,6 +359,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
                     projectSmartService.cleanupGarbage(project.getName());
+                    updateStatMetaImmediately(project.getName());
                     GarbageCleaner.cleanMetadata(project.getName());
                     EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
                 } catch (Exception e) {
@@ -396,6 +399,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws Exception {
         projectSmartService.cleanupGarbage(project);
+        updateStatMetaImmediately(project);
         GarbageCleaner.cleanMetadata(project);
         asyncTaskService.cleanupStorage();
     }
@@ -1071,5 +1075,18 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
     @Transaction(project = 0)
     public void saveAsyncTask(String project, AsyncAccelerationTask task) {
         AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(task);
+    }
+
+    public void updateStatMetaImmediately(String project) {
+        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
+        Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            logger.error("updateStatMeta failed with interruption", e);
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            logger.error("updateStatMeta failed", e);
+        }
     }
 }

@@ -18,27 +18,27 @@
 
 package org.apache.kylin.rest.service.task;
 
+import static org.apache.kylin.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
+
 import java.util.List;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.rest.service.IUserGroupService;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.junit.TimeZoneTestRunner;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.favorite.AccelerateRuleUtil;
-import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
-import org.apache.kylin.metadata.favorite.AsyncTaskManager;
-import org.apache.kylin.metadata.favorite.QueryHistoryIdOffset;
 import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryMetrics;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.NUserGroupService;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,6 +52,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.modules.junit4.PowerMockRunnerDelegate;
 import org.springframework.context.ApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -62,16 +63,18 @@ import com.google.common.collect.Lists;
 @PowerMockRunnerDelegate(TimeZoneTestRunner.class)
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 @PowerMockIgnore("javax.management.*")
-public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
+public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String DATAFLOW = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
     private static final String LAYOUT1 = "20000000001";
     private static final String LAYOUT2 = "1000001";
     private static final Long QUERY_TIME = 1586760398338L;
+
+    private QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler;
+    private JdbcTemplate jdbcTemplate;
+
     @Mock
     private final IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
-    int startOffset = 0;
-    private QueryHistoryTaskScheduler qhAccelerateScheduler;
 
     @Before
     public void setUp() throws Exception {
@@ -86,92 +89,25 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
                 .thenReturn(PowerMockito.mock(PermissionFactory.class));
         PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
                 .thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
-        qhAccelerateScheduler = Mockito.spy(new QueryHistoryTaskScheduler(PROJECT));
-        ReflectionTestUtils.setField(qhAccelerateScheduler, "userGroupService", userGroupService);
+        qhMetaUpdateScheduler = Mockito.spy(new QueryHistoryMetaUpdateScheduler(PROJECT));
+        ReflectionTestUtils.setField(qhMetaUpdateScheduler, "userGroupService", userGroupService);
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
     }
 
     @After
     public void tearDown() throws Exception {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
     }
 
     @Test
-    public void testQueryAcc() {
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
-
-        Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
-                Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
-
-        // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(0, idOffsetManager.get().getOffset());
-
-        // run update
-        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
-        queryHistoryAccelerateRunner.run();
-
-        // after update id offset
-        Assert.assertEquals(8, idOffsetManager.get().getOffset());
-
-    }
-
-    @Test
-    public void testQueryAccResetOffset() {
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
-
-        // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        QueryHistoryIdOffset queryHistoryIdOffset = idOffsetManager.get();
-        queryHistoryIdOffset.setOffset(999L);
-        queryHistoryIdOffset.setStatMetaUpdateOffset(999L);
-        idOffsetManager.save(queryHistoryIdOffset);
-        Assert.assertEquals(999L, idOffsetManager.get().getOffset());
-        // run update
-        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
-        queryHistoryAccelerateRunner.run();
-        // after auto reset offset
-        Assert.assertEquals(0L, idOffsetManager.get().getOffset());
-    }
-
-    @Test
-    public void testQueryAccNotResetOffset() {
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.getQueryHistoryMaxId(Mockito.anyString())).thenReturn(12L);
-        // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        QueryHistoryIdOffset queryHistoryIdOffset = idOffsetManager.get();
-        queryHistoryIdOffset.setOffset(9L);
-        queryHistoryIdOffset.setStatMetaUpdateOffset(9L);
-        idOffsetManager.save(queryHistoryIdOffset);
-        Assert.assertEquals(9L, idOffsetManager.get().getOffset());
-
-        // run update
-        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
-        queryHistoryAccelerateRunner.run();
-        // after auto reset offset
-        Assert.assertEquals(9L, idOffsetManager.get().getOffset());
-    }
-
-    @Test
     public void testUpdateMetadata() {
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
+        qhMetaUpdateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhMetaUpdateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        Mockito.when(qhMetaUpdateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.eq(PROJECT))).thenReturn(queryHistories()).thenReturn(null);
 
         // before update dataflow usage, layout usage and last query time
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -182,12 +118,12 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0L, dataflow.getLastQueryTime());
 
         // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(0, idOffsetManager.get().getStatMetaUpdateOffset());
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(PROJECT);
+        Assert.assertEquals(0, idOffsetManager.get(META).getOffset());
 
         // run update
-        QueryHistoryTaskScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryMetaUpdateRunner();
+        QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
+                qhMetaUpdateScheduler.new QueryHistoryMetaUpdateRunner();
         queryHistoryAccelerateRunner.run();
 
         // after update dataflow usage, layout usage and last query time
@@ -200,15 +136,15 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
 
         // after update id offset
-        Assert.assertEquals(8, idOffsetManager.get().getStatMetaUpdateOffset());
+        Assert.assertEquals(8, idOffsetManager.get(META).getOffset());
     }
 
     @Test
     public void testUpdateMetadataWithStringRealization() {
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistoriesWithStringRealization())
+        qhMetaUpdateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhMetaUpdateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        Mockito.when(qhMetaUpdateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.eq(PROJECT))).thenReturn(queryHistoriesWithStringRealization())
                 .thenReturn(null);
 
         // before update dataflow usage, layout usage and last query time
@@ -220,13 +156,13 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0L, dataflow.getLastQueryTime());
 
         // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(0, idOffsetManager.get().getStatMetaUpdateOffset());
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(PROJECT);
+        Assert.assertEquals(0, idOffsetManager.get(META).getOffset());
 
         // run update
-        QueryHistoryTaskScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryMetaUpdateRunner();
-        queryHistoryAccelerateRunner.run();
+        QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner = //
+                qhMetaUpdateScheduler.new QueryHistoryMetaUpdateRunner();
+        queryHistoryMetaUpdateRunner.run();
 
         // after update dataflow usage, layout usage and last query time
         dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getDataflow(DATAFLOW);
@@ -238,55 +174,26 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
 
         // after update id offset
-        Assert.assertEquals(8, idOffsetManager.get().getStatMetaUpdateOffset());
-    }
-
-    @Test
-    public void testNotUpdateMetadataForUserTriggered() {
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
-        Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
-                Mockito.anyList(), Mockito.anyMap(), Mockito.anyList())).thenReturn(queryHistories());
-
-        // before update id offset
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(0, idOffsetManager.get().getOffset());
-
-        // update sync-acceleration-task to running, then check auto-run will fail
-        AsyncTaskManager manager = AsyncTaskManager.getInstance(getTestConfig(), PROJECT);
-        AsyncAccelerationTask asyncTask = (AsyncAccelerationTask) manager.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        asyncTask.setAlreadyRunning(true);
-        manager.save(asyncTask);
-        AsyncAccelerationTask update = (AsyncAccelerationTask) manager.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        Assert.assertTrue(update.isAlreadyRunning());
-
-        // run update
-        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
-        queryHistoryAccelerateRunner.run();
-
-        Assert.assertEquals(0, idOffsetManager.get().getOffset());
+        Assert.assertEquals(8, idOffsetManager.get(META).getOffset());
     }
 
     @Test
     public void testBatchUpdate() {
-        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
-                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(queryHistories());
-
+        qhMetaUpdateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhMetaUpdateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        Mockito.when(qhMetaUpdateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.eq(PROJECT))).thenReturn(queryHistories()).thenReturn(queryHistories());
+        getTestConfig().setProperty("kylin.query.query-history-stat-interval", "0m");
         // run update
-        QueryHistoryTaskScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryMetaUpdateRunner();
+        QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
+                qhMetaUpdateScheduler.new QueryHistoryMetaUpdateRunner();
         queryHistoryAccelerateRunner.run();
 
-        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(8, idOffsetManager.get().getStatMetaUpdateOffset());
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(PROJECT);
+        Assert.assertEquals(8, idOffsetManager.get(META).getOffset());
 
         queryHistoryAccelerateRunner.run();
-        Assert.assertEquals(16, idOffsetManager.get().getStatMetaUpdateOffset());
+        Assert.assertEquals(16, idOffsetManager.get(META).getOffset());
     }
 
     private List<QueryHistory> queryHistories() {
@@ -460,5 +367,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
 
         return histories;
     }
+
+    int startOffset = 0;
 
 }

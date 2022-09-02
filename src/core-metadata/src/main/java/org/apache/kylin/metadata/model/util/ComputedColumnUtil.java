@@ -39,18 +39,18 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.JoinsGraph;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.BadModelException;
 import org.apache.kylin.metadata.model.BadModelException.CauseType;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.alias.AliasDeduce;
 import org.apache.kylin.metadata.model.alias.AliasMapping;
 import org.apache.kylin.metadata.model.alias.ExpressionComparator;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +68,10 @@ public class ComputedColumnUtil {
 
     public static String newAutoCCName(long ts, int index) {
         return String.format(Locale.ROOT, "%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, ts, index);
+    }
+
+    public static String uniqueCCName(String unique) {
+        return String.format(Locale.ROOT, "%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, unique);
     }
 
     public static String shareCCNameAcrossModel(ComputedColumnDesc newCC, NDataModel newModel,

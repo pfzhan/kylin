@@ -18,11 +18,11 @@
 
 package org.apache.kylin.rest.service.task;
 
-import java.util.HashMap;
+import static org.apache.kylin.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,9 +31,10 @@ import java.util.function.Consumer;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.optimization.FrequencyMap;
 import org.apache.kylin.metadata.epoch.EpochManager;
@@ -50,14 +51,12 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.NativeQueryRealization;
 import org.apache.kylin.metadata.query.QueryHistory;
-import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.QuerySmartSupporter;
 import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.Data;
@@ -66,8 +65,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class QueryHistoryTaskScheduler {
-
+public class QueryHistoryMetaUpdateScheduler {
     private ScheduledExecutorService taskScheduler;
     private boolean hasStarted;
     @VisibleForTesting
@@ -79,29 +77,26 @@ public class QueryHistoryTaskScheduler {
     private long epochId;
     private IUserGroupService userGroupService;
 
-    private final QueryHistoryAccelerateRunner queryHistoryAccelerateRunner;
     private final QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner;
 
-    private static final Map<String, QueryHistoryTaskScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
+    private static final Map<String, QueryHistoryMetaUpdateScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
-    public QueryHistoryTaskScheduler(String project) {
+    public QueryHistoryMetaUpdateScheduler(String project) {
         this.project = project;
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
         if (userGroupService == null && SpringContext.getApplicationContext() != null) {
             userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
         }
-        queryHistoryAccelerateRunner = new QueryHistoryAccelerateRunner(false);
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
-        if (querySmartSupporter == null && SpringContext.getApplicationContext() != null
-                && !KylinConfig.vendor().equals("asf")) {
+        if (querySmartSupporter == null && SpringContext.getApplicationContext() != null) {
             querySmartSupporter = SpringContext.getBean(QuerySmartSupporter.class);
         }
         log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
-    public static QueryHistoryTaskScheduler getInstance(String project) {
-        return INSTANCE_MAP.computeIfAbsent(project, QueryHistoryTaskScheduler::new);
+    public static QueryHistoryMetaUpdateScheduler getInstance(String project) {
+        return INSTANCE_MAP.computeIfAbsent(project, QueryHistoryMetaUpdateScheduler::new);
     }
 
     public void init() {
@@ -114,9 +109,7 @@ public class QueryHistoryTaskScheduler {
         }
 
         taskScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("QueryHistoryWorker(project:" + project + ")"));
-        taskScheduler.scheduleWithFixedDelay(queryHistoryAccelerateRunner, 0,
-                KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
+                new NamedThreadFactory("QueryHistoryMetaUpdateWorker(project:" + project + ")"));
         taskScheduler.scheduleWithFixedDelay(queryHistoryMetaUpdateRunner, 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryStatMetaUpdateInterval(), TimeUnit.MINUTES);
 
@@ -154,7 +147,7 @@ public class QueryHistoryTaskScheduler {
         return ((AsyncAccelerationTask) task).isAlreadyRunning();
     }
 
-    private static synchronized QueryHistoryTaskScheduler getInstanceByProject(String project) {
+    private static synchronized QueryHistoryMetaUpdateScheduler getInstanceByProject(String project) {
         return INSTANCE_MAP.get(project);
     }
 
@@ -168,9 +161,9 @@ public class QueryHistoryTaskScheduler {
         @Override
         protected List<QueryHistory> getQueryHistories(int batchSize) {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    .getInstance(project);
             List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                    qhIdOffsetManager.get().getStatMetaUpdateOffset(), batchSize, project);
+                    qhIdOffsetManager.get(META).getOffset(), batchSize, project);
             resetIdOffset(queryHistoryList);
             return queryHistoryList;
         }
@@ -201,7 +194,7 @@ public class QueryHistoryTaskScheduler {
         }
 
         private void updateMetadata(Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime,
-                Long maxId, Map<TableDesc, Integer> hitSnapshotCountMap) {
+                                    Long maxId, Map<TableDesc, Integer> hitSnapshotCountMap) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -211,11 +204,16 @@ public class QueryHistoryTaskScheduler {
                 // update model last query time
                 updateLastQueryTime(modelsLastQueryTime, project);
 
-                // update id offset
-                QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                queryHistoryIdOffset.setStatMetaUpdateOffset(maxId);
-                QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
+                UnitOfWork.get().doAfterUnit(() -> {
+                    QueryHistoryIdOffsetManager offsetManager = QueryHistoryIdOffsetManager.getInstance(project);
+                    // update id offset
+                    JdbcUtil.withTxAndRetry(offsetManager.getTransactionManager(), () -> {
+                        QueryHistoryIdOffset queryHistoryIdOffset = offsetManager.get(META);
+                        queryHistoryIdOffset.setOffset(maxId);
+                        offsetManager.saveOrUpdate(queryHistoryIdOffset);
+                        return null;
+                    });
+                });
 
                 // update snpashot hit count
                 incQueryHitSnapshotCount(hitSnapshotCountMap, project);
@@ -312,102 +310,6 @@ public class QueryHistoryTaskScheduler {
 
     }
 
-    public class QueryHistoryAccelerateRunner extends QueryHistoryTask {
-        @Getter
-        private final boolean isManual;
-
-        public QueryHistoryAccelerateRunner(boolean isManual) {
-            this.isManual = isManual;
-        }
-
-        @Override
-        protected String name() {
-            return "queryAcc";
-        }
-
-        @Override
-        protected boolean isInterrupted() {
-            return !isManual() && QueryHistoryTaskScheduler.getInstance(project).isInterruptByUser();
-        }
-
-        @Override
-        protected List<QueryHistory> getQueryHistories(int batchSize) {
-            QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            List<QueryHistory> queryHistoryList = queryHistoryDAO
-                    .queryQueryHistoriesByIdOffset(qhIdOffsetManager.get().getOffset(), batchSize, project);
-            resetIdOffset(queryHistoryList);
-            return queryHistoryList;
-        }
-
-        @Override
-        public void work() {
-            if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-                log.info("Skip QueryHistoryAccelerateRunner job, project [{}].", project);
-                return;
-            }
-            log.info("Start QueryHistoryAccelerateRunner job, project [{}].", project);
-
-            int batchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
-            int maxSize = isManual() //
-                    ? KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize()
-                    : KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
-            batchHandle(batchSize, maxSize, this::accelerateAndUpdateMetadata);
-            log.info("End QueryHistoryAccelerateRunner job, project [{}].", project);
-        }
-
-        private void accelerateAndUpdateMetadata(List<QueryHistory> queryHistories) {
-            if (CollectionUtils.isEmpty(queryHistories)) {
-                return;
-            }
-            // accelerate
-            List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
-            Map<String, Set<String>> submitterToGroups = getUserToGroups(queryHistories);
-            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
-                    submitterToGroups, idToQHInfoList);
-            queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
-            if (querySmartSupporter != null) {
-                querySmartSupporter.onMatchQueryHistory(project, matchedCandidate, isManual());
-            }
-
-            long maxId = 0;
-            for (QueryHistory queryHistory : queryHistories) {
-                if (queryHistory.getId() > maxId) {
-                    maxId = queryHistory.getId();
-                }
-            }
-            updateIdOffset(maxId);
-        }
-
-        protected Map<String, Set<String>> getUserToGroups(List<QueryHistory> queryHistories) {
-            Map<String, Set<String>> submitterToGroups = new HashMap<>();
-            for (QueryHistory qh : queryHistories) {
-                QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
-                if (queryHistoryInfo == null) {
-                    continue;
-                }
-                String querySubmitter = qh.getQuerySubmitter();
-                submitterToGroups.putIfAbsent(querySubmitter, userGroupService.listUserGroups(querySubmitter));
-            }
-            return submitterToGroups;
-        }
-
-        private void updateIdOffset(long maxId) {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                KylinConfig config = KylinConfig.getInstanceFromEnv();
-
-                // update id offset
-                QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                queryHistoryIdOffset.setOffset(maxId);
-                QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
-                return 0;
-            }, project);
-
-        }
-
-    }
-
     private abstract class QueryHistoryTask implements Runnable {
 
         protected abstract String name();
@@ -422,19 +324,17 @@ public class QueryHistoryTaskScheduler {
         }
 
         private void resetIdOffset(long maxId) {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                KylinConfig config = KylinConfig.getInstanceFromEnv();
-                QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(config, project);
-                QueryHistoryIdOffset queryHistoryIdOffset = manager.get();
-                if (queryHistoryIdOffset.getOffset() > maxId
-                        || queryHistoryIdOffset.getStatMetaUpdateOffset() > maxId) {
+            QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
+            JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+                QueryHistoryIdOffset queryHistoryIdOffset = manager.get(META);
+                if (queryHistoryIdOffset.getOffset() > maxId) {
                     queryHistoryIdOffset.setOffset(maxId);
-                    queryHistoryIdOffset.setStatMetaUpdateOffset(maxId);
-                    manager.save(queryHistoryIdOffset);
+                    queryHistoryIdOffset.setOffset(maxId);
+                    manager.saveOrUpdate(queryHistoryIdOffset);
                 }
-                needResetOffset = false;
-                return 0;
-            }, project);
+                return null;
+            });
+            needResetOffset = false;
         }
 
         public void batchHandle(int batchSize, int maxSize, Consumer<List<QueryHistory>> consumer) {

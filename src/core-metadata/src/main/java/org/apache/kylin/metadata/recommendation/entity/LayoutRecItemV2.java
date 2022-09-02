@@ -22,10 +22,10 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecItem;
 import org.apache.kylin.metadata.recommendation.util.RawRecUtil;
 
@@ -48,6 +48,11 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
     private LayoutEntity layout;
     @JsonProperty("is_agg")
     private boolean isAgg;
+
+    @Override
+    public String getUniqueContent() {
+        return layout.genUniqueContent();
+    }
 
     public int[] genDependIds() {
         List<Integer> colOrder = layout.getColOrder();

@@ -23,8 +23,9 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
 import com.google.common.base.Preconditions;
 
@@ -77,7 +78,8 @@ public class ResourceGroupManager {
         if (UnitOfWork.GLOBAL_UNIT.equals(project)) {
             return true;
         }
-        return getResourceGroup().getResourceGroupMappingInfoList().stream()
+        return getResourceGroup().getResourceGroupMappingInfoList()
+                .stream()
                 .anyMatch(mapping -> project.equals(mapping.getProject()));
     }
 
@@ -104,6 +106,10 @@ public class ResourceGroupManager {
         ResourceGroup copy = copyForWrite(cached);
         updater.modify(copy);
         return updateResourceGroup(copy);
+    }
+
+    public boolean hasPermissionToProject(String project) {
+        return instanceHasPermissionToOwnEpochTarget(project, AddressUtil.getLocalInstance());
     }
 
     public boolean instanceHasPermissionToOwnEpochTarget(String epochTarget, String server) {

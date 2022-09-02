@@ -3393,6 +3393,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.smart.update-topn-time-gap", "3600000"));
     }
 
+    public long getCheckProjectTimeGap() {
+        return Long.parseLong(getOptional("kylin.smart.check-project-time-gap-minute", "60"));
+    }
+
     public String getRecommendationCostMethod() {
         return getOptional("kylin.smart.update-cost-method", "HIT_COUNT");
     }

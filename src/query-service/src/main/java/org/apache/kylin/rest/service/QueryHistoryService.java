@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -48,9 +47,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.ForbiddenException;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
@@ -59,6 +55,7 @@ import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.NativeQueryRealization;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryDAO;
@@ -66,8 +63,10 @@ import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryHistoryRequest;
 import org.apache.kylin.metadata.query.QueryStatistics;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
+import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.NDataModelResponse;
 import org.apache.kylin.rest.response.QueryStatisticsResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +78,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableMap;
 import lombok.val;
 
 @Component("queryHistoryService")
@@ -309,7 +309,7 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+                .getInstance(project).get(QueryHistoryIdOffset.OffsetType.ACCELERATE);
         long idOffset = queryHistoryIdOffset.getOffset();
         QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
         return queryHistoryDao.getQueryHistoryCountBeyondOffset(idOffset, project);

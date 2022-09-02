@@ -20,6 +20,7 @@ package org.apache.kylin.metadata.recommendation.ref;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,17 +31,17 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.ExcludedLookupChecker;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecItem;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
@@ -73,6 +74,7 @@ public class OptRecV2 {
     private final String project;
 
     private final Map<String, RawRecItem> uniqueFlagToRecItemMap;
+    private final Map<String, RawRecItem> uuidToRecItemMap = new HashMap<>();
     private final BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
     private final List<Integer> rawIds = Lists.newArrayList();
 
@@ -102,7 +104,11 @@ public class OptRecV2 {
         this.project = project;
 
         uniqueFlagToRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
-        uniqueFlagToRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
+        uniqueFlagToRecItemMap.forEach((k, recItem) -> {
+                    uniqueFlagToId.put(k, recItem.getId());
+                    uuidToRecItemMap.put(recItem.getRecEntity().getUuid(), recItem);
+                }
+        );
         Set<String> excludedTables = FavoriteRuleManager.getInstance(config, project).getExcludedTables();
         checker = new ExcludedLookupChecker(excludedTables, getModel().getJoinTables(), getModel());
         if (!getModel().isBroken()) {
@@ -531,7 +537,7 @@ public class OptRecV2 {
             measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
             return;
         }
-        int[] newDependIds = recEntity.genDependIds(uniqueFlagToRecItemMap, recEntity.getUniqueContent(), dataModel);
+        int[] newDependIds = recEntity.genDependIds(uuidToRecItemMap, recEntity.getUniqueContent(), dataModel);
         if (!Arrays.equals(newDependIds, rawRecItem.getDependIDs())) {
             logIllegalRawRecItem(rawRecItem, rawRecItem.getDependIDs(), newDependIds);
             measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
@@ -605,7 +611,7 @@ public class OptRecV2 {
             measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
             return;
         }
-        int[] newDependIds = recEntity.genDependIds(uniqueFlagToRecItemMap, recEntity.getUniqueContent(), dataModel);
+        int[] newDependIds = recEntity.genDependIds(uuidToRecItemMap, recEntity.getUniqueContent(), dataModel);
         if (!Arrays.equals(newDependIds, rawRecItem.getDependIDs())) {
             logIllegalRawRecItem(rawRecItem, rawRecItem.getDependIDs(), newDependIds);
             measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));

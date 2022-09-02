@@ -28,8 +28,7 @@ import org.apache.kylin.common.scheduler.ProjectEscapedNotifier;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.rest.service.UserService;
-import org.apache.kylin.rest.service.task.QueryHistoryTaskScheduler;
-import org.apache.kylin.rest.service.task.RecommendationTopNUpdateScheduler;
+import org.apache.kylin.rest.service.task.QueryHistoryMetaUpdateScheduler;
 import org.apache.kylin.rest.util.CreateAdminUserUtils;
 import org.apache.kylin.rest.util.InitResourceGroupUtils;
 import org.apache.kylin.rest.util.InitUserGroupUtils;
@@ -56,10 +55,6 @@ public class EpochChangedListener {
     @Qualifier("userService")
     UserService userService;
 
-    @Autowired
-    @Qualifier("recommendationUpdateScheduler")
-    RecommendationTopNUpdateScheduler recommendationUpdateScheduler;
-
     @Subscribe
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
         String project = notifier.getProject();
@@ -78,14 +73,13 @@ public class EpochChangedListener {
                     initSchedule(kylinConfig, project);
                 }
 
-                QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler.getInstance(project);
-                qhAccelerateScheduler.init();
+                QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
+                qhMetaUpdateScheduler.init();
 
-                if (!qhAccelerateScheduler.hasStarted()) {
+                if (!qhMetaUpdateScheduler.hasStarted()) {
                     throw new RuntimeException(
                             "Query history accelerate scheduler for " + project + " has not been started");
                 }
-                recommendationUpdateScheduler.addProject(project);
                 return 0;
             }, project, 1);
         } else {
@@ -115,9 +109,8 @@ public class EpochChangedListener {
         if (!GLOBAL.equals(project)) {
             log.info("Shutdown related thread: {}", project);
             try {
-                QueryHistoryTaskScheduler.shutdownByProject(project);
+                QueryHistoryMetaUpdateScheduler.shutdownByProject(project);
                 StreamingScheduler.shutdownByProject(project);
-                recommendationUpdateScheduler.removeProject(project);
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);
             }

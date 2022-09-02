@@ -17,41 +17,22 @@
  */
 
 package org.apache.kylin.metadata.favorite;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 
-@Getter
-@Setter
-@ToString
-public class QueryHistoryIdOffset {
+import java.sql.JDBCType;
 
-    private int id;
-    private String project;
-    private String type;
-    private long offset;
-    private long updateTime;
-    private long createTime;
-    private long mvcc;
+import org.mybatis.dynamic.sql.SqlColumn;
+import org.mybatis.dynamic.sql.SqlTable;
 
-    public QueryHistoryIdOffset() {
-    }
+public class QueryHistoryIdOffsetTable extends SqlTable {
+    public final SqlColumn<Integer> id = column("id", JDBCType.INTEGER);
+    public final SqlColumn<String> project = column("project", JDBCType.VARCHAR);
+    public final SqlColumn<String> type = column("type", JDBCType.VARCHAR);
+    public final SqlColumn<Long> offset = column("query_history_id_offset", JDBCType.BIGINT);
+    public final SqlColumn<Long> updateTime = column("update_time", JDBCType.BIGINT);
+    public final SqlColumn<Long> createTime = column("create_time", JDBCType.BIGINT);
+    public final SqlColumn<Long> mvcc = column("mvcc", JDBCType.BIGINT);
 
-    public QueryHistoryIdOffset(long offset, OffsetType type) {
-        this.offset = offset;
-        this.type = type.name;
-    }
-
-    public enum OffsetType {
-        META("meta"), ACCELERATE("accelerate"), DEFAULT("default");
-        private final String name;
-
-        OffsetType(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
+    protected QueryHistoryIdOffsetTable(String tableName) {
+        super(tableName);
     }
 }

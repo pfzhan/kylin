@@ -33,7 +33,6 @@ import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.response.ServerInfoResponse;
-import org.apache.kylin.rest.service.task.QueryHistoryTaskScheduler;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
 import org.apache.kylin.tool.restclient.RestClient;
 import org.springframework.http.HttpHeaders;
@@ -57,7 +56,6 @@ public class ProjectDropListener {
             StreamingJobManager.getInstance(kylinConfig, project).destroyAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);
-            QueryHistoryTaskScheduler.shutdownByProject(project);
 
             MetricsGroup.removeProjectMetrics(project);
             if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
