@@ -6,12 +6,12 @@
     </formats>
     <fileSets>
         <fileSet>
-            <directory>${basedir}/../../build/conf</directory>
+            <directory>${basedir}/../../../build/conf</directory>
             <outputDirectory>conf</outputDirectory>
             <fileMode>0644</fileMode>
         </fileSet>
         <fileSet>
-            <directory>${basedir}/../../build/bin</directory>
+            <directory>${basedir}/../../../build/bin</directory>
             <outputDirectory>bin</outputDirectory>
             <fileMode>0755</fileMode>
         </fileSet>
@@ -22,12 +22,12 @@
             </excludes>
         </fileSet>
         <fileSet>
-            <directory>${basedir}/../../build/sbin</directory>
+            <directory>${basedir}/../../../build/sbin</directory>
             <outputDirectory>sbin</outputDirectory>
             <fileMode>0755</fileMode>
         </fileSet>
         <fileSet>
-            <directory>${basedir}/../../build/spark</directory>
+            <directory>${basedir}/../../../build/spark</directory>
             <outputDirectory>spark</outputDirectory>
             <excludes>
                 <exclude>lib/spark-examples-*</exclude>
@@ -39,7 +39,7 @@
     </fileSets>
     <files>
         <file>
-            <source>../data-loading-booter/target/data-loading-booter-${project.version}.jar</source>
+            <source>target/kylin-data-loading-booter-${project.version}.jar</source>
             <outputDirectory>server/</outputDirectory>
             <destName>newten.jar</destName>
         </file>
