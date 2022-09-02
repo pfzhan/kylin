@@ -74,8 +74,9 @@ spring:
       table-name: ${kylin.metadata.url.identifier}_session_v2
   config:
     import: optional:file://${KYLIN_HOME}/conf/config.yaml
-  mybatis:
-    mapper-locations: classpath:/mybatis-mapper/*Mapper.xml
+
+mybatis:
+  mapper-locations: classpath:/mybatis-mapper/*Mapper.xml
 
 saas:
   nacos:

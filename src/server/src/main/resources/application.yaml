@@ -84,6 +84,9 @@ spring:
       connect-string: ${kylin.env.zookeeper-connect-string}
       discovery:
         root: /kylin/${kylin.metadata.url.unique-id}/services
+    nacos:
+      discovery:
+        enabled: false
   session:
     store-type: NONE
     jdbc:
@@ -96,6 +99,10 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
+mybatis:
+  mapper-locations: classpath:/mybatis-mapper/*Mapper.xml
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 ---
 spring:
