@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.config;
+package org.apache.kylin.rest.config;
 
 import javax.servlet.Filter;
 

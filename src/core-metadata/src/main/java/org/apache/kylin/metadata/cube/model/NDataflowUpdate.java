@@ -21,9 +21,11 @@ package org.apache.kylin.metadata.cube.model;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+@NoArgsConstructor
 public class NDataflowUpdate {
 
     @Getter
