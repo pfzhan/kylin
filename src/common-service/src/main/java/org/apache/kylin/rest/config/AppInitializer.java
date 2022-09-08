@@ -146,16 +146,15 @@ public class AppInitializer {
                 event.getApplicationContext()
                         .publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
             }
+            // register acl update listener
+            EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
+            // register schema change listener, for clean query cache
+            EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
+                    "table");
+            EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
         }
-        // register acl update listener
-        EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
-        // register schema change listener
-        EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
-                "table");
         // register for clean cache when delete
         EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
-
-        EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
 
         postInit();
     }

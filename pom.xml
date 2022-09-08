@@ -286,7 +286,7 @@
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
 
         <external.version>4.5.9</external.version>
-        <iam-user-manager.version>1.2</iam-user-manager.version>
+        <iam-user-manager.version>1.2.1</iam-user-manager.version>
 
         <json-smart.version>2.4.7</json-smart.version>
         <xmlsec.version>2.1.7</xmlsec.version>
@@ -312,9 +312,11 @@
         <module>src/core-storage</module>
         <module>src/query-common</module>
         <module>src/query</module>
+        <module>src/query-extensions</module>
         <!--        <module>src/kap-it</module>-->
         <module>src/core-common</module>
         <module>src/core-metadata</module>
+        <module>src/core-metadata-extensions</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <!--        <module>src/license-service</module>-->
@@ -651,6 +653,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-metadata-ext</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -672,6 +679,11 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-query</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-query-ext</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -756,6 +768,12 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-metadata</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-core-metadata-ext</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
