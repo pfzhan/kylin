@@ -403,28 +403,14 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
-        aclEvaluate.checkProjectOperationPermission(project);
-        batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
-    }
-
-    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses)
-            throws IOException {
-        logger.info("Owned projects is {}", projectService.getOwnedProjects());
-        for (String project : projectService.getOwnedProjects()) {
-            aclEvaluate.checkProjectOperationPermission(project);
-            JobContextUtil.withTxAndRetry(() -> {
-                batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
-
-                return true;
-            });
-        }
-    }
-
-    private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, List<String> filterStatuses)
-            throws IOException {
         val executablePos = jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses);
+        if (null == project) {
+            executablePos.forEach(executablePO -> aclEvaluate.checkProjectOperationPermission(executablePO.getProject()));
+        } else {
+            aclEvaluate.checkProjectOperationPermission(project);
+        }
         for (ExecutablePO executablePO : executablePos) {
-            updateJobStatus(executablePO.getId(), executablePO, project, action);
+            updateJobStatus(executablePO.getId(), executablePO, executablePO.getProject(), action);
         }
     }
 

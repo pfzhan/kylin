@@ -184,7 +184,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateGlobalJobStatus_PASS() throws Exception {
         val request = mockJobUpdateRequest();
         request.setProject(null);
-        Mockito.doNothing().when(jobInfoService).batchUpdateGlobalJobStatus(mockJobUpdateRequest().getJobIds(), "RESUME",
+        Mockito.doNothing().when(jobInfoService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), null, "RESUME",
                 mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))

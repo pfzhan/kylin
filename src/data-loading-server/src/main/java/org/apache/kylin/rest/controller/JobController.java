@@ -35,8 +35,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.transaction.UpdateJobStatusEventNotifier;
-import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.rest.JobFilter;
@@ -152,15 +150,8 @@ public class JobController extends BaseController {
             throw new KylinException(JOB_ID_EMPTY, jobUpdateRequest.getAction());
         }
 
-        if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {
-            jobInfoService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
+        jobInfoService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
                     jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses());
-        } else {
-            jobInfoService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
-                    jobUpdateRequest.getStatuses());
-            EventBusFactory.getInstance().postAsync(new UpdateJobStatusEventNotifier(jobUpdateRequest.getJobIds(),
-                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses()));
-        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

@@ -97,7 +97,9 @@ import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.TableExtService;
 import org.apache.spark.application.NoRetryException;
 import org.assertj.core.api.Assertions;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -136,6 +138,16 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
 
     @Test
     public void testListJobs() throws Exception {
@@ -765,18 +777,18 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
         Mockito.when(projectService.getOwnedProjects()).thenReturn(Lists.newArrayList("default"));
-        jobInfoService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", Lists.newArrayList());
+        jobInfoService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
-        jobInfoService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", Lists.newArrayList());
-        jobInfoService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", Lists.newArrayList());
+        jobInfoService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", Lists.newArrayList());
+        jobInfoService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
-        jobInfoService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME",
+        jobInfoService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
                 Lists.newArrayList("STOPPED"));
         Assert.assertEquals(ExecutableState.READY, manager.getJob(executable.getId()).getStatus());
 
-        jobInfoService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "DISCARD", Lists.newArrayList());
+        jobInfoService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.DISCARDED, manager.getJob(executable.getId()).getStatus());
 
         Assert.assertNull(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment());
