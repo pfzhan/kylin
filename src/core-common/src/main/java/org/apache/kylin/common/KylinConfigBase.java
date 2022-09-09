@@ -3523,6 +3523,14 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
     }
 
+    public String getQueueKey() {
+        if (getSparkMaster().startsWith("k8s")) {
+            return "kylin.engine.spark-conf.spark.kubernetes.scheduler.volcano.podGroup.spec.queue";
+        } else {
+            return "kylin.engine.spark-conf.spark.yarn.queue";
+        }
+    }
+
     public boolean isProxyJobSparkUIEnabled() {
         String defaultValue = "false";
         if (getSparkMaster().startsWith("k8s")) {

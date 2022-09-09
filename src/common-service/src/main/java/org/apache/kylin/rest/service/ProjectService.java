@@ -183,8 +183,6 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
     private static final String DEFAULT_VAL = "default";
 
-    private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
-
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = -1)
     public ProjectInstance createProject(String projectName, ProjectInstance newProject) {
@@ -458,7 +456,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
     @Transaction(project = 0)
     public void updateYarnQueue(String project, String queueName) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put(SPARK_YARN_QUEUE, queueName);
+        overrideKylinProps.put(KylinConfig.getInstanceFromEnv().getQueueKey(), queueName);
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
@@ -574,7 +572,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
 
         response.setLowFrequencyThreshold(config.getLowFrequencyThreshold());
 
-        response.setYarnQueue(config.getOptional(SPARK_YARN_QUEUE, DEFAULT_VAL));
+        response.setYarnQueue(config.getOptional(config.getQueueKey(), DEFAULT_VAL));
 
         response.setExposeComputedColumn(config.exposeComputedColumn());
 

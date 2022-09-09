@@ -93,7 +93,6 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
     public static final String DEPENDENT_FILES = "dependentFiles";
-    public static final String SPARK_YARN_QUEUE = "spark.yarn.queue";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
 

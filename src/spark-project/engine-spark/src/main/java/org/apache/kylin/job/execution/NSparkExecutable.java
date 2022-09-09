@@ -370,7 +370,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             String yarnQueue = getParent().getSparkYarnQueue();
             // TODO double check if valid yarn queue
             if (!Strings.isNullOrEmpty(yarnQueue)) {
-                jobOverrides.put("kylin.engine.spark-conf." + SPARK_YARN_QUEUE, yarnQueue);
+                jobOverrides.put("kylin.engine.spark-conf." + KylinConfig.getInstanceFromEnv().getQueueKey(), yarnQueue);
             }
         }
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
