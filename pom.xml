@@ -299,7 +299,7 @@
         <apache-api.version>1.0.3</apache-api.version>
 
         <spring.cloud.alibaba.version>2021.1</spring.cloud.alibaba.version>
-        <saas.nacos.discovery.starter.version>2.6.2</saas.nacos.discovery.starter.version>
+        <saas.nacos.discovery.starter.version>2.6.2.2</saas.nacos.discovery.starter.version>
         <nacos.spring.booter.version>2021.0.1.0</nacos.spring.booter.version>
 
         <jersey.version>2.35</jersey.version>
@@ -577,15 +577,9 @@
             </dependency>
 
             <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-                <version>${nacos.spring.booter.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>io.kyligence</groupId>
                 <artifactId>kyligence-config-external</artifactId>
-                <version>1.0.0</version>
+                <version>1.1.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
