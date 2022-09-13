@@ -110,6 +110,7 @@ public class ExecutableManager {
     private static final Object DUMMY_OBJECT = new Object();
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
     private static final int LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE = 100;
+    private static final String SHOULD_DESTROY_PROCESS_SIGNAL = "SHOULD_DESTROY_PROCESS_SIGNAL";
     private final KylinConfig config;
     private String project;
 
@@ -250,6 +251,9 @@ public class ExecutableManager {
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
             Set<String> removeInfo, String output, long byteSize, String failedMsg) {
         val jobId = extractJobId(taskOrJobId);
+
+        Map<String, Boolean> shouldDestroyProcessSignalMap = Maps.newHashMap();
+
         jobInfoDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
             ExecutablePO taskOrJob = Objects.equals(taskOrJobId, jobId) ? job
@@ -300,10 +304,16 @@ public class ExecutableManager {
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
                 // kill spark-submit process
-                destroyProcess(taskOrJobId);
+                shouldDestroyProcessSignalMap.put(SHOULD_DESTROY_PROCESS_SIGNAL, true);
             }
             return true;
         });
+
+        // split from job-tx, this tx is repeatable-read, and db-locked before job-task thread tx.
+        if (shouldDestroyProcessSignalMap.getOrDefault(SHOULD_DESTROY_PROCESS_SIGNAL, false)) {
+            destroyProcess(taskOrJobId);
+        }
+
     }
 
     public static String extractJobId(String taskOrJobId) {
