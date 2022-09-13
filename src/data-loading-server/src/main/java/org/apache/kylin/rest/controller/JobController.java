@@ -108,7 +108,9 @@ public class JobController extends BaseController {
         jobInfoService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
-        List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffset, pageSize);
+        // pageOffset is 1,2,3.... means pageNo
+        Integer pageOffsetNew = pageOffset * pageSize;
+        List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffsetNew, pageSize);
         long count = jobInfoService.countJobs(jobFilter);
         DataResult<List<ExecutableResponse>> executables = new DataResult<>(result, (int) count);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
