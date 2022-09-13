@@ -110,7 +110,7 @@ public class JobRunnerFactory {
                 org.apache.commons.io.FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
                 Properties props = kylinConfig.exportToProperties();
-                props.setProperty("kylin.query.queryhistory.url", kylinConfig.getMetadataUrl().toString());
+                props.setProperty("kylin.query.queryhistory.url", kylinConfig.getQueryHistoryUrl().toString());
                 props.setProperty("kylin.metadata.url", metaDumpUrl);
 
                 if (kylinPropsOnly) {
