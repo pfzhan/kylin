@@ -43,6 +43,31 @@ public class JobMetadataBaseDelegate {
         return KylinConfig.getInstanceFromEnv().getManager(project, clz);
     }
 
+    public String buildPartitionJob(JobMetadataRequest jobMetadataRequest) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.buildPartitionJob(jobMetadataRequest.parseJobParam());
+    }
+
+    public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.addRelatedIndexJob(jobMetadataRequest.parseJobParam());
+    }
+
+    public String mergeSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.mergeSegmentJob(jobMetadataRequest.parseJobParam());
+    }
+
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.refreshSegmentJob(jobMetadataRequest.parseJobParam());
+    }
+
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.refreshSegmentJob(jobMetadataRequest.parseJobParam(), refreshAllLayouts);
+    }
+
     public String addSegmentJob(JobMetadataRequest jobMetadataRequest) {
         val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
         return jobManager.addSegmentJob(jobMetadataRequest.parseJobParam());

@@ -32,13 +32,13 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.controller.NBasicController;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.rest.controller.BaseController;
 import org.apache.kylin.rest.controller.SegmentController;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
@@ -75,7 +75,7 @@ import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class OpenSegmentController extends BaseController {
+public class OpenSegmentController extends NBasicController {
 
     @Autowired
     private SegmentController segmentController;

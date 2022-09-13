@@ -55,7 +55,7 @@ import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_JSON })
-public class SampleController extends BaseController {
+public class SampleController extends NBasicController {
 
     private static final String TABLE = "table";
     private static final int MAX_SAMPLING_ROWS = 20_000_000;

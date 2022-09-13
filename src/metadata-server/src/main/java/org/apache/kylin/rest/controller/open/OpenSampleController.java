@@ -27,10 +27,10 @@ import java.util.Locale;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.controller.NBasicController;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
-import org.apache.kylin.rest.controller.BaseController;
 import org.apache.kylin.rest.controller.SampleController;
 import org.apache.kylin.rest.request.RefreshSegmentsRequest;
 import org.apache.kylin.rest.response.OpenPartitionColumnFormatResponse;
@@ -51,7 +51,7 @@ import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class OpenSampleController extends BaseController {
+public class OpenSampleController extends NBasicController {
 
     private static final String TABLE = "table";
 

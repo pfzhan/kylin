@@ -57,6 +57,26 @@ public class JobMetadataBaseInvoker {
 
     private JobMetadataBaseDelegate jobMetadataBaseDelegate = new JobMetadataBaseDelegate();
 
+    public String buildPartitionJob(JobMetadataRequest jobMetadataRequest) {
+       return jobMetadataBaseDelegate.buildPartitionJob(jobMetadataRequest);
+    }
+
+    public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataBaseDelegate.addRelatedIndexJob(jobMetadataRequest);
+    }
+
+    public String mergeSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataBaseDelegate.mergeSegmentJob(jobMetadataRequest);
+    }
+
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataBaseDelegate.refreshSegmentJob(jobMetadataRequest);
+    }
+
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts) {
+        return jobMetadataBaseDelegate.refreshSegmentJob(jobMetadataRequest, refreshAllLayouts);
+    }
+
     public String addSegmentJob(JobMetadataRequest jobMetadataRequest) {
         return jobMetadataBaseDelegate.addSegmentJob(jobMetadataRequest);
     }

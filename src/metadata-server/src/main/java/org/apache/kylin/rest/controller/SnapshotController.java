@@ -68,7 +68,7 @@ import lombok.val;
 @Controller
 @RequestMapping(value = "/api/snapshots", produces = { HTTP_VND_APACHE_KYLIN_JSON,
         HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class SnapshotController extends BaseController {
+public class SnapshotController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotController.class);
 

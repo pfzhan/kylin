@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableManager;
-import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
@@ -39,8 +39,11 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -68,87 +71,92 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
         }
 
         val models = NDataflowManager.getInstance(kylinConfig, project).getTableOrientedModelsUsingRootTable(tableDesc);
-        boolean first = true;
-        List<SegmentRange> firstRanges = Lists.newArrayList();
-
-        val loadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
-
         if (CollectionUtils.isNotEmpty(models)) {
 
-            val jobManager = getManager(JobManager.class, project);
-            for (val model : models) {
-                val modelId = model.getUuid();
-                IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
-                NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-                NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
-                Segments<NDataSegment> segments = df.getSegmentsByRange(toBeRefreshSegmentRange);
-                List<SegmentRange> ranges = Lists.newArrayList();
+            Pair<List<JobParam>, List<JobParam>> pair = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                List<JobParam> addSegmentList = Lists.newArrayList();
+                List<JobParam> refreshSegmentList = Lists.newArrayList();
+                boolean first = true;
+                List<SegmentRange> firstRanges = Lists.newArrayList();
 
-                if (RealizationStatusEnum.LAG_BEHIND != df.getStatus()) {
-                    if (CollectionUtils.isEmpty(segments) && loadingRange == null) {
-                        logger.info("Refresh model {} without partition key, but it does not exist, build it.",
-                                modelId);
-                        //Full build segment to refresh does not exist, build it.
-                        buildFullSegment(model.getUuid(), project);
-                        continue;
+                val loadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
+                for (val model : models) {
+                    val modelId = model.getUuid();
+                    IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
+                    NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+                    NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
+                    Segments<NDataSegment> segments = df.getSegmentsByRange(toBeRefreshSegmentRange);
+                    List<SegmentRange> ranges = Lists.newArrayList();
+
+                    if (RealizationStatusEnum.LAG_BEHIND != df.getStatus()) {
+                        if (CollectionUtils.isEmpty(segments) && loadingRange == null) {
+                            logger.info("Refresh model {} without partition key, but it does not exist, build it.",
+                                    modelId);
+                            //Full build segment to refresh does not exist, build it.
+                            buildFullSegment(model.getUuid(), project, addSegmentList);
+                            continue;
+                        } else {
+                            //normal model to refresh must has ready segment
+                            Preconditions.checkState(CollectionUtils.isNotEmpty(segments));
+                            refreshSegments(segments, dfMgr, df, modelId, refreshSegmentList, project);
+                            ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
+                        }
                     } else {
-                        //normal model to refresh must has ready segment
-                        Preconditions.checkState(CollectionUtils.isNotEmpty(segments));
-                        refreshSegments(segments, dfMgr, df, modelId, jobManager, project);
+                        refreshSegments(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING), dfMgr, df,
+                                modelId, refreshSegmentList, project);
                         ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
+                        //remove new segment in lag behind models and then rebuild it
+                        handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId,
+                                dfMgr, addSegmentList);
                     }
-                } else {
-                    refreshSegments(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING), dfMgr, df,
-                            modelId, jobManager, project);
-                    ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
-                    //remove new segment in lag behind models and then rebuild it
-                    handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId,
-                            dfMgr, jobManager);
-                }
-                //check range in every model to refresh same
-                if (first) {
-                    firstRanges = ranges;
-                    first = false;
-                } else {
-                    Preconditions.checkState(firstRanges.equals(ranges));
-                }
+                    //check range in every model to refresh same
+                    if (first) {
+                        firstRanges = ranges;
+                        first = false;
+                    } else {
+                        Preconditions.checkState(firstRanges.equals(ranges));
+                    }
 
+                }
+                return new Pair<>(addSegmentList, refreshSegmentList);
+            }, project);
+            for (JobParam jobParam : pair.getFirst()) {
+                getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                        () ->JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)));
+            }
+            for (JobParam jobParam : pair.getSecond()) {
+                getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                        () -> JobMetadataBaseInvoker.getInstance().refreshSegmentJob(new JobMetadataRequest(jobParam)));
             }
         }
     }
 
     private void refreshSegments(Segments<NDataSegment> segments, NDataflowManager dfMgr, NDataflow df, String modelId,
-            JobManager jobManager, String project) {
+             List<JobParam> jobParamList, String project) {
         for (NDataSegment seg : segments) {
             NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
-            getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> {
-                jobManager.refreshSegmentJob(new JobParam(newSeg, modelId, getUsername()));
-                return null;
-            });
+            jobParamList.add(new JobParam(newSeg, modelId, getUsername()).withProject(project));
         }
     }
 
-    private void buildFullSegment(String model, String project) {
-        val jobManager = getManager(JobManager.class, project);
+    private void buildFullSegment(String model, String project, List<JobParam> jobParamList) {
         val dataflowManager = getManager(NDataflowManager.class, project);
         val indexPlanManager = getManager(NIndexPlanManager.class, project);
         val indexPlan = indexPlanManager.getIndexPlan(model);
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
+        jobParamList.add(new JobParam(newSegment, model, getUsername()).withProject(project));
     }
 
     private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments,
-            String modelId, NDataflowManager dfMgr, JobManager jobManager) throws IOException {
+            String modelId, NDataflowManager dfMgr, List<JobParam> jobParamList) throws IOException {
         //if new segment missed, do nothing
         for (NDataSegment seg : newSegments) {
             handleJobAndOldSeg(project, seg, df, dfMgr);
             df = dfMgr.getDataflow(modelId);
             val newSeg = dfMgr.appendSegment(df, seg.getSegRange());
-            getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> jobManager.addSegmentJob(new JobParam(newSeg, modelId, getUsername())));
+            jobParamList.add(new JobParam(newSeg, modelId, getUsername()).withProject(project));
         }
     }
 

@@ -77,7 +77,7 @@ import lombok.extern.log4j.Log4j;
 @Log4j
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
-public class SegmentController extends BaseController {
+public class SegmentController extends NBasicController {
 
     public static final String MODEL_ID = "modelId";
 

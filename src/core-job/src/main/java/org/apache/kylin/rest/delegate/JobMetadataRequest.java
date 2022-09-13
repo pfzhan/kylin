@@ -21,14 +21,17 @@ package org.apache.kylin.rest.delegate;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.kylin.metadata.job.JobBucket;
 
 @Data
 @AllArgsConstructor
@@ -47,9 +50,21 @@ public class JobMetadataRequest {
 
     private Set<String> targetSegments;
 
+    private Set<Long> targetLayouts;
+
     private Map<String, Object> condition;
 
     private String secondStorageJobHandler;
+
+    private Set<String> ignoredSnapshotTables;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    private Set<Long> targetPartitions = Sets.newHashSet();
+
+    private Set<JobBucket> targetBuckets = Sets.newHashSet();
+
+    private String yarnQueue;
 
     public JobParam parseJobParam() {
         JobParam jobParam = new JobParam();
@@ -73,6 +88,22 @@ public class JobMetadataRequest {
         }
         if (MapUtils.isNotEmpty(this.getCondition())) {
             jobParam.setCondition(this.getCondition());
+        }
+        jobParam.setPriority(this.getPriority());
+        if (CollectionUtils.isNotEmpty(this.getTargetLayouts())) {
+            jobParam.setTargetLayouts(this.getTargetLayouts());
+        }
+        if (CollectionUtils.isNotEmpty(this.getTargetPartitions())) {
+            jobParam.setTargetPartitions(this.getTargetPartitions());
+        }
+        if (CollectionUtils.isNotEmpty(this.getIgnoredSnapshotTables())) {
+            jobParam.setIgnoredSnapshotTables(this.getIgnoredSnapshotTables());
+        }
+        if (CollectionUtils.isNotEmpty(this.getTargetBuckets())) {
+            jobParam.setTargetBuckets(this.getTargetBuckets());
+        }
+        if (null != this.getYarnQueue()) {
+            jobParam.setYarnQueue(this.getYarnQueue());
         }
         return jobParam;
     }
@@ -98,6 +129,22 @@ public class JobMetadataRequest {
         }
         if (MapUtils.isNotEmpty(jobParam.getCondition())) {
             setCondition(jobParam.getCondition());
+        }
+        setPriority(jobParam.getPriority());
+        if (CollectionUtils.isNotEmpty(jobParam.getTargetLayouts())) {
+            setTargetLayouts(jobParam.getTargetLayouts());
+        }
+        if (CollectionUtils.isNotEmpty(jobParam.getTargetPartitions())) {
+            setTargetPartitions(jobParam.getTargetPartitions());
+        }
+        if (CollectionUtils.isNotEmpty(jobParam.getIgnoredSnapshotTables())) {
+            setIgnoredSnapshotTables(jobParam.getIgnoredSnapshotTables());
+        }
+        if (CollectionUtils.isNotEmpty(jobParam.getTargetBuckets())) {
+            setTargetBuckets(jobParam.getTargetBuckets());
+        }
+        if (null != jobParam.getYarnQueue()) {
+            setYarnQueue(jobParam.getYarnQueue());
         }
     }
 

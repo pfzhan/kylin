@@ -147,6 +147,11 @@ public class JobParam {
         this.setTargetLayouts(targetLayouts);
     }
 
+    public JobParam withProject(String project) {
+        this.project = project;
+        return this;
+    }
+
     public JobParam withIgnoredSnapshotTables(Set<String> ignoredSnapshotTables) {
         this.ignoredSnapshotTables = ignoredSnapshotTables;
         return this;

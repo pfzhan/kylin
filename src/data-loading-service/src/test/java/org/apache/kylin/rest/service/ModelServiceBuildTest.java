@@ -519,8 +519,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
         AbstractExecutable job = executables.get(0);
         Assert.assertEquals(0, job.getPriority());
         Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
-        thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
                 SEGMENT_STATUS.getMsg(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments()
                         .get(0).displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
@@ -1251,8 +1251,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     false, 0, null, null);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), e.getMessage());
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof KylinException);
+            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), cause.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -1509,8 +1510,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment5.getId(), dataSegment6.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), cause.getMessage());
         }
 
         // index is not aligned in segment3, segment4
@@ -1519,8 +1521,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment3.getId(), dataSegment4.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), cause.getMessage());
         }
 
         // partitions are not aligned in segment2, segment3
@@ -1529,8 +1532,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment2.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), e.getMessage());
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), cause.getMessage());
         }
 
         // success

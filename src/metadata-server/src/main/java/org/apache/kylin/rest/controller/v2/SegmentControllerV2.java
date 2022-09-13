@@ -43,9 +43,9 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
+import org.apache.kylin.rest.controller.NBasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.rest.controller.BaseController;
 import org.apache.kylin.rest.request.CubeRebuildRequest;
 import org.apache.kylin.rest.request.SegmentMgmtRequest;
 import org.apache.kylin.rest.response.JobInfoResponseV2;
@@ -74,7 +74,7 @@ import lombok.val;
 
 @RestController
 @RequestMapping(value = "/api/cubes", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
-public class SegmentControllerV2 extends BaseController {
+public class SegmentControllerV2 extends NBasicController {
 
     @Autowired
     @Qualifier("modelService")

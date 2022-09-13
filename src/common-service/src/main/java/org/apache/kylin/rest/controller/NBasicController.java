@@ -587,4 +587,17 @@ public class NBasicController {
                     MsgPicker.getMsg().getStreamingDisabled());
         }
     }
+
+    protected void checkSegmentParams(String[] ids, String[] names) {
+
+        //both not empty
+        if (ArrayUtils.isNotEmpty(ids) && ArrayUtils.isNotEmpty(names)) {
+            throw new KylinException(SEGMENT_CONFLICT_PARAMETER);
+        }
+
+        //both empty
+        if (ArrayUtils.isEmpty(ids) && ArrayUtils.isEmpty(names)) {
+            throw new KylinException(SEGMENT_EMPTY_PARAMETER);
+        }
+    }
 }
