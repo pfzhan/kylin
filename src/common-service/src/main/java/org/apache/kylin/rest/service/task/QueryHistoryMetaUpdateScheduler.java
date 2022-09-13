@@ -53,7 +53,6 @@ import org.apache.kylin.metadata.query.NativeQueryRealization;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.rest.service.IUserGroupService;
-import org.apache.kylin.rest.service.QuerySmartSupporter;
 import org.apache.kylin.rest.util.SpringContext;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -73,7 +72,6 @@ public class QueryHistoryMetaUpdateScheduler {
     AccelerateRuleUtil accelerateRuleUtil;
     @Getter
     private final String project;
-    private QuerySmartSupporter querySmartSupporter;
     private long epochId;
     private IUserGroupService userGroupService;
 
@@ -89,10 +87,7 @@ public class QueryHistoryMetaUpdateScheduler {
             userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
         }
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
-        if (querySmartSupporter == null && SpringContext.getApplicationContext() != null) {
-            querySmartSupporter = SpringContext.getBean(QuerySmartSupporter.class);
-        }
-        log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
+        log.debug("New QueryHistoryMetaUpdateScheduler created by project {}", project);
     }
 
     public static QueryHistoryMetaUpdateScheduler getInstance(String project) {

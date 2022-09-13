@@ -56,7 +56,6 @@ import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.job.execution.merger.MetadataMerger;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataflow;
@@ -582,10 +581,6 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     public boolean needMergeMetadata() {
         return false;
-    }
-
-    public void mergerMetadata(MetadataMerger merger) {
-        throw new UnsupportedOperationException();
     }
 
     private interface ConfMap {

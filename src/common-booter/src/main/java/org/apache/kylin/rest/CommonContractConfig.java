@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest;
+package org.apache.kylin.rest;
 
 import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataRpc;

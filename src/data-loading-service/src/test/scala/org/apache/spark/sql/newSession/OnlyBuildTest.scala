@@ -17,6 +17,8 @@
  */
 package org.apache.spark.sql.newSession
 
+import java.util
+
 import com.google.common.collect.Sets
 import org.apache.kylin.engine.spark.IndexDataConstructor
 import org.apache.kylin.job.util.JobContextUtil
@@ -24,8 +26,6 @@ import org.apache.kylin.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowM
 import org.apache.kylin.metadata.model.NDataModelManager.NDataModelUpdater
 import org.apache.kylin.metadata.model.{NDataModel, NDataModelManager, SegmentRange}
 import org.apache.spark.sql.test.SQLTestUtils
-
-import java.util
 
 abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog {
 

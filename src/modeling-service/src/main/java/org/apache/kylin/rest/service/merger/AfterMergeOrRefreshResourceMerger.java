@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.execution.merger;
+package org.apache.kylin.rest.service.merger;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -30,22 +29,21 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.MergerInfo.TaskMergeInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
-import org.apache.kylin.metadata.cube.model.NDataSegDetails;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
-import org.apache.kylin.rest.request.DataFlowUpdateRequest;
+import org.jetbrains.annotations.TestOnly;
 
 import com.clearspring.analytics.util.Lists;
 
 import lombok.val;
 
-public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
+public class AfterMergeOrRefreshResourceMerger extends MetadataMerger {
 
     public AfterMergeOrRefreshResourceMerger(KylinConfig config, String project) {
         super(config, project);
@@ -121,11 +119,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
 
-        List<NDataSegDetails> segDetails = Collections.singletonList(mergedSegment.getSegDetails());
-        List<Integer> layoutCounts = Collections.singletonList(update.getToAddOrUpdateLayouts().length);
-
-        ModelMetadataBaseInvoker.getInstance().updateDataflow(new DataFlowUpdateRequest(getProject(), update,
-                segDetails.toArray(new NDataSegDetails[0]), layoutCounts.toArray(new Integer[0])));
+        mgr.updateDataflow(update);
 
         updateIndexPlan(dataflowId, remoteResourceStore);
         return update.getToAddOrUpdateLayouts();
@@ -169,11 +163,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
 
-        List<NDataSegDetails> segDetails = Collections.singletonList(mergedSegment.getSegDetails());
-        List<Integer> layoutCounts = Collections.singletonList(update.getToAddOrUpdateLayouts().length);
-
-        ModelMetadataBaseInvoker.getInstance().updateDataflow(new DataFlowUpdateRequest(getProject(), update,
-                segDetails.toArray(new NDataSegDetails[0]), layoutCounts.toArray(new Integer[0])));
+        mgr.updateDataflow(update);
 
         updateIndexPlan(dataflowId, remoteResourceStore);
         return update.getToAddOrUpdateLayouts();
@@ -190,22 +180,30 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         }
     }
 
-    @Override
+    @TestOnly
     public void merge(AbstractExecutable abstractExecutable) {
-        try (val buildResourceStore = ExecutableUtils.getRemoteStore(this.getConfig(), abstractExecutable)) {
-            val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
-            val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
-            val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
-            val partitionIds = ExecutableUtils.getPartitionIds(abstractExecutable);
-            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
-                    abstractExecutable.getJobType(), partitionIds);
+        TaskMergeInfo taskMergeInfo = new TaskMergeInfo(abstractExecutable,
+                ExecutableUtils.needBuildSnapshots(abstractExecutable));
+        merge(taskMergeInfo);
+    }
+
+    @Override
+    public NDataLayout[] merge(TaskMergeInfo info) {
+        try (val buildResourceStore = ExecutableUtils.getRemoteStore(this.getConfig(), info.getOutputMetaUrl())) {
+            val dataFlowId = info.getDataFlowId();
+            val segmentIds = info.getSegmentIds();
+            val layoutIds = info.getLayoutIds();
+            val partitionIds = info.getPartitionIds();
+            val jobType = info.getJobType();
+            val needBuildSnapshots = info.isNeedBuildSnapshots();
+            NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore, jobType,
+                    partitionIds);
             NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
-            if (ExecutableUtils.needBuildSnapshots(abstractExecutable)) {
+            if (needBuildSnapshots) {
                 mergeSnapshotMeta(dataflow, buildResourceStore);
             }
             mergeTableExtMeta(dataflow, buildResourceStore);
-            recordDownJobStats(abstractExecutable, nDataLayouts);
-            abstractExecutable.notifyUserIfNecessary(nDataLayouts);
+            return nDataLayouts;
         }
     }
 

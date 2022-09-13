@@ -61,6 +61,10 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-engine-build-sdk</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-metadata-feign-api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -207,7 +211,6 @@
         <dependency>
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-hadoop-bundle</artifactId>
-            <version>${parquet.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

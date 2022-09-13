@@ -28,7 +28,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.engine.spark.job.RestfulJobProgressReport;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -51,7 +51,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.job.ParamsConstants;
 
-public class SparkApplicationTest extends NLocalWithSparkSessionTest {
+public class SparkApplicationTest extends NLocalWithSparkSessionTestBase {
 
     File tempDir = new File("./temp/");
     File file1 = new File(tempDir, "temp1_" + ResourceDetectUtils.fileName());

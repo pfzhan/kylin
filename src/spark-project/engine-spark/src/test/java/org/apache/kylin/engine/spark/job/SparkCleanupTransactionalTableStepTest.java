@@ -24,13 +24,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.step.SparkCleanupTransactionalTableStep;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class SparkCleanupTransactionalTableStepTest extends NLocalWithSparkSessionTest {
+public class SparkCleanupTransactionalTableStepTest extends NLocalWithSparkSessionTestBase {
 
     @Test
     public void testGenerateDropTableCommand() {

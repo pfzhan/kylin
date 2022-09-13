@@ -37,11 +37,11 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
 import lombok.val;
 
 public class NSparkUpdateMetadataStep extends AbstractExecutable {
@@ -62,10 +62,7 @@ public class NSparkUpdateMetadataStep extends AbstractExecutable {
         Preconditions.checkArgument(parent instanceof DefaultChainedExecutableOnModel);
         val handler = ((DefaultChainedExecutableOnModel) parent).getHandler();
         try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                handler.handleFinished();
-                return null;
-            }, handler.getProject());
+            handler.handleFinished();
             cleanExpiredSnapshot();
             return ExecuteResult.createSucceed();
         } catch (Throwable throwable) {

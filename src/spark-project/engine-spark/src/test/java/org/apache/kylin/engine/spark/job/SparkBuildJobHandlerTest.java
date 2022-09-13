@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.junit.Assert;
@@ -34,7 +34,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.ISparkJobHandler;
 
-public class SparkBuildJobHandlerTest extends NLocalWithSparkSessionTest {
+public class SparkBuildJobHandlerTest extends NLocalWithSparkSessionTestBase {
 
     @Test
     public void testKillOrphanApplicationIfExists() {

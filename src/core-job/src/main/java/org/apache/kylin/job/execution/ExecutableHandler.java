@@ -22,10 +22,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflow;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
 
@@ -83,15 +79,14 @@ public abstract class ExecutableHandler {
         return (DefaultChainedExecutableOnModel) executable;
     }
 
-    public void markDFStatus() {
-        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataflow df = dfManager.getDataflow(getModelId());
-        boolean isOffline = dfManager.isOfflineModel(df);
-        RealizationStatusEnum status = df.getStatus();
-        if (RealizationStatusEnum.ONLINE == status && isOffline) {
-            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
-        } else if (RealizationStatusEnum.OFFLINE == status && !isOffline) {
-            ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(project, df.getId(), RealizationStatusEnum.ONLINE);
-        }
+    public int getErrorOrPausedJobCount() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val executableManager = getExecutableManager(project, kylinConfig);
+        return executableManager
+                .listExecByModelAndStatus(modelId, ExecutableState::isNotProgressing, JobTypeEnum.INC_BUILD).size();
+    }
+
+    public enum HandlerType {
+        ADD_CUBOID, ADD_SEGMENT, MERGE_OR_REFRESH;
     }
 }

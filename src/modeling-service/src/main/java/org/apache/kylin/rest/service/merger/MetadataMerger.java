@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.execution.merger;
+package org.apache.kylin.rest.service.merger;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,11 +28,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.LayoutPartition;
@@ -40,13 +38,11 @@ import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.cube.model.SegmentPartition;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.TableMetadataBaseInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,13 +51,15 @@ import com.google.common.collect.Maps;
 import lombok.Getter;
 import lombok.val;
 
-public abstract class SparkJobMetadataMerger extends MetadataMerger {
-    private static final Logger log = LoggerFactory.getLogger(SparkJobMetadataMerger.class);
+public abstract class MetadataMerger {
+    private static final Logger log = LoggerFactory.getLogger(MetadataMerger.class);
     @Getter
     private final String project;
+    @Getter
+    private final KylinConfig config;
 
-    protected SparkJobMetadataMerger(KylinConfig config, String project) {
-        super(config);
+    protected MetadataMerger(KylinConfig config, String project) {
+        this.config = config;
         this.project = project;
     }
 
@@ -75,35 +73,12 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         return KylinConfigExt.createInstance(globalConfig, projectConfig);
     }
 
-    @Override
-    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, //
-            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
-        return new NDataLayout[0];
-    }
+    public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions);
 
-    public void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
-        // make sure call this method in the last step, if 4th step is added, please modify the logic accordingly
-        String model = buildTask.getTargetSubject();
-        // get end time from current task instead of parent job，since parent job is in running state at this time
-        long buildEndTime = buildTask.getEndTime();
-        long duration = buildTask.getParent().getDuration();
-        long byteSize = 0;
-        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
-            byteSize += dataCuboid.getByteSize();
-        }
-        Long byteSizeWrapper = byteSize;
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        long startOfDay = TimeUtil.getDayStart(buildEndTime);
-        JobContextUtil.withTxAndRetry(() -> {
-            // update
-            ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
-            executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null,
-                    byteSizeWrapper.longValue());
+    public abstract void merge(AbstractExecutable abstractExecutable);
 
-            return true;
-        });
-        JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, model, duration, byteSize, 0);
-    }
+    public abstract NDataLayout[] merge(MergerInfo.TaskMergeInfo info);
 
     protected void mergeSnapshotMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {
         if (!isSnapshotManualManagementEnabled(remoteResourceStore)) {
@@ -122,7 +97,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
                 copy.setSnapshotLastModified(remoteTbDesc.getSnapshotLastModified());
                 copy.setSnapshotTotalRows(remoteTbDesc.getSnapshotTotalRows());
-                TableMetadataBaseInvoker.getInstance().updateTableDesc(getProject(), copy);
+                localTblMgr.updateTableDesc(copy);
             });
         }
     }
@@ -144,7 +119,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
             }
             copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
-            TableMetadataBaseInvoker.getInstance().saveTableExt(getProject(), copyExt);
+            localTblMgr.saveTableExt(copyExt);
         });
     }
 
@@ -217,7 +192,9 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
     public void updateIndexPlan(String dfId, ResourceStore remoteStore) {
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         IndexPlan remoteIndexPlan = remoteDataflowManager.getDataflow(dfId).getIndexPlan();
-        ModelMetadataBaseInvoker.getInstance().updateIndexPlan(getProject(), dfId, remoteIndexPlan,
-                "setLayoutBucketNumMapping");
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
+        indexPlanManager.updateIndexPlan(dfId, copyForWrite -> {
+            copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
+        });
     }
 }

@@ -47,7 +47,9 @@ import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
+import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
@@ -986,5 +988,20 @@ public class NModelController extends NBasicController {
     public void updateDataflowStatus(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
                                      @RequestParam("status") RealizationStatusEnum status) {
         modelService.updateDataflowStatus(project, uuid, status);
+    }
+
+    @PostMapping(value = "/feign/merge_metadata")
+    @ResponseBody
+    public List<NDataLayout[]> mergeMetadata(@RequestParam("project") String project,
+            @RequestBody MergerInfo mergerInfo) {
+        return modelService.mergeMetadata(project, mergerInfo);
+    }
+
+    @PostMapping(value = "/feign/make_segment_ready")
+    @ResponseBody
+    void makeSegmentReady(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+            @RequestParam("segmentId") String segmentId,
+            @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount) {
+        modelService.makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
     }
 }

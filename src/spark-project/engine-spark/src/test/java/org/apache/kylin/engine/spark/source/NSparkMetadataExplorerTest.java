@@ -20,11 +20,11 @@ package org.apache.kylin.engine.spark.source;
 import java.util.List;
 
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.TempMetadataBuilder;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
+import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.common.util.TempMetadataBuilder;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
-import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -33,7 +33,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
+public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTestBase {
 
     @Test
     public void testListDatabases() throws Exception {

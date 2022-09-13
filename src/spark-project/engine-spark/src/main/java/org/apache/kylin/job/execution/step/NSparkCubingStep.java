@@ -27,7 +27,6 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.NSparkExecutable;
-import org.apache.kylin.job.execution.merger.MetadataMerger;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -66,11 +65,6 @@ public class NSparkCubingStep extends NSparkExecutable {
         public static void main(String[] args) {
             logger.info(Mockup.class + ".main() invoked, args: " + Arrays.toString(args));
         }
-    }
-
-    @Override
-    public void mergerMetadata(MetadataMerger merger) {
-        merger.merge(this);
     }
 
     @Override

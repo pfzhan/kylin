@@ -18,18 +18,16 @@
 
 package org.apache.kylin.job.execution.handler;
 
-import java.util.LinkedHashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
-import org.apache.kylin.job.execution.NSparkExecutable;
-import org.apache.kylin.job.execution.merger.AfterBuildResourceMerger;
-import org.apache.kylin.metadata.cube.model.NBatchConstants;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.job.execution.MergerInfo;
+import org.apache.kylin.job.util.ExecutableParaUtil;
+import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,26 +53,23 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
         val modelId = getModelId();
         val executable = getExecutable();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val merger = new AfterBuildResourceMerger(kylinConfig, project);
-        executable.getTasks().stream() //
-                .filter(task -> task instanceof NSparkExecutable) //
-                .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
-                .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
 
-        Optional.ofNullable(executable.getParams()).ifPresent(params -> {
-            String toBeDeletedLayoutIdsStr = params.get(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS);
-            if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
-                logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr, jobId);
-                Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
-                for (String id : toBeDeletedLayoutIdsStr.split(",")) {
-                    toBeDeletedLayoutIds.add(Long.parseLong(id));
-                }
-                ModelMetadataBaseInvoker.getInstance().updateIndex(project, -1, modelId, toBeDeletedLayoutIds,
-                        true, true);
-            }
-        });
-        markDFStatus();
+        val errorOrPausedJobCount = getErrorOrPausedJobCount();
+        String toBeDeletedLayoutIdsStr = ExecutableParaUtil.getToBeDeletedLayoutIdsStr(executable);
+        MergerInfo mergerInfo = new MergerInfo(project, toBeDeletedLayoutIdsStr, modelId, jobId, errorOrPausedJobCount,
+                HandlerType.ADD_CUBOID);
+        ExecutableHandleUtils.getNeedMergeTasks(executable)
+                .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
+
+        List<NDataLayout[]> mergedLayout = MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
+        List<AbstractExecutable> tasks = ExecutableHandleUtils.getNeedMergeTasks(executable);
+//        Preconditions.checkArgument(mergedLayout.size() == tasks.size());
+        for (int idx = 0; idx < mergedLayout.size(); idx++) {
+            AbstractExecutable task = tasks.get(idx);
+            NDataLayout[] layouts = mergedLayout.get(idx);
+            ExecutableHandleUtils.recordDownJobStats(task, layouts, project);
+            task.notifyUserIfNecessary(layouts);
+        }
     }
 
     @Override

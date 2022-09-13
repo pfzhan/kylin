@@ -76,6 +76,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -119,16 +120,17 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableHandler.HandlerType;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
@@ -198,6 +200,7 @@ import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
 import org.apache.kylin.rest.delegate.ModelMetadataContract;
+import org.apache.kylin.rest.feign.MetadataContract;
 import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
@@ -240,6 +243,9 @@ import org.apache.kylin.rest.response.SegmentRangeResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
 import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.security.MutableAclRecord;
+import org.apache.kylin.rest.service.merger.AfterBuildResourceMerger;
+import org.apache.kylin.rest.service.merger.AfterMergeOrRefreshResourceMerger;
+import org.apache.kylin.rest.service.merger.MetadataMerger;
 import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
 import org.apache.kylin.rest.service.params.MergeSegmentParams;
@@ -249,6 +255,7 @@ import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.ModelTriple;
 import org.apache.kylin.rest.util.ModelUtils;
 import org.apache.kylin.rest.util.PagingUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.kylin.streaming.event.StreamingJobDropEvent;
@@ -296,7 +303,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("modelService")
-public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract {
+public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract, MetadataContract {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
@@ -1789,6 +1796,99 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId,
                                                                         String modelAlias, String recActionType) {
         return optRecService.approveAllRecItemsImpl(project, modelId, modelAlias, recActionType);
+    }
+
+
+    @Transaction(project = 0)
+    public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        MetadataMerger merger;
+        if (mergerInfo.getHandlerType() == HandlerType.MERGE_OR_REFRESH) {
+            merger = new AfterMergeOrRefreshResourceMerger(config, project);
+        } else {
+            merger = new AfterBuildResourceMerger(config, project);
+        }
+
+        List<NDataLayout[]> mergedLayouts = new ArrayList<>();
+        mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
+
+        if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
+            String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
+            if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
+                logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
+                        mergerInfo.getJobId());
+                Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
+                for (String id : toBeDeletedLayoutIdsStr.split(",")) {
+                    toBeDeletedLayoutIds.add(Long.parseLong(id));
+                }
+                updateIndex(project, -1, mergerInfo.getModelId(), toBeDeletedLayoutIds, true, true);
+            }
+        }
+        markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(), mergerInfo.getErrorOrPausedJobCount());
+        return mergedLayouts;
+    }
+
+    @Transaction(project = 0)
+    public void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount) {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        NDataflow df = dfMgr.getDataflow(modelId);
+
+        //update target seg's status
+        val dfUpdate = new NDataflowUpdate(modelId);
+        val seg = df.copy().getSegment(segmentId);
+        seg.setStatus(SegmentStatusEnum.READY);
+        dfUpdate.setToUpdateSegs(seg);
+        dfMgr.updateDataflow(dfUpdate);
+        markDFStatus(project, modelId, HandlerType.ADD_SEGMENT, errorOrPausedJobCount);
+    }
+
+    public void markDFStatus(String project, String modelId, HandlerType handlerType, int errorOrPausedJobCount) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfManager.getDataflow(modelId);
+        boolean isOffline = dfManager.isOfflineModel(df);
+        RealizationStatusEnum status = df.getStatus();
+        if (RealizationStatusEnum.ONLINE == status && isOffline) {
+            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
+        } else if (RealizationStatusEnum.OFFLINE == status && !isOffline) {
+            updateDataflowStatus(project, df.getId(), RealizationStatusEnum.ONLINE);
+        }
+        if (handlerType == HandlerType.ADD_SEGMENT) {
+            if (RealizationStatusEnum.LAG_BEHIND == status) {
+                val model = df.getModel();
+                Preconditions.checkState(ManagementType.TABLE_ORIENTED == model.getManagementType());
+                if (checkOnline(model, errorOrPausedJobCount) && !df.getIndexPlan().isOfflineManually()) {
+                    updateDataflowStatus(project, df.getId(),
+                            RealizationStatusEnum.ONLINE);
+                }
+            }
+        }
+    }
+
+    private boolean checkOnline(NDataModel model, int errorOrPausedJobCount) {
+        // 1. check the job status of the model
+        if (errorOrPausedJobCount > 0) {
+            return false;
+        }
+        // 2. check the model aligned with data loading range
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val df = dfManager.getDataflow(model.getId());
+        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                model.getProject());
+        val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(model.getRootFactTableName());
+        // In theory, dataLoadingRange can not be null, because full load table related model will build with INDEX_BUILD job or INDEX_REFRESH job.
+        Preconditions.checkState(dataLoadingRange != null);
+        val querableSegmentRange = dataLoadingRangeManager.getQuerableSegmentRange(dataLoadingRange);
+        Preconditions.checkState(querableSegmentRange != null);
+        val segments = SegmentUtil
+                .getSegmentsExcludeRefreshingAndMerging(df.getSegments().getSegmentsByRange(querableSegmentRange));
+        for (NDataSegment segment : segments) {
+            if (SegmentStatusEnum.NEW == segment.getStatus()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void checkNewModels(String project, List<ModelRequest> newModels) {

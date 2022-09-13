@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest;
+package org.apache.kylin.rest;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
@@ -27,7 +27,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.servlet.http.HttpServletRequest;
 
 @Configuration
-public class FeignConfiguration implements RequestInterceptor {
+public class DataLoadingFeignConfiguration implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate template) {

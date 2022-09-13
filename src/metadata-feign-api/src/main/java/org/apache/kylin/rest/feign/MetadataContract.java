@@ -16,29 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.execution.merger;
+package org.apache.kylin.rest.feign;
 
-import java.util.Set;
+import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 
-import lombok.Getter;
+public interface MetadataContract {
+    List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo);
 
-public abstract class MetadataMerger {
-    @Getter
-    private final KylinConfig config;
-
-    protected MetadataMerger(KylinConfig config) {
-        this.config = config;
-    }
-
-    public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                                        ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions);
-
-    public abstract void merge(AbstractExecutable abstractExecutable);
-
+    void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
 }

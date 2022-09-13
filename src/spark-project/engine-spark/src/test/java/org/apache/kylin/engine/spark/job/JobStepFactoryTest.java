@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -57,7 +57,7 @@ import org.sparkproject.guava.collect.Sets;
 import lombok.val;
 import lombok.var;
 
-public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
+public class JobStepFactoryTest extends NLocalWithSparkSessionTestBase {
     private KylinConfig config;
 
     @Before

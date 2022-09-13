@@ -17,10 +17,10 @@
  */
 package org.apache.spark.sql.newSession
 
-import org.apache.kylin.common.util.TempMetadataBuilder
-
 import java.util.Locale
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest
+
+import org.apache.kylin.common.util.TempMetadataBuilder
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase
 import org.apache.kylin.engine.spark.source.{NSparkMetadataExplorer, NSparkTableMetaExplorer}
 import org.apache.kylin.metadata.model.NTableMetadataManager
 import org.apache.spark.sql.SparderEnv
@@ -152,7 +152,7 @@ class MetaExplorerTest extends SQLTestUtils with WithKylinExternalCatalog {
   }
 
   test("testGetTableDesc") {
-    NLocalWithSparkSessionTest.populateSSWithCSVData(kylinConf, "ssb", spark)
+    NLocalWithSparkSessionTestBase.populateSSWithCSVData(kylinConf, "ssb", spark)
     val sparkMetadataExplorer = new NSparkMetadataExplorer
     val tableDescTableExtDescPair =
       sparkMetadataExplorer.loadTableMetadata("", "p_lineorder", "ssb")

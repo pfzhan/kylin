@@ -26,9 +26,9 @@ import java.util.NoSuchElementException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.util.TestUtils;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.junit.Test;
 import org.springframework.util.ReflectionUtils;
 

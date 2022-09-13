@@ -19,12 +19,12 @@
 package org.apache.kylin.job.execution.handler;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableHandler;
 
 import com.google.common.base.Preconditions;
 
 import lombok.val;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.ExecutableHandler;
 
 public class ExecutableHandlerFactory {
 

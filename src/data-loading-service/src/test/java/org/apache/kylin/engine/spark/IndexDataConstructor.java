@@ -31,7 +31,6 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkCubingJob;
-import org.apache.kylin.job.execution.merger.AfterBuildResourceMerger;
 import org.apache.kylin.job.execution.step.NSparkCubingStep;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -43,6 +42,7 @@ import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.rest.service.merger.AfterBuildResourceMerger;
 import org.junit.Assert;
 
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;

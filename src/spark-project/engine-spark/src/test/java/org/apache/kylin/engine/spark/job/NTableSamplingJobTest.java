@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -42,7 +42,7 @@ import org.junit.Test;
 import lombok.val;
 import lombok.var;
 
-public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
+public class NTableSamplingJobTest extends NLocalWithSparkSessionTestBase {
     private static final String PROJECT = "default";
 
     @Before

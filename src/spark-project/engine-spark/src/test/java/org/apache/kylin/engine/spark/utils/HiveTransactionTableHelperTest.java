@@ -44,23 +44,23 @@ import java.util.UUID;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
+import org.apache.kylin.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
-import org.apache.kylin.engine.spark.job.KylinBuildEnv;
-import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-public class HiveTransactionTableHelperTest extends NLocalWithSparkSessionTest {
+public class HiveTransactionTableHelperTest extends NLocalWithSparkSessionTestBase {
     private final ColumnDesc[] COLUMN_DESCS = new ColumnDesc[2];
     private final String ORIGIN_TABLE = "test1";
     private final String INTERMEDIATE_TABLE = "test1_hive_tx";

@@ -18,24 +18,15 @@
 
 package org.apache.kylin.job.execution.handler;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.common.SegmentUtil;
+import java.util.List;
+
+import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NSparkExecutable;
-import org.apache.kylin.job.execution.merger.AfterBuildResourceMerger;
-import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflow;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
-import org.apache.kylin.metadata.model.ManagementType;
-import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.job.execution.MergerInfo;
+import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 
 import com.google.common.base.Preconditions;
 
@@ -52,14 +43,25 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         String project = getProject();
         val executable = getExecutable();
         val jobId = executable.getId();
+        val modelId = getModelId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val merger = new AfterBuildResourceMerger(kylinConfig, project);
-        executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
-                .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
-                .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        markDFStatus(dfMgr);
+
+        val errorOrPausedJobCount = getErrorOrPausedJobCount();
+        MergerInfo mergerInfo = new MergerInfo(project, null, modelId, jobId, errorOrPausedJobCount,
+                HandlerType.ADD_SEGMENT);
+        ExecutableHandleUtils.getNeedMergeTasks(executable)
+                .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
+        MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
+
+        List<NDataLayout[]> mergedLayout = MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
+        List<AbstractExecutable> tasks = ExecutableHandleUtils.getNeedMergeTasks(executable);
+        Preconditions.checkArgument(mergedLayout.size() == tasks.size());
+        for (int idx = 0; idx < tasks.size(); idx++) {
+            AbstractExecutable task = tasks.get(idx);
+            NDataLayout[] layouts = mergedLayout.get(idx);
+            ExecutableHandleUtils.recordDownJobStats(task, layouts, project);
+            task.notifyUserIfNecessary(layouts);
+        }
     }
 
     @Override
@@ -67,66 +69,8 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         if (((DefaultChainedExecutableOnModel) getExecutable()).checkAnyLayoutExists()) {
             return;
         }
-        makeSegmentReady();
-    }
-
-    private void makeSegmentReady() {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val segmentId = getSegmentId();
-
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, getProject());
-        NDataflow df = dfMgr.getDataflow(getModelId());
-
-        //update target seg's status
-        val dfUpdate = new NDataflowUpdate(getModelId());
-        val seg = df.copy().getSegment(segmentId);
-        seg.setStatus(SegmentStatusEnum.READY);
-        dfUpdate.setToUpdateSegs(seg);
-        dfMgr.updateDataflow(dfUpdate);
-        markDFStatus(dfMgr);
-    }
-
-    private void markDFStatus(NDataflowManager dfManager) {
-        super.markDFStatus();
-        val df = dfManager.getDataflow(getModelId());
-        RealizationStatusEnum status = df.getStatus();
-        if (RealizationStatusEnum.LAG_BEHIND == status) {
-            val model = df.getModel();
-            Preconditions.checkState(ManagementType.TABLE_ORIENTED == model.getManagementType());
-            if (checkOnline(model) && !df.getIndexPlan().isOfflineManually()) {
-                ModelMetadataBaseInvoker.getInstance().updateDataflowStatus(getProject(), df.getId(),
-                        RealizationStatusEnum.ONLINE);
-            }
-        }
-    }
-
-    private boolean checkOnline(NDataModel model) {
-        // 1. check the job status of the model
-        val executableManager = getExecutableManager(model.getProject(), KylinConfig.getInstanceFromEnv());
-        val count = executableManager
-                .listExecByModelAndStatus(model.getId(), ExecutableState::isNotProgressing, JobTypeEnum.INC_BUILD)
-                .size();
-        if (count > 0) {
-            return false;
-        }
-        // 2. check the model aligned with data loading range
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val df = dfManager.getDataflow(model.getId());
-        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                model.getProject());
-        val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(model.getRootFactTableName());
-        // In theory, dataLoadingRange can not be null, because full load table related model will build with INDEX_BUILD job or INDEX_REFRESH job.
-        Preconditions.checkState(dataLoadingRange != null);
-        val querableSegmentRange = dataLoadingRangeManager.getQuerableSegmentRange(dataLoadingRange);
-        Preconditions.checkState(querableSegmentRange != null);
-        val segments = SegmentUtil
-                .getSegmentsExcludeRefreshingAndMerging(df.getSegments().getSegmentsByRange(querableSegmentRange));
-        for (NDataSegment segment : segments) {
-            if (SegmentStatusEnum.NEW == segment.getStatus()) {
-                return false;
-            }
-        }
-        return true;
+        MetadataInvoker.getInstance().makeSegmentReady(getProject(), getModelId(), getSegmentId(),
+                getErrorOrPausedJobCount());
     }
 
 }

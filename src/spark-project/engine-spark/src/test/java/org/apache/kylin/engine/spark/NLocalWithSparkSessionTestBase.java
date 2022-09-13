@@ -19,12 +19,8 @@ package org.apache.kylin.engine.spark;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Random;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
@@ -33,19 +29,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TempMetadataBuilder;
-import org.apache.kylin.job.execution.ExecutableManager;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NSparkMergingJob;
-import org.apache.kylin.job.execution.merger.AfterMergeOrRefreshResourceMerger;
 import org.apache.kylin.job.util.JobContextUtil;
-import org.apache.kylin.metadata.cube.model.IndexPlan;
-import org.apache.kylin.metadata.cube.model.LayoutEntity;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflow;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -63,15 +49,13 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
+public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase implements Serializable {
 
     private static final String CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv";
 
@@ -126,7 +110,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
-    protected IndexDataConstructor indexDataConstructor;
 
     @Before
     public void setUp() throws Exception {
@@ -137,7 +120,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         zkTestServer = new TestingServer(r.nextInt(), true);
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         overwriteSystemProp("kylin.source.provider.9", "org.apache.kylin.engine.spark.mockup.CsvSource");
-        indexDataConstructor = new IndexDataConstructor(getProject());
     }
 
     @After
@@ -228,75 +210,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             return DataTypes.BooleanType;
 
         throw new IllegalArgumentException("KAP data type: " + type + " can not be converted to spark's type.");
-    }
-
-    protected void fullBuild(String dfName) throws Exception {
-        indexDataConstructor.buildDataflow(dfName);
-    }
-
-    public void buildMultiSegs(String dfName, long... layoutID) throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDataflow df = dsMgr.getDataflow(dfName);
-        List<LayoutEntity> layouts = new ArrayList<>();
-        IndexPlan indexPlan = df.getIndexPlan();
-        if (layoutID.length == 0) {
-            layouts = indexPlan.getAllLayouts();
-        } else {
-            for (long id : layoutID) {
-                layouts.add(indexPlan.getLayoutEntity(id));
-            }
-        }
-        long start = SegmentRange.dateToLong("2009-01-01 00:00:00");
-        long end = SegmentRange.dateToLong("2011-01-01 00:00:00");
-        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.newLinkedHashSet(layouts), true);
-
-        start = SegmentRange.dateToLong("2011-01-01 00:00:00");
-        end = SegmentRange.dateToLong("2013-01-01 00:00:00");
-        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.newLinkedHashSet(layouts), true);
-
-        start = SegmentRange.dateToLong("2013-01-01 00:00:00");
-        end = SegmentRange.dateToLong("2015-01-01 00:00:00");
-        indexDataConstructor.buildIndex(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.newLinkedHashSet(layouts), true);
-    }
-
-    public void buildMultiSegAndMerge(String dfName, long... layoutID) throws Exception {
-        buildMultiSegs(dfName, layoutID);
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDataflow df = dsMgr.getDataflow(dfName);
-        List<LayoutEntity> layouts = new ArrayList<>();
-        IndexPlan indexPlan = df.getIndexPlan();
-        if (layoutID.length == 0) {
-            layouts = indexPlan.getAllLayouts();
-        } else {
-            for (long id : layoutID) {
-                layouts.add(indexPlan.getLayoutEntity(id));
-            }
-        }
-        mergeSegments(dfName, Sets.newLinkedHashSet(layouts));
-    }
-
-    public void mergeSegments(String dfName, Set<LayoutEntity> toBuildLayouts) throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDataflow df = dsMgr.getDataflow(dfName);
-        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
-                SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
-        NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
-                RandomUtil.randomUUIDStr());
-
-        ExecutableManager execMgr = ExecutableManager.getInstance(getTestConfig(), getProject());
-        // launch the job
-        execMgr.addJob(job);
-
-        if (!Objects.equals(IndexDataConstructor.wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException(IndexDataConstructor.firstFailedJobErrorMessage(execMgr, job));
-        }
-
-        val merger = new AfterMergeOrRefreshResourceMerger(getTestConfig(), getProject());
-        merger.merge(job.getSparkMergingStep());
-
     }
 
 }
