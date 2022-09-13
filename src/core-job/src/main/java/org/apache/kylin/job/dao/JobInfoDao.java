@@ -191,6 +191,7 @@ public class JobInfoDao {
         jobInfo.setCreateTime(new Date(executablePO.getCreateTime()));
         jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));
         jobInfo.setJobContent(JobInfoUtil.serializeExecutablePO(executablePO));
+        jobInfo.setJobDurationMillis(executablePO.getDurationByPO());
         jobInfo.setMvcc(mvcc);
         return jobInfo;
     }

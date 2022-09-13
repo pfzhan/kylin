@@ -43,11 +43,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 
@@ -58,6 +62,8 @@ import com.google.common.collect.Sets;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
+import lombok.var;
 
 /**
  */
@@ -150,4 +156,41 @@ public class ExecutablePO extends RootPersistentEntity {
             output.getInfo().put(ExecutableConstants.YARN_APP_IDS, newAppIds);
         }
     }
+
+    private long getTaskDuration() {
+        ExecutableOutputPO jobOutput = getOutput();
+        if (jobOutput.getDuration() != 0) {
+            var taskDuration = jobOutput.getDuration();
+            if (ExecutableState.RUNNING == ExecutableState.valueOf(jobOutput.getStatus())) {
+                taskDuration = (taskDuration + System.currentTimeMillis() - jobOutput.getLastRunningStartTime());
+            }
+            return taskDuration;
+        }
+        if (jobOutput.getStartTime() == 0) {
+            return 0;
+        }
+        return (jobOutput.getEndTime() == 0 ? System.currentTimeMillis() - jobOutput.getStartTime()
+                : jobOutput.getEndTime() - jobOutput.getStartTime());
+    }
+
+    public long getDurationByPO() {
+        long jobDuration = getTaskDuration();
+        List<ExecutablePO> subTasks = getTasks();
+        if (CollectionUtils.isNotEmpty(subTasks)) {
+            jobDuration = 0;
+            for (ExecutablePO subTask : subTasks) {
+                long taskDuration = subTask.getTaskDuration();
+                if (MapUtils.isNotEmpty(subTask.getStagesMap()) && subTask.getStagesMap().size() == 1) {
+                    val jobAtomicDuration = new AtomicLong(0);
+                    for (Map.Entry<String, List<ExecutablePO>> entry : subTask.getStagesMap().entrySet()) {
+                        entry.getValue().forEach(po -> jobAtomicDuration.addAndGet(po.getTaskDuration()));
+                    }
+                    taskDuration = jobAtomicDuration.get();
+                }
+                jobDuration += taskDuration;
+            }
+        }
+        return jobDuration;
+    }
+
 }
