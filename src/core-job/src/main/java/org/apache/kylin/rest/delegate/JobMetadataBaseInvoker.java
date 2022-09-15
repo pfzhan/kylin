@@ -97,6 +97,11 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.getJobExecutablesPO(project);
     }
 
+    public List<ExecutablePO> listPartialExec(String project, String modelId, String state,
+                                              JobTypeEnum... jobTypes) {
+        return jobMetadataBaseDelegate.listPartialExec(project, modelId, state, jobTypes);
+    }
+
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
         return jobMetadataBaseDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }

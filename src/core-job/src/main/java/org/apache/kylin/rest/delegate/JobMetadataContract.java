@@ -40,6 +40,8 @@ public interface JobMetadataContract {
 
     List<ExecutablePO> getJobExecutablesPO(String project);
 
+    List<ExecutablePO> listPartialExec(String project, String modelId, String state, JobTypeEnum... jobTypes);
+
     List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes);
 
     List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status);

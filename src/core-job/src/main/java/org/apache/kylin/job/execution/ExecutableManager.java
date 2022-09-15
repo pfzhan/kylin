@@ -1687,7 +1687,7 @@ public class ExecutableManager {
                 .max(Long::compareTo).orElse(0L);
     }
 
-    public List<AbstractExecutable> listPartialExec(String modelId, Predicate<ExecutableState> predicate,
+    public List<ExecutablePO> listPartialExec(String modelId, Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
         if (jobTypes == null) {
             return Lists.newArrayList();
@@ -1697,7 +1697,6 @@ public class ExecutableManager {
                 .filter(job -> job.getJobType() != null) //
                 .filter(job -> jobTypeList.contains(job.getJobType())) //
                 .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
-                .map(this::fromPO) //
                 .collect(Collectors.toList());
     }
 

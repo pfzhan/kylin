@@ -105,6 +105,15 @@ public class JobMetadataBaseDelegate {
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getAllJobs();
     }
 
+    public List<ExecutablePO> listPartialExec(String project, String modelId, String state, JobTypeEnum... jobTypes) {
+        Predicate<ExecutableState> predicate = null;
+        if (state.equals("isRunning")) {
+            predicate = ExecutableState::isRunning;
+        }
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .listPartialExec(modelId, predicate, jobTypes);
+    }
+
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
         Predicate<ExecutableState> predicate = null;
         if (state.equals("isRunning")) {

@@ -99,6 +99,11 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     }
 
     @Override
+    public List<ExecutablePO> listPartialExec(String project, String modelId, String state, JobTypeEnum... jobTypes) {
+        return getDelegate().listPartialExec(project, modelId, state, jobTypes);
+    }
+
+    @Override
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
         return getDelegate().listExecPOByJobTypeAndStatus(project, state, jobTypes);
     }

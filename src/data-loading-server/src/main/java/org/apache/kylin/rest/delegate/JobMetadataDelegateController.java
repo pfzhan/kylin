@@ -89,6 +89,14 @@ public class JobMetadataDelegateController {
         return jobMetadataDelegate.getJobExecutablesPO(project);
     }
 
+    @PostMapping(value = "/feign/list_partial_exec")
+    @ResponseBody
+    public List<ExecutablePO> listPartialExec(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                              @RequestParam("state") String state,
+                                              @RequestParam("jobTypes") JobTypeEnum... jobTypes) {
+        return jobMetadataDelegate.listPartialExec(project, modelId, state, jobTypes);
+    }
+
     @PostMapping(value = "/feign/list_exec_by_job_type_and_status")
     @ResponseBody
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,

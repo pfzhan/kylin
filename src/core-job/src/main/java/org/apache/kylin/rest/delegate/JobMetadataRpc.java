@@ -52,6 +52,10 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "get_job_executables")
     List<ExecutablePO> getJobExecutablesPO(@RequestParam("project") String project);
 
+    @PostMapping(value = "list_partial_exec")
+    List<ExecutablePO> listPartialExec(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                       @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes);
+
     @PostMapping(value = "list_exec_by_job_type_and_status")
     List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
             @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes);
