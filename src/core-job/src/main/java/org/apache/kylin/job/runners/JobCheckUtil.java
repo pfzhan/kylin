@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.ThreadUtils;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.core.AbstractJobExecutable;
@@ -31,6 +30,7 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,17 +93,15 @@ public class JobCheckUtil {
 
     public static boolean markSuicideJob(String jobId, JobContext jobContext) {
         try {
-            if (checkSuicide(jobId, jobContext)) {
-                return JdbcUtil.withTransaction(jobContext.getTransactionManager(), () -> {
-                    if (checkSuicide(jobId, jobContext)) {
-                        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                                .suicideJob(jobId);
-                        return true;
-                    }
-                    return false;
-                });
-            }
+            return JobContextUtil.withTxAndRetry(() -> {
+                if (checkSuicide(jobId, jobContext)) {
+                    JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                            .suicideJob(jobId);
+                    return true;
+                }
+                return false;
+            });
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED]  job {} should be suicidal but discard failed", jobId, e);
         }

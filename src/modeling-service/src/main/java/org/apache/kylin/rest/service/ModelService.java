@@ -3166,7 +3166,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
                 BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
                 if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
-                    semanticUpdater.buildForModel(project, modelId);
+                    UnitOfWork.get().doAfterUnit(() -> semanticUpdater.buildForModel(project, modelId));
                 }
                 modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
 

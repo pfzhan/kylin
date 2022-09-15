@@ -106,7 +106,7 @@ public class JobInfoDao {
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
 
         if(!KylinConfig.getInstanceFromEnv().isUTEnv() && !JdbcUtil.isInExistingTx()){
-            throw new RuntimeException("not in tx");
+            logger.warn("Job is updated without explicitly opening a transaction.");
         }
 
         JobInfo jobInfo = jobInfoMapper.selectByJobId(uuid);

@@ -27,6 +27,7 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.scheduler.JdbcJobScheduler;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +53,10 @@ public class JobCheckRunner implements Runnable {
         try {
             if (checkTimeoutIfNeeded(jobExecutable, startTime, timeOutMinute)) {
                 logger.error("project {} job {} running timeout.", project, jobId);
-                ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).errorJob(jobId);
-                return true;
+                return JobContextUtil.withTxAndRetry(() -> {
+                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).errorJob(jobId);
+                    return true;
+                });
             }
             return false;
         } catch (Exception e) {

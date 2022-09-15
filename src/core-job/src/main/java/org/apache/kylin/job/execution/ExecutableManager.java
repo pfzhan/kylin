@@ -644,7 +644,7 @@ public class ExecutableManager {
         resumeJob(jobId, job, false);
     }
 
-    public void resumeJob(String jobId, AbstractExecutable job, boolean force) {
+    private void resumeJob(String jobId, AbstractExecutable job, boolean force) {
         updateJobError(jobId, null, null, null, null);
         if (Objects.isNull(job)) {
             return;
@@ -685,29 +685,30 @@ public class ExecutableManager {
         if (Objects.isNull(job) || job.getStatusInMem() != ExecutableState.READY) {
             return;
         }
-
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatusInMem() == ExecutableState.READY)
-                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
-            tasks.forEach(task -> {
-                if (task instanceof ChainedStageExecutable) {
-                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
-                    if (MapUtils.isNotEmpty(tasksMap)) {
-                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
-                            // update running stage to ready
-                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
-                                    .stream() //
-                                    .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.READY)//
-                                    .forEach(stage -> //
-                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
+        JobContextUtil.withTxAndRetry(() -> {
+            if (job instanceof DefaultChainedExecutable) {
+                List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+                tasks.stream().filter(task -> task.getStatusInMem() == ExecutableState.READY)
+                        .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
+                tasks.forEach(task -> {
+                    if (task instanceof ChainedStageExecutable) {
+                        final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                        if (MapUtils.isNotEmpty(tasksMap)) {
+                            for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                                // update running stage to ready
+                                Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                        .stream() //
+                                        .filter(stage -> stage.getStatusInMem(entry.getKey()) == ExecutableState.READY)//
+                                        .forEach(stage -> //
+                                                updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PENDING, null, null));
+                            }
                         }
                     }
-                }
-            });
-        }
-
-        updateJobOutput(jobId, ExecutableState.PENDING);
+                });
+            }
+            updateJobOutput(jobId, ExecutableState.PENDING);
+            return true;
+        });
     }
 
     /** just used to update stage */
@@ -925,7 +926,14 @@ public class ExecutableManager {
     }
 
     public void errorJob(String jobId) {
-        AbstractExecutable job = getJob(jobId);
+        JobContextUtil.withTxAndRetry(() -> {
+            AbstractExecutable job = getJob(jobId);
+            errorJob(jobId, job);
+            return true;
+        });
+    }
+
+    private void errorJob(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
         }
@@ -1077,8 +1085,15 @@ public class ExecutableManager {
     }
 
     public void makeStageSuccess(String taskOrJobId) {
-        val jobId = extractJobId(taskOrJobId);
-        AbstractExecutable job = getJob(jobId);
+        JobContextUtil.withTxAndRetry(() -> {
+            val jobId = extractJobId(taskOrJobId);
+            AbstractExecutable job = getJob(jobId);
+            makeStageSuccess(taskOrJobId, job);
+            return true;
+        });
+    }
+
+    private void makeStageSuccess(String taskOrJobId, AbstractExecutable job) {
         if (job == null) {
             return;
         }
@@ -1102,8 +1117,15 @@ public class ExecutableManager {
     }
 
     public void makeStageError(String taskOrJobId) {
-        val jobId = extractJobId(taskOrJobId);
-        AbstractExecutable job = getJob(jobId);
+        JobContextUtil.withTxAndRetry(() -> {
+            val jobId = extractJobId(taskOrJobId);
+            AbstractExecutable job = getJob(jobId);
+            makeStageError(taskOrJobId, job);
+            return true;
+        });
+    }
+
+    private void makeStageError(String taskOrJobId, AbstractExecutable job) {
         if (job == null) {
             return;
         }
@@ -1203,8 +1225,16 @@ public class ExecutableManager {
     }
 
     public void setJobResumable(final String taskOrJobId) {
+        JobContextUtil.withTxAndRetry(() -> {
+            final String jobId = extractJobId(taskOrJobId);
+            AbstractExecutable job = getJob(jobId);
+            setJobResumable(taskOrJobId, job);
+            return true;
+        });
+    }
+
+    private void setJobResumable(final String taskOrJobId, AbstractExecutable job) {
         final String jobId = extractJobId(taskOrJobId);
-        AbstractExecutable job = getJob(jobId);
         if (Objects.isNull(job)) {
             return;
         }
@@ -1570,7 +1600,14 @@ public class ExecutableManager {
     }
 
     public void suicideJob(String jobId) {
-        AbstractExecutable job = getJob(jobId);
+        JobContextUtil.withTxAndRetry(() -> {
+            AbstractExecutable job = getJob(jobId);
+            suicideJob(jobId, job);
+            return true;
+        });
+    }
+
+    private void suicideJob(String jobId, AbstractExecutable job) {
         if (job == null) {
             return;
         }
