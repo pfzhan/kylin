@@ -143,10 +143,12 @@ public class RawRecUtil {
     public static Map<String, List<String>> uniqueFlagsToMd5Map(Set<String> uniqueFlags) {
         Map<String, List<String>> md5ToFlags = Maps.newHashMap();
         uniqueFlags.forEach(uniqueFlag -> {
-            String md5 = uniqueFlag.substring(0, 32);
-            List<String> flags = md5ToFlags.getOrDefault(md5, new ArrayList<>());
-            flags.add(uniqueFlag);
-            md5ToFlags.put(md5, flags);
+            if (uniqueFlag != null) {
+                String md5 = uniqueFlag.substring(0, 32);
+                List<String> flags = md5ToFlags.getOrDefault(md5, new ArrayList<>());
+                flags.add(uniqueFlag);
+                md5ToFlags.put(md5, flags);
+            }
         });
         return md5ToFlags;
     }
