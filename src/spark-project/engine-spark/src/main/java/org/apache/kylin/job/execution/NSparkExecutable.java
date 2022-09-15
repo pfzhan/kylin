@@ -107,6 +107,9 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     public static final String SPARK_MASTER = "spark.master";
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String CLUSTER_MODE = "cluster";
+    private static final String K8S_ENV_TZ = "spark.kubernetes.driverEnv.TZ";
+    private static final String K8S_ENV_EXECUTOR_TZ = "spark.executorEnv.TZ ";
+
     protected ISparkJobHandler sparkJobHandler;
 
     private transient final List<StageBase> stages = Lists.newCopyOnWriteArrayList();
@@ -649,6 +652,9 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         // Rewrite kerberos conf.
         rewriteKerberosConf(kapConf, sparkConf);
 
+        // rewrite spark.kubernetes.driverEnv.TZ when in k8s-cluster deployMode
+        rewriteTZenv(kylinConf, sparkConf);
+
         // Rewrite driver extra java options.
         rewriteDriverExtraJavaOptions(kylinConf, kapConf, sparkConf);
 
@@ -659,6 +665,16 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         rewriteExtraClasspath(kylinConf, sparkConf);
 
         return Collections.unmodifiableMap(sparkConf);
+    }
+
+    private void rewriteTZenv(KylinConfig kylinConf, Map<String, String> sparkConf) {
+        if (CLUSTER_MODE.equals(sparkConf.get(DEPLOY_MODE)) && sparkConf.get(SPARK_MASTER).startsWith("k8s")) {
+            if (StringUtils.isEmpty(sparkConf.get(K8S_ENV_TZ))) {
+                sparkConf.put(K8S_ENV_TZ, kylinConf.getTimeZone());
+                // force sync timezone for executor and driver
+                sparkConf.put(K8S_ENV_EXECUTOR_TZ, kylinConf.getTimeZone());
+            }
+        }
     }
 
     private void rewriteDriverExtraJavaOptions(KylinConfig kylinConf, KapConfig kapConf, //
