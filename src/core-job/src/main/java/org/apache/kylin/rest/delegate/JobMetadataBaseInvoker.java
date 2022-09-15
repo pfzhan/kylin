@@ -70,7 +70,7 @@ public class JobMetadataBaseInvoker {
     }
 
     public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataBaseDelegate.refreshSegmentJob(jobMetadataRequest);
+        return jobMetadataBaseDelegate.refreshSegmentJob(jobMetadataRequest, false);
     }
 
     public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts) {

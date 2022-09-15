@@ -79,6 +79,31 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     }
 
     @Override
+    public String buildPartitionJob(JobMetadataRequest jobMetadataRequest) {
+        return getDelegate().buildPartitionJob(jobMetadataRequest);
+    }
+
+    @Override
+    public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
+        return getDelegate().addRelatedIndexJob(jobMetadataRequest);
+    }
+
+    @Override
+    public String mergeSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        return getDelegate().mergeSegmentJob(jobMetadataRequest);
+    }
+
+    @Override
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        return getDelegate().refreshSegmentJob(jobMetadataRequest, false);
+    }
+
+    @Override
+    public String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts) {
+        return getDelegate().refreshSegmentJob(jobMetadataRequest, refreshAllLayouts);
+    }
+
+    @Override
     public String addSegmentJob(JobMetadataRequest jobMetadataRequest) {
         return getDelegate().addSegmentJob(jobMetadataRequest);
     }

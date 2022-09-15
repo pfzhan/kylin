@@ -192,7 +192,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             addJobParamExtParams(jobParam, params);
             res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
                     getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                            () -> getManager(JobManager.class, project).addSegmentJob(jobParam))));
+                            () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)))));
             }
         }
         JobInfoResponse jobInfoResponse = new JobInfoResponse();

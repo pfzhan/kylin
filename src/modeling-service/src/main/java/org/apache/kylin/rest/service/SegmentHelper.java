@@ -116,7 +116,6 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
                     } else {
                         Preconditions.checkState(firstRanges.equals(ranges));
                     }
-
                 }
                 return new Pair<>(addSegmentList, refreshSegmentList);
             }, project);

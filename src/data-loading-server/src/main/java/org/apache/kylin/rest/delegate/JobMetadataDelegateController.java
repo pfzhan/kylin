@@ -67,6 +67,35 @@ public class JobMetadataDelegateController {
         return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
     }
 
+    @PostMapping(value = "/feign/build_partition_job")
+    @ResponseBody
+    @WaitForSyncBeforeRPC
+    public String buildPartitionJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.buildPartitionJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/add_related_index_job")
+    @ResponseBody
+    @WaitForSyncBeforeRPC
+    public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.addRelatedIndexJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/merge_segment_job")
+    @ResponseBody
+    @WaitForSyncBeforeRPC
+    public String mergeSegmentJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.mergeSegmentJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/refresh_segment_job")
+    @ResponseBody
+    @WaitForSyncBeforeRPC
+    public String refreshSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest,
+                                    @RequestParam("refreshAllLayouts") boolean refreshAllLayouts) {
+        return jobMetadataDelegate.refreshSegmentJob(jobMetadataRequest, refreshAllLayouts);
+    }
+
     @PostMapping(value = "/feign/get_layouts_by_running_jobs")
     @ResponseBody
     @WaitForSyncBeforeRPC

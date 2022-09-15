@@ -34,6 +34,14 @@ public interface JobMetadataContract {
 
     String addSegmentJob(JobMetadataRequest jobMetadataRequest);
 
+    String buildPartitionJob(JobMetadataRequest jobMetadataRequest);
+
+    String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest);
+
+    String mergeSegmentJob(JobMetadataRequest jobMetadataRequest);
+
+    String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts);
+
     Set<Long> getLayoutsByRunningJobs(String project, String modelId);
 
     long countByModelAndStatus(String project, String model, String status, JobTypeEnum... jobTypes);

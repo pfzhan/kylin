@@ -42,6 +42,19 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "/add_segment_job")
     String addSegmentJob(JobMetadataRequest jobMetadataRequest);
 
+    @PostMapping(value = "/build_partition_job")
+    String buildPartitionJob(JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/add_related_index_job")
+    String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/merge_segment_job")
+    String mergeSegmentJob(JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/refresh_segment_job")
+    String refreshSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest,
+                             @RequestParam("refreshAllLayouts") boolean refreshAllLayouts);
+
     @PostMapping(value = "/get_layouts_by_running_jobs")
     Set<Long> getLayoutsByRunningJobs(@RequestParam("project") String project, @RequestParam("modelId") String modelId);
 
