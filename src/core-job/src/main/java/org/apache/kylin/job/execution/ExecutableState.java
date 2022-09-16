@@ -36,9 +36,12 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.job.constant.JobStatusEnum;
 
@@ -99,6 +102,10 @@ public enum ExecutableState {
 
     public static ExecutableState[] getFinalStates() {
         return new ExecutableState[] {SUCCEED, DISCARDED, SUICIDAL};
+    }
+
+    public static List<String> getNotFinalStateNames() {
+        return Arrays.stream(values()).filter(o -> !o.isFinalState()).map(Enum::name).collect(Collectors.toList());
     }
 
     public boolean isProgressing() {

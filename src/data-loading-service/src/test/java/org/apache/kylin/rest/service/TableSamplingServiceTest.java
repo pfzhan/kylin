@@ -33,6 +33,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.execution.step.NResourceDetectStep;
+import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -62,7 +63,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     private static final int SAMPLING_ROWS = 20000;
 
     @InjectMocks
-    private TableSamplingService tableSamplingService = Mockito.spy(new TableSamplingService());
+    private TableSampleService tableSamplingService = Mockito.spy(new TableSampleService());
 
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);

@@ -31,7 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.job.service.SnapshotJobService;
+import org.apache.kylin.job.service.SnapshotService;
 import org.apache.kylin.rest.constant.SnapshotStatus;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.request.SnapshotTableConfigRequest;
@@ -73,8 +73,8 @@ public class SnapshotController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotController.class);
 
     @Autowired
-    @Qualifier("snapshotJobService")
-    private SnapshotJobService snapshotService;
+    @Qualifier("snapshotService")
+    private SnapshotService snapshotService;
 
     @ApiOperation(value = "config partition col for snapshot Tables", tags = { "AI" }, notes = "config partition col")
     @PostMapping(value = "/config")

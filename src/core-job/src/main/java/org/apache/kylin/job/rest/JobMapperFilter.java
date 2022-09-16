@@ -36,6 +36,7 @@ public class JobMapperFilter {
 
     private List<String> statuses;
 
+    // jobName is jobType
     private List<String> jobNames;
 
     private Date queryStartTime;

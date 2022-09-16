@@ -455,8 +455,9 @@ public class SecondStorageUtil {
                 secondStorageLoading = false;
             }
         }
-        long runningJobsCount = JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv())
-                .fetchAllRunningJobs(project, null, null).stream()
+        long runningJobsCount = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fetchNotFinalJobsByTypes(project, null, null)
+                .stream()
                 .filter(jobInfo -> jobInfo.getJobId().startsWith(jobId)).count();
         if (secondStorageLoading && runningJobsCount > 0) {
             throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJobResumeFailed());

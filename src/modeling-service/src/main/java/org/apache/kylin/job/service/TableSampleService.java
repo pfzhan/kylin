@@ -29,7 +29,6 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.manager.JobManager;
-import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
@@ -55,14 +54,13 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     }
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
-        return JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv()).fetchAllRunningJobs(project,
-                Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()),
-                Lists.newArrayList(table));
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).fetchNotFinalJobsByTypes(project,
+                Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()), Lists.newArrayList(table));
     }
 
     @Override
     public List<String> sampling(Set<String> tables, String project, int rows, int priority, String yarnQueue,
-                                 Object tag) {
+            Object tag) {
         aclEvaluate.checkProjectWritePermission(project);
         ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);

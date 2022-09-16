@@ -1598,10 +1598,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("role", roleArn);
     }
 
-    @Test(expected = Exception.class)
+    @Test
     public void testReloadAWSTableCompatibleCrossAccountNeedSample(){
         S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
         prepareTableExt("DEFAULT.TEST_ORDER");
+        // #reloadAWSTableCompatibleCrossAccount needs a TableSampleService, we changed it to avoid NPE.
         tableService.reloadAWSTableCompatibleCrossAccount(PROJECT, tableExtInfo, true, 10000, true, 3, null);
     }
 

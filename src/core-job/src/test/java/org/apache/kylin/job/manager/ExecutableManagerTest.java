@@ -600,8 +600,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
         val runExecutables = executableManager.getRunningExecutables(DEFAULT_PROJECT, null);
         Assert.assertEquals(1, runExecutables.size());
-        val runJobTypeExecutables = executableManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
-                SNAPSHOT_BUILD);
+        val runJobTypeExecutables = executableManager.fetchNotFinalJobsByTypes(DEFAULT_PROJECT,
+                Lists.newArrayList(SNAPSHOT_BUILD.name()), null);
         Assert.assertEquals(0, runJobTypeExecutables.size());
         val executables = executableManager.getExecutablesByStatus(
                 Lists.newArrayList(job.getId()),

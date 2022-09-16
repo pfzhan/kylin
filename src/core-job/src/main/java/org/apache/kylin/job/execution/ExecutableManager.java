@@ -65,6 +65,11 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.scheduler.EventBusFactory;
+import org.apache.kylin.common.scheduler.JobAddedNotifier;
+import org.apache.kylin.common.scheduler.JobReadyNotifier;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -74,12 +79,6 @@ import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
-
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
-import org.apache.kylin.common.scheduler.EventBusFactory;
-import org.apache.kylin.common.scheduler.JobAddedNotifier;
-import org.apache.kylin.common.scheduler.JobReadyNotifier;
-import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -87,7 +86,6 @@ import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
-
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +95,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -1576,6 +1573,7 @@ public class ExecutableManager {
                 }
             }
             jobMapperFilter.setStatuses(runningStates);
+            jobMapperFilter.setProject(project);
             return jobInfoDao.getJobInfoListByFilter(jobMapperFilter).stream()
                     .map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).map(this::fromPO)
                     .collect(Collectors.toList());
@@ -1863,22 +1861,18 @@ public class ExecutableManager {
         }
     }
 
-    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
-            JobTypeEnum... jobTypes) {
-        return listExecPOByJobTypeAndStatus(predicate, jobTypes).stream().map(this::fromPO)
-                .collect(Collectors.toList());
+    public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobTypes, List<String> subjects) {
+        return fetchJobsByTypesAndStates(project, jobTypes, subjects, ExecutableState.getNotFinalStateNames());
     }
 
-    public List<ExecutablePO> listExecPOByJobTypeAndStatus(Predicate<ExecutableState> predicate,
-            JobTypeEnum... jobTypes) {
-        if (jobTypes == null) {
-            return Lists.newArrayList();
-        }
-        List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
-        return jobInfoDao.getJobs(project).stream() //
-                .filter(job -> job.getJobType() != null) //
-                .filter(job -> jobTypeList.contains(job.getJobType())) //
-                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
-                .collect(Collectors.toList());
+    public List<JobInfo> fetchJobsByTypesAndStates(String project, List<String> jobTypes, List<String> subjects, List<String> states) {
+        JobMapperFilter mapperFilter = JobMapperFilter.builder()
+                .jobNames(jobTypes)
+                .statuses(states)
+                .subjects(subjects)
+                .project(project)
+                .build();
+        return jobInfoDao.getJobInfoListByFilter(mapperFilter);
     }
+
 }

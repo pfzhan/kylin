@@ -18,7 +18,6 @@
 
 package org.apache.kylin.job;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -27,12 +26,9 @@ import javax.annotation.Resource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.job.condition.JobModeCondition;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.core.lock.JdbcLockClient;
-import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
-import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.runners.JobCheckRunner;
 import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.runners.QuotaStorageCheckRunner;
@@ -49,7 +45,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Component
@@ -206,22 +201,6 @@ public class JobContext implements InitializingBean, DisposableBean {
 
     public JdbcJobScheduler getJobScheduler() {
         return jobScheduler;
-    }
-
-    public List<JobInfo> fetchAllRunningJobs() {
-        return fetchAllRunningJobs(null, null, null);
-    }
-
-    public List<JobInfo> fetchAllRunningJobs(String project, List<String> jobNames, List<String> subjects) {
-        JobMapperFilter mapperFilter = JobMapperFilter.builder()
-                .jobNames(jobNames)
-                .statuses(Lists.newArrayList(JobStatusEnum.READY.name(),
-                        JobStatusEnum.PENDING.name(),
-                        JobStatusEnum.RUNNING.name()))
-                .subjects(subjects)
-                .project(project)
-                .build();
-        return jobInfoMapper.selectByJobFilter(mapperFilter);
     }
 
     public void setProjectReachQuotaLimit(String project, Boolean reachQuotaLimit) {

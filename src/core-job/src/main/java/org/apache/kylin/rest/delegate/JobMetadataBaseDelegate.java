@@ -18,6 +18,7 @@
 
 package org.apache.kylin.rest.delegate;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import lombok.val;
+import org.apache.kylin.job.util.JobInfoUtil;
 
 public class JobMetadataBaseDelegate {
 
@@ -115,12 +117,16 @@ public class JobMetadataBaseDelegate {
     }
 
     public List<ExecutablePO> listExecPOByJobTypeAndStatus(String project, String state, JobTypeEnum... jobTypes) {
-        Predicate<ExecutableState> predicate = null;
+        List<String> states = Lists.newArrayList(state);
         if (state.equals("isRunning")) {
-            predicate = ExecutableState::isRunning;
+            states = ExecutableState.getNotFinalStateNames();
         }
+        List<String> jobNames = Arrays.stream(jobTypes).map(Enum::name).collect(Collectors.toList());
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .listExecPOByJobTypeAndStatus(predicate, jobTypes);
+                .fetchJobsByTypesAndStates(project, jobNames, null, states)
+                .stream().map(JobInfoUtil::deserializeExecutablePO)
+                .collect(Collectors.toList());
+
     }
 
     public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {

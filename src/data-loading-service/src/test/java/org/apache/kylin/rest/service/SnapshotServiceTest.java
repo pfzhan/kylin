@@ -39,6 +39,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NSparkSnapshotJob;
+import org.apache.kylin.job.service.SnapshotService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -47,6 +48,7 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.constant.SnapshotStatus;
+import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.request.SnapshotConfigRequest;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.response.NInitTablesResponse;
@@ -98,6 +100,9 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected TableService tableService = Mockito.spy(TableService.class);
 
+    @Mock
+    protected TableMetadataInvoker tableMetadataInvoker = Mockito.spy(TableMetadataInvoker.class);
+
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
@@ -117,6 +122,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(snapshotService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(snapshotService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
+        ReflectionTestUtils.setField(snapshotService, "tableMetadataInvoker", tableMetadataInvoker);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
 
         JobContextUtil.cleanUp();

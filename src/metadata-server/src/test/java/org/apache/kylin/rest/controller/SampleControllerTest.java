@@ -33,7 +33,6 @@ import org.apache.kylin.rest.request.RefreshSegmentsRequest;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.request.TableLoadRequest;
 import org.apache.kylin.rest.service.ModelBuildService;
-import org.apache.kylin.rest.service.TableSamplingService;
 import org.apache.kylin.rest.service.TableService;
 import org.junit.After;
 import org.junit.Assert;
@@ -68,9 +67,6 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelBuildService modelBuildService;
-
-    @Mock
-    private TableSamplingService tableSamplingService;
 
     @Mock
     private TableSampleService tableSampleService;
@@ -146,7 +142,7 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setRows(20000);
         request.setQualifiedTableName("default.test_kylin_fact");
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSampleService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
                         ExecutablePO.DEFAULT_PRIORITY, null, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
@@ -164,7 +160,7 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
         request.setRows(20000);
 
         String errorMsg = "Can’t perform table sampling. Please select at least one table.";
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSampleService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
                         ExecutablePO.DEFAULT_PRIORITY, null, null);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
@@ -185,7 +181,7 @@ public class SampleControllerTest extends NLocalFileMetadataTestCase {
         request.setQualifiedTableName("test_kylin_fact");
 
         String errorMsg = "The name of table for sampling is invalid. Please enter a table name like “database.table”.";
-        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSampleService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
                         ExecutablePO.DEFAULT_PRIORITY, null, null);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
