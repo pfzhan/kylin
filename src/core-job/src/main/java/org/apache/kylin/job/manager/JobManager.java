@@ -36,6 +36,7 @@ import org.apache.kylin.job.handler.AddIndexHandler;
 import org.apache.kylin.job.handler.AddSegmentHandler;
 import org.apache.kylin.job.handler.MergeSegmentHandler;
 import org.apache.kylin.job.handler.RefreshSegmentHandler;
+import org.apache.kylin.job.handler.TableSamplingJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -154,6 +155,9 @@ public class JobManager {
             case INDEX_REFRESH:
             case SUB_PARTITION_REFRESH:
                 handler = new RefreshSegmentHandler();
+                break;
+            case TABLE_SAMPLING:
+                handler = new TableSamplingJobHandler();
                 break;
             case EXPORT_TO_SECOND_STORAGE:
                 throw new UnsupportedOperationException();

@@ -157,7 +157,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTestBase {
 
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
-        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
+        val samplingJob = NTableSamplingJob.internalCreate(tableDesc, PROJECT, "ADMIN", 20_000_000);
         executableManager.addJob(samplingJob);
         final String jobId = samplingJob.getId();
         await().atMost(60, TimeUnit.MINUTES).until(() -> executableManager.getJob(jobId).getStatus().isFinalState());
@@ -184,7 +184,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTestBase {
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
         tableDesc.setRangePartition(true);
-        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
+        val samplingJob = NTableSamplingJob.internalCreate(tableDesc, PROJECT, "ADMIN", 20_000_000);
         executableManager.addJob(samplingJob);
         final String jobId = samplingJob.getId();
         await().atMost(60, TimeUnit.MINUTES).until(() -> executableManager.getJob(jobId).getStatus().isFinalState());

@@ -86,6 +86,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -135,7 +136,6 @@ import org.apache.kylin.rest.constant.JobInfoEnum;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataRequest;
-import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.DateRangeRequest;
 import org.apache.kylin.rest.request.S3TableExtInfo;
@@ -196,11 +196,11 @@ public class TableService extends BasicService {
     @Autowired
     private TableFusionModelSupporter fusionModelService;
 
-    @Autowired(required = false)
-    private TableSamplingInvoker tableSamplingInvoker;
-
     @Autowired
     private TableIndexPlanSupporter indexPlanService;
+
+    @Autowired
+    private TableSampleService tableSampleService;
 
     @Autowired(required = false)
     @Qualifier("jobInfoService")
@@ -1181,7 +1181,7 @@ public class TableService extends BasicService {
         }, projectName);
         try {
             if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows,
+                List<String> jobIds = tableSampleService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows,
                         priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     result.setFirst(jobIds.get(0));
@@ -1201,7 +1201,7 @@ public class TableService extends BasicService {
             List<String> buildingJobs = innerReloadTable(projectName, tableExtInfo.getName(), needBuild, tableExtInfo);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingInvoker.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
+                List<String> jobIds = tableSampleService.sampling(Sets.newHashSet(tableExtInfo.getName()), projectName,
                         maxRows, priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));

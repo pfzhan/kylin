@@ -404,7 +404,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         job1.setTargetSubject("12345678");
         final TableDesc tableDesc = NTableMetadataManager.getInstance(getTestConfig(), getProject())
                 .getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        NTableSamplingJob samplingJob = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+        NTableSamplingJob samplingJob = NTableSamplingJob.internalCreate(tableDesc, getProject(), "ADMIN", 20000);
         manager.addJob(job1);
         manager.addJob(samplingJob);
         List<String> jobNames = Lists.newArrayList();

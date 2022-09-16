@@ -85,7 +85,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(tableSamplingService, "aclEvaluate", aclEvaluate);
-
+        // init factory
+        new NTableSamplingJob();
         JobContextUtil.cleanUp();
         JobContextUtil.getJobInfoDao(getTestConfig());
         JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());

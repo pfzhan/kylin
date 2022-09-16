@@ -71,10 +71,10 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
 
     public void analyzerTable() {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
-        long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
+        int rowCount = Integer.parseInt(getParam(NBatchConstants.P_SAMPLING_ROWS));
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        analyzeTable(tableDesc, prjName, (int) rowCount, ss);
+        analyzeTable(tableDesc, prjName, rowCount, ss);
     }
 
     void analyzeTable(TableDesc tableDesc, String project, int rowCount, SparkSession ss) {
@@ -159,7 +159,6 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
     @Override
     protected String calculateRequiredCores() throws Exception {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
-        long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         val child = tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix();
         val detectItems = ResourceDetectUtils.readDetectItems(new Path(shareDir, child));

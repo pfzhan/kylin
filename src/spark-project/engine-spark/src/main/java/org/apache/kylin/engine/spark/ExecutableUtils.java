@@ -25,6 +25,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.execution.NSparkMergingJob;
 import org.apache.kylin.job.execution.NSparkSnapshotJob;
+import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.execution.step.NSparkCubingStep;
 import org.apache.kylin.job.util.ExecutableParaUtil;
 
@@ -73,5 +74,6 @@ public class ExecutableUtils {
         new NSparkCubingJob();
         new NSparkMergingJob();
         new NSparkSnapshotJob();
+        new NTableSamplingJob();
     }
 }

@@ -44,6 +44,8 @@ public class JobMetadataRequest {
 
     private String owner;
 
+    private String table;
+
     private Set<Long> secondStorageDeleteLayoutIds;
 
     private JobTypeEnum jobTypeEnum;
@@ -79,6 +81,9 @@ public class JobMetadataRequest {
         }
         if (null != this.getJobTypeEnum()) {
             jobParam.setJobTypeEnum(this.getJobTypeEnum());
+        }
+        if (null != this.getTable()) {
+            jobParam.setTable(this.getTable());
         }
         if (CollectionUtils.isNotEmpty(this.getTargetSegments())) {
             jobParam.withTargetSegments(this.getTargetSegments());
@@ -120,6 +125,9 @@ public class JobMetadataRequest {
         }
         if (null != jobParam.getJobTypeEnum()) {
             setJobTypeEnum(jobParam.getJobTypeEnum());
+        }
+        if (null != jobParam.getJobTypeEnum()) {
+            setTable(jobParam.getTable());
         }
         if (CollectionUtils.isNotEmpty(jobParam.getTargetSegments())) {
             setTargetSegments(jobParam.getTargetSegments());

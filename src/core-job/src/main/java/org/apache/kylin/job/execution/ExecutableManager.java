@@ -1875,4 +1875,8 @@ public class ExecutableManager {
         return jobInfoDao.getJobInfoListByFilter(mapperFilter);
     }
 
+    public List<JobInfo> fetchJobsByFilter(JobMapperFilter filter) {
+        return jobInfoDao.getJobInfoListByFilter(filter);
+    }
+
 }

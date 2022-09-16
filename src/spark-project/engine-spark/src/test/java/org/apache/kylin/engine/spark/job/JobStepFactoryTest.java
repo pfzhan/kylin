@@ -75,7 +75,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTestBase {
         String table = "DEFAULT.TEST_KYLIN_FACT";
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
-        NTableSamplingJob job = NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+        NTableSamplingJob job = NTableSamplingJob.internalCreate(tableDesc, getProject(), "ADMIN", 20000);
         Assert.assertEquals(table, job.getTargetSubject());
         Assert.assertEquals(getProject(), job.getParam(NBatchConstants.P_PROJECT_NAME));
         Assert.assertEquals(tableDesc.getIdentity(), job.getParam(NBatchConstants.P_TABLE_NAME));
@@ -99,7 +99,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTestBase {
     public void testAddStepInSamplingFailedForTableNotExist() {
         final TableDesc tableDesc = NTableMetadataManager.getInstance(config, getProject()).getTableDesc("abc");
         try {
-            NTableSamplingJob.create(tableDesc, getProject(), "ADMIN", 20000);
+            NTableSamplingJob.internalCreate(tableDesc, getProject(), "ADMIN", 20000);
             Assert.fail();
         } catch (IllegalArgumentException ex) {
             Assert.assertEquals("Create table sampling job failed for table not exist!", ex.getMessage());

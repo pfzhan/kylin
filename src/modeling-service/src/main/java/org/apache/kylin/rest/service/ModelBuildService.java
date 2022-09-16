@@ -188,7 +188,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             } else {
                 JobParam jobParam = new JobParam(segment, modelId, getUsername())
                     .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
-                    .withYarnQueue(params.getYarnQueue()).withTag(params.getTag());
+                    .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
             addJobParamExtParams(jobParam, params);
             res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
                     getManager(SourceUsageManager.class).licenseCheckWrap(project,

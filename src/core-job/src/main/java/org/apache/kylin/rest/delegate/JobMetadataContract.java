@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.TableDesc;
 
 public interface JobMetadataContract {
@@ -38,7 +40,11 @@ public interface JobMetadataContract {
 
     String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest);
 
+    String addJob(JobMetadataRequest jobMetadataRequest);
+
     String mergeSegmentJob(JobMetadataRequest jobMetadataRequest);
+
+    List<JobInfo> fetchJobList(JobMapperFilter filter);
 
     String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts);
 

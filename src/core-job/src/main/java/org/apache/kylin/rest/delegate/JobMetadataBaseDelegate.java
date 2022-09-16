@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -38,6 +39,7 @@ import com.google.common.collect.Sets;
 
 import lombok.val;
 import org.apache.kylin.job.util.JobInfoUtil;
+import org.apache.kylin.job.rest.JobMapperFilter;
 
 public class JobMetadataBaseDelegate {
 
@@ -78,6 +80,11 @@ public class JobMetadataBaseDelegate {
     public String addIndexJob(JobMetadataRequest jobMetadataRequest) {
         val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
         return jobManager.addIndexJob(jobMetadataRequest.parseJobParam());
+    }
+
+    public String addJob(JobMetadataRequest jobMetadataRequest) {
+        val jobManager = getManager(JobManager.class, jobMetadataRequest.getProject());
+        return jobManager.addJob(jobMetadataRequest.parseJobParam());
     }
 
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
@@ -132,6 +139,15 @@ public class JobMetadataBaseDelegate {
     public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getExecutablePOsByStatus(Lists.newArrayList(status));
+    }
+
+    public List<JobInfo> fetchRunningJob(String project, List<String> jobNames, List<String> subjects) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fetchNotFinalJobsByTypes(project, jobNames, subjects);
+    }
+
+    public List<JobInfo> fetchJobList(JobMapperFilter filter) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), filter.getProject()).fetchJobsByFilter(filter);
     }
 
     public void deleteJobByIdList(String project, List<String> jobIdList) {

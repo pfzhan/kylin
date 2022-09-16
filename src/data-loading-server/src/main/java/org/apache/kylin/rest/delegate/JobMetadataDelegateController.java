@@ -26,8 +26,10 @@ import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.delegate.JobMetadataDelegate;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.aspect.WaitForSyncBeforeRPC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,21 +72,35 @@ public class JobMetadataDelegateController {
     @PostMapping(value = "/feign/build_partition_job")
     @ResponseBody
     @WaitForSyncBeforeRPC
-    public String buildPartitionJob(JobMetadataRequest jobMetadataRequest) {
+    public String buildPartitionJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.buildPartitionJob(jobMetadataRequest);
     }
 
     @PostMapping(value = "/feign/add_related_index_job")
     @ResponseBody
     @WaitForSyncBeforeRPC
-    public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
+    public String addRelatedIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.addRelatedIndexJob(jobMetadataRequest);
     }
+
+    @PostMapping(value = "/feign/add_job")
+    @ResponseBody
+    @WaitForSyncBeforeRPC
+    public String addJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataDelegate.addJob(jobMetadataRequest);
+    }
+
+    @PostMapping(value = "/feign/fetch_job_list")
+    @ResponseBody
+    public List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter) {
+        return jobMetadataDelegate.fetchJobList(jobMapperFilter);
+    }
+
 
     @PostMapping(value = "/feign/merge_segment_job")
     @ResponseBody
     @WaitForSyncBeforeRPC
-    public String mergeSegmentJob(JobMetadataRequest jobMetadataRequest) {
+    public String mergeSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         return jobMetadataDelegate.mergeSegmentJob(jobMetadataRequest);
     }
 

@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,13 +45,19 @@ public interface JobMetadataRpc extends JobMetadataContract {
     String addSegmentJob(JobMetadataRequest jobMetadataRequest);
 
     @PostMapping(value = "/build_partition_job")
-    String buildPartitionJob(JobMetadataRequest jobMetadataRequest);
+    String buildPartitionJob(@RequestBody JobMetadataRequest jobMetadataRequest);
 
     @PostMapping(value = "/add_related_index_job")
-    String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest);
+    String addRelatedIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/add_job")
+    String addJob(@RequestBody JobMetadataRequest jobMetadataRequest);
 
     @PostMapping(value = "/merge_segment_job")
-    String mergeSegmentJob(JobMetadataRequest jobMetadataRequest);
+    String mergeSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest);
+
+    @PostMapping(value = "/fetch_job_list")
+    List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter);
 
     @PostMapping(value = "/refresh_segment_job")
     String refreshSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest,

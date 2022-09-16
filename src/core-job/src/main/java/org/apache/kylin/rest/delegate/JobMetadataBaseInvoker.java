@@ -26,6 +26,8 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
+import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -85,6 +87,10 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.addIndexJob(jobMetadataRequest);
     }
 
+    public String addJob(JobMetadataRequest jobMetadataRequest) {
+        return jobMetadataBaseDelegate.addJob(jobMetadataRequest);
+    }
+
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
         return jobMetadataBaseDelegate.getLayoutsByRunningJobs(project, modelId);
     }
@@ -108,6 +114,14 @@ public class JobMetadataBaseInvoker {
 
     public List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status) {
         return jobMetadataBaseDelegate.getExecutablePOsByStatus(project, status);
+    }
+
+    public List<JobInfo> fetchJobList(JobMapperFilter filter) {
+        return jobMetadataBaseDelegate.fetchJobList(filter);
+    }
+
+    public List<JobInfo> fetchRunningJob(String project, List<String> jobNames, List<String> subjects) {
+        return jobMetadataBaseDelegate.fetchRunningJob(project, jobNames, subjects);
     }
 
     public void deleteJobByIdList(String project, List<String> jobIds) {

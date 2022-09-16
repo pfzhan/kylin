@@ -41,10 +41,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.apache.kylin.rest.request.AWSTableLoadRequest;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.MergeAndUpdateTableExtRequest;
@@ -104,11 +104,12 @@ public class NTableController extends NBasicController {
     private TableExtService tableExtService;
 
     @Autowired
-    @Qualifier("modelService")
-    private ModelService modelService;
+    @Qualifier("tableSampleService")
+    private TableSampleService tableSampleService;
 
     @Autowired
-    private TableSamplingInvoker tableSamplingInvoker;
+    @Qualifier("modelService")
+    private ModelService modelService;
 
     @ApiOperation(value = "getTableDesc", tags = {
             "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
@@ -238,7 +239,7 @@ public class NTableController extends NBasicController {
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
-            tableSamplingInvoker.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+            tableSampleService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
                     tableLoadRequest.getTag());
         }
@@ -268,7 +269,7 @@ public class NTableController extends NBasicController {
 
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
-            tableSamplingInvoker.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
+            tableSampleService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
                     tableLoadRequest.getTag());
         }

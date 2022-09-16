@@ -32,6 +32,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.delegate.TableSamplingInvoker;
@@ -79,6 +80,7 @@ import com.google.common.collect.Sets;
 
 import lombok.val;
 
+
 public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
@@ -98,6 +100,9 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableSamplingInvoker tableSamplingInvoker;
+
+    @Mock
+    private TableSampleService tableSampleService;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();

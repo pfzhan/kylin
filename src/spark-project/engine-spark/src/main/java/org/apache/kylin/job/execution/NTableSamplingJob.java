@@ -26,10 +26,12 @@ import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.stats.utils.HiveTableRefChecker;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.step.JobStepType;
 import org.apache.kylin.job.execution.step.NResourceDetectStep;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.job.factory.JobFactoryConstant;
+import org.apache.kylin.job.handler.TableSamplingJobHandler;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -48,6 +50,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
+
+    static {
+        JobFactory.register(JobFactoryConstant.TABLE_SAMPLING_JOB_FACTORY, new NTableSamplingJob.TableSamplingJobFactory());
+    }
+
     public NTableSamplingJob() {
         super();
     }
@@ -56,12 +63,14 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         super(notSetId);
     }
 
-    public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows) {
-        return create(tableDesc, project, submitter, rows, ExecutablePO.DEFAULT_PRIORITY, null, null);
+    public static NTableSamplingJob create(TableSamplingJobHandler.TableSamplingJobBuildParam param) {
+        NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                param.getProject());
+        TableDesc tableDesc = tblMgr.getTableDesc(param.getTable());
+        return internalCreate(tableDesc, param.getProject(), param.getSubmitter(), param.getRow());
     }
 
-    public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows,
-            int priority, String yarnQueue, Object tag) {
+    public static NTableSamplingJob internalCreate(TableDesc tableDesc, String project, String submitter, int rows) {
         Preconditions.checkArgument(tableDesc != null, //
                 "Create table sampling job failed for table not exist!");
 
@@ -78,9 +87,6 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         job.setParam(NBatchConstants.P_JOB_ID, job.getId());
         job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
         job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
-        job.setPriority(priority);
-        job.setSparkYarnQueueIfEnabled(project, yarnQueue);
-        job.setTag(tag);
 
         KylinConfig globalConfig = KylinConfig.getInstanceFromEnv();
         KylinConfig config = NProjectManager.getInstance(globalConfig).getProject(project).getConfig();
@@ -195,4 +201,15 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         }
     }
 
+
+    public static class TableSamplingJobFactory extends JobFactory {
+
+        protected TableSamplingJobFactory() {
+        }
+
+        @Override
+        protected NTableSamplingJob create(JobBuildParams jobBuildParams) {
+            return NTableSamplingJob.create((TableSamplingJobHandler.TableSamplingJobBuildParam) jobBuildParams);
+        }
+    }
 }
