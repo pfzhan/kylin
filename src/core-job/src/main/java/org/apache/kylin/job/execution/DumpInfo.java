@@ -15,22 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.job;
 
-import java.util.List;
+package org.apache.kylin.job.execution;
+
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ExecutableApplication;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public class InMemoryJobRunner extends JobRunnerFactory.AbstractJobRunner {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class DumpInfo{
+    private String project;
+    private String jobId;
+    private String parentId;
+    private String dataflow;
+    private String logPath;
+    private String yarnQueue;
+    private boolean kylinPropsOnly;
+    private String distMetaUrl;
+    private Set<String> metadataDumpList;
+    private Map<String, String> overrideProps;
+    private DumpType type;
 
-    public InMemoryJobRunner(KylinConfig config, String project, List<String> resources) {
-        super(config, project, resources);
-    }
-
-    @Override
-    public void doExecute(ExecutableApplication app, Map<String, String> args) throws Exception {
-        app.execute(formatArgs(args).split(" "));
+    public enum DumpType {
+        DATA_LOADING, ASYNC_QUERY, STREAMING, SMART
     }
 }

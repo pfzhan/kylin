@@ -59,11 +59,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.persistence.metadata.AuditLogStore;
 import org.apache.kylin.common.persistence.metadata.EpochStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -455,10 +455,11 @@ public abstract class ResourceStore implements AutoCloseable {
         clearCache(this.getConfig());
     }
 
-    public static void dumpResourceMaps(KylinConfig kylinConfig, File metaDir, Map<String, RawResource> dumpMap,
-            Properties properties) {
+    public static void dumpResourceMaps(KylinConfig kylinConfig, File metaDir, Map<String, RawResource> dumpMap) {
         long startTime = System.currentTimeMillis();
-        metaDir.mkdirs();
+        if (!metaDir.exists()) {
+            metaDir.mkdirs();
+        }
         for (Map.Entry<String, RawResource> entry : dumpMap.entrySet()) {
             RawResource res = entry.getValue();
             if (res == null) {
@@ -476,15 +477,6 @@ public abstract class ResourceStore implements AutoCloseable {
             } catch (IOException e) {
                 throw new IllegalStateException("dump " + res.getResPath() + " failed", e);
             }
-        }
-        if (properties != null) {
-            File kylinPropsFile = new File(metaDir, KYLIN_PROPS);
-            try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
-                properties.store(os, kylinPropsFile.getAbsolutePath());
-            } catch (Exception e) {
-                throw new IllegalStateException("save kylin.properties failed", e);
-            }
-
         }
 
         logger.debug("Dump resources to {} took {} ms", metaDir, System.currentTimeMillis() - startTime);

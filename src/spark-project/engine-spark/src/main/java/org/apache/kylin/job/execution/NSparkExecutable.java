@@ -19,7 +19,6 @@
 package org.apache.kylin.job.execution;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -44,10 +42,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.persistence.RawResource;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.MetadataStore;
-import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
@@ -60,8 +54,8 @@ import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,8 +235,9 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             // property value contains placeholder (eg. "kylin.engine.spark-conf.spark.yarn.dist.files") will be replaced with specified path.
             // in case of ha, not every candidate node will have the same path
             // upload kylin.properties only
-            attachMetadataAndKylinProps(config, isResumable());
-        } catch (IOException e) {
+            DumpInfo dumpInfo = generateDumpInfo(config, isResumable(), DumpInfo.DumpType.DATA_LOADING);
+            MetadataInvoker.getInstance().attachMetadataAndKylinProps(project, dumpInfo);
+        } catch (Exception e) {
             throw new ExecuteException("meta dump failed", e);
         }
 
@@ -458,56 +453,26 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return Collections.emptySet();
     }
 
-    public void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
-        attachMetadataAndKylinProps(config, false);
+    public void attachMetadataAndKylinProps(KylinConfig config) throws Exception {
+        DumpInfo dumpInfo = generateDumpInfo(config, false, DumpInfo.DumpType.DATA_LOADING);
+        MetadataInvoker.getInstance().attachMetadataAndKylinProps(getProject(), dumpInfo);
     }
 
-    protected void attachMetadataAndKylinProps(KylinConfig config, boolean kylinPropsOnly) throws IOException {
-
-        String metaDumpUrl = getDistMetaUrl();
-        if (StringUtils.isEmpty(metaDumpUrl)) {
-            throw new RuntimeException("Missing metaUrl");
+    protected DumpInfo generateDumpInfo(KylinConfig config, boolean kylinPropsOnly, DumpInfo.DumpType type) {
+        String project = getProject();
+        String jobId = getId();
+        String parentId = getParentId();
+        String dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
+        String logPath = getLogPath();
+        String yarnQueue = getParent() == null ? null : getParent().getSparkYarnQueue();
+        String distMetaUrl = getDistMetaUrl();
+        Set<String> metadataDumpList = getMetadataDumpList(config);
+        Map<String, String> overrideProps = new HashMap<>();
+        if (config instanceof KylinConfigExt) {
+            overrideProps = ((KylinConfigExt) config).getExtendedOverrides();
         }
-
-        File tmpDir = File.createTempFile("kylin_job_meta", EMPTY);
-        FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
-
-        final Properties props = config.exportToProperties();
-        // If we don't remove these configurations,
-        // they will be overwritten in the SparkApplication
-        props.setProperty("kylin.metadata.url", metaDumpUrl);
-        modifyDump(props);
-
-        if (kylinPropsOnly) {
-            ResourceStore.dumpKylinProps(tmpDir, props);
-        } else {
-            // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-            Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).maxRetry(1).processor(() -> {
-                        Map<String, RawResource> retMap = Maps.newHashMap();
-                        for (String resPath : getMetadataDumpList(config)) {
-                            ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
-                            RawResource rawResource = resourceStore.getResource(resPath);
-                            retMap.put(resPath, rawResource);
-                        }
-                        return retMap;
-                    }).build());
-
-            if (Objects.isNull(dumpMap) || dumpMap.isEmpty()) {
-                return;
-            }
-            // dump metadata
-            ResourceStore.dumpResourceMaps(config, tmpDir, dumpMap, props);
-        }
-
-        // copy metadata to target metaUrl
-        Properties propsForMetaStore = config.exportToProperties();
-        propsForMetaStore.setProperty("kylin.metadata.url", metaDumpUrl);
-        KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
-        MetadataStore.createMetadataStore(dstConfig).uploadFromFile(tmpDir);
-        // clean up
-        logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
-        FileUtils.forceDelete(tmpDir);
+        return new DumpInfo(project, jobId, parentId, dataflow, logPath, yarnQueue, kylinPropsOnly, distMetaUrl,
+                metadataDumpList, overrideProps, type);
     }
 
     private void modifyDump(Properties props) {

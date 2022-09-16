@@ -47,6 +47,7 @@ import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
@@ -999,9 +1000,16 @@ public class NModelController extends NBasicController {
 
     @PostMapping(value = "/feign/make_segment_ready")
     @ResponseBody
-    void makeSegmentReady(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+    public void makeSegmentReady(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
             @RequestParam("segmentId") String segmentId,
             @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount) {
         modelService.makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
+    }
+
+    @PostMapping(value = "/feign/attach_metadata_and_kylin_props")
+    @ResponseBody
+    public void attachMetadataAndKylinProps(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo)
+            throws Exception {
+        modelService.attachMetadataAndKylinProps(project, dumpInfo);
     }
 }

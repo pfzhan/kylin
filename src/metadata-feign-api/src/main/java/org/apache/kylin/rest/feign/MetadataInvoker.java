@@ -18,15 +18,10 @@
 
 package org.apache.kylin.rest.feign;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
-import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.util.SpringContext;
@@ -43,11 +38,6 @@ public class MetadataInvoker {
     private MetadataRPC delegate;
 
     public static MetadataInvoker getInstance() {
-        MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                .getMetadataStore();
-        if (metadataStore instanceof HDFSMetadataStore) {
-            throw new KylinRuntimeException("This request cannot be route to metadata server");
-        }
         if (SpringContext.getApplicationContext() == null) {
             // for UT
             return new MetadataInvoker();
@@ -76,17 +66,8 @@ public class MetadataInvoker {
         getDelegate().makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
     }
 
-    static class MockedDelegate implements MetadataContract {
-
-        @Override
-        public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
-            return new ArrayList<>();
-        }
-
-        @Override
-        public void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount) {
-
-        }
+    public void attachMetadataAndKylinProps(String project, DumpInfo dumpInfo) throws Exception {
+        getDelegate().attachMetadataAndKylinProps(project, dumpInfo);
     }
 
 }

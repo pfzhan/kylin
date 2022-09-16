@@ -21,8 +21,9 @@ package org.apache.kylin.rest.service;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -31,18 +32,19 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.engine.spark.job.DefaultSparkBuildJobHandler;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +52,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.val;
@@ -146,6 +147,7 @@ public class AsyncQueryJob extends NSparkExecutable {
         if (StringUtils.isNotEmpty(queryParams.getSparkQueue())) {
             overrideCopy.put("kylin.query.async-query.spark-conf.spark.yarn.queue", queryParams.getSparkQueue());
         }
+        overrideCopy.put("kylin.query.queryhistory.url", originConfig.getQueryHistoryUrl().toString());
         KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
@@ -165,22 +167,8 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         try {
             // dump kylin.properties to HDFS
-            config.setQueryHistoryUrl(config.getQueryHistoryUrl().toString());
-            attachMetadataAndKylinProps(config, true);
-
-            // dump metadata to HDFS
-            List<String> metadataDumpSet = Lists.newArrayList();
-            ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
-            metadataDumpSet.addAll(resourceStore.listResourcesRecursively(GLOBAL));
-            for (String mata : META_DUMP_LIST) {
-                if (resourceStore.listResourcesRecursively("/" + getProject() + mata) != null) {
-                    metadataDumpSet.addAll(resourceStore.listResourcesRecursively("/" + getProject() + mata));
-                }
-            }
-            KylinConfig configCopy = KylinConfig.createKylinConfig(config);
-            configCopy.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()).toString());
-            MetadataStore.createMetadataStore(configCopy).dump(ResourceStore.getKylinMetaStore(config),
-                    metadataDumpSet);
+            DumpInfo dumpInfo = generateDumpInfo(config, false, DumpInfo.DumpType.ASYNC_QUERY);
+            MetadataInvoker.getInstance().attachMetadataAndKylinProps(project, dumpInfo);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }
@@ -188,6 +176,18 @@ public class AsyncQueryJob extends NSparkExecutable {
         return runSparkSubmit(getHadoopConfDir(), kylinJobJar,
                 "-className org.apache.kylin.query.engine.AsyncQueryApplication "
                         + createArgsFileOnHDFS(config, getId()));
+    }
+
+    @Override
+    protected Set<String> getMetadataDumpList(KylinConfig config) {
+        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
+        Set<String> metadataDumpSet = new HashSet<>(resourceStore.listResourcesRecursively(GLOBAL));
+        for (String mata : META_DUMP_LIST) {
+            if (resourceStore.listResourcesRecursively("/" + getProject() + mata) != null) {
+                metadataDumpSet.addAll(resourceStore.listResourcesRecursively("/" + getProject() + mata));
+            }
+        }
+        return metadataDumpSet;
     }
 
     private String getHadoopConfDir() {

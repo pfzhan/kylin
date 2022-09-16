@@ -126,6 +126,7 @@ import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.ExecutableHandler.HandlerType;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -265,6 +266,7 @@ import org.apache.kylin.tool.bisync.BISyncModel;
 import org.apache.kylin.tool.bisync.BISyncTool;
 import org.apache.kylin.tool.bisync.SyncContext;
 import org.apache.kylin.tool.bisync.model.MeasureDef;
+import org.apache.kylin.tool.util.MetadataUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
@@ -1895,6 +1897,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
         }
         return true;
+    }
+
+    public void attachMetadataAndKylinProps(String project, DumpInfo info) throws Exception {
+        MetadataUtil.attachMetadataAndKylinProps(info);
     }
 
     public void checkNewModels(String project, List<ModelRequest> newModels) {
