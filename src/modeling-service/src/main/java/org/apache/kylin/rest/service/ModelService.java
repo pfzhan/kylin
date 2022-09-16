@@ -1803,33 +1803,35 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
 
-    @Transaction(project = 0)
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        MetadataMerger merger;
-        if (mergerInfo.getHandlerType() == HandlerType.MERGE_OR_REFRESH) {
-            merger = new AfterMergeOrRefreshResourceMerger(config, project);
-        } else {
-            merger = new AfterBuildResourceMerger(config, project);
-        }
-
-        List<NDataLayout[]> mergedLayouts = new ArrayList<>();
-        mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
-
-        if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
-            String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
-            if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
-                logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
-                        mergerInfo.getJobId());
-                Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
-                for (String id : toBeDeletedLayoutIdsStr.split(",")) {
-                    toBeDeletedLayoutIds.add(Long.parseLong(id));
-                }
-                updateIndex(project, -1, mergerInfo.getModelId(), toBeDeletedLayoutIds, true, true);
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            MetadataMerger merger;
+            if (mergerInfo.getHandlerType() == HandlerType.MERGE_OR_REFRESH) {
+                merger = new AfterMergeOrRefreshResourceMerger(config, project);
+            } else {
+                merger = new AfterBuildResourceMerger(config, project);
             }
-        }
-        markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(), mergerInfo.getErrorOrPausedJobCount());
-        return mergedLayouts;
+
+            List<NDataLayout[]> mergedLayouts = new ArrayList<>();
+            mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
+
+            if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
+                String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
+                if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
+                    logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
+                            mergerInfo.getJobId());
+                    Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
+                    for (String id : toBeDeletedLayoutIdsStr.split(",")) {
+                        toBeDeletedLayoutIds.add(Long.parseLong(id));
+                    }
+                    updateIndex(project, -1, mergerInfo.getModelId(), toBeDeletedLayoutIds, true, true);
+                }
+            }
+            markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(),
+                    mergerInfo.getErrorOrPausedJobCount());
+            return mergedLayouts;
+        }, project);
     }
 
     @Transaction(project = 0)

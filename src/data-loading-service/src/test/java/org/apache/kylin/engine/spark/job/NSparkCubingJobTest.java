@@ -737,7 +737,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(job2.safetyIfDiscard());
         Assert.assertTrue(job3.safetyIfDiscard());
 
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
+        JobContextUtil.withTxAndRetry(() -> {
+            execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
+            return true;
+        });
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertFalse(job2.safetyIfDiscard());
 
