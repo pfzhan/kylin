@@ -1899,8 +1899,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return true;
     }
 
-    public void attachMetadataAndKylinProps(String project, DumpInfo info) throws Exception {
-        MetadataUtil.attachMetadataAndKylinProps(info);
+    public void dumpMetadata(String project, DumpInfo info) throws Exception {
+        MetadataUtil.dumpMetadata(info);
     }
 
     public void checkNewModels(String project, List<ModelRequest> newModels) {

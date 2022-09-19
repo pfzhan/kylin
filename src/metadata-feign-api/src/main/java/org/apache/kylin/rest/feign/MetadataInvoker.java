@@ -66,8 +66,8 @@ public class MetadataInvoker {
         getDelegate().makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
     }
 
-    public void attachMetadataAndKylinProps(String project, DumpInfo dumpInfo) throws Exception {
-        getDelegate().attachMetadataAndKylinProps(project, dumpInfo);
+    public void dumpMetadata(String project, DumpInfo dumpInfo) throws Exception {
+        getDelegate().dumpMetadata(project, dumpInfo);
     }
 
 }

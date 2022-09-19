@@ -1010,6 +1010,6 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public void attachMetadataAndKylinProps(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo)
             throws Exception {
-        modelService.attachMetadataAndKylinProps(project, dumpInfo);
+        modelService.dumpMetadata(project, dumpInfo);
     }
 }

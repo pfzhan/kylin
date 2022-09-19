@@ -40,5 +40,5 @@ public interface MetadataRPC extends MetadataContract{
             @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount);
 
     @PostMapping(value = "/attach_metadata_and_kylin_props")
-    void attachMetadataAndKylinProps(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo);
+    void dumpMetadata(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo);
 }

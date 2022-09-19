@@ -147,7 +147,6 @@ public class AsyncQueryJob extends NSparkExecutable {
         if (StringUtils.isNotEmpty(queryParams.getSparkQueue())) {
             overrideCopy.put("kylin.query.async-query.spark-conf.spark.yarn.queue", queryParams.getSparkQueue());
         }
-        overrideCopy.put("kylin.query.queryhistory.url", originConfig.getQueryHistoryUrl().toString());
         KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
@@ -167,8 +166,11 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         try {
             // dump kylin.properties to HDFS
-            DumpInfo dumpInfo = generateDumpInfo(config, false, DumpInfo.DumpType.ASYNC_QUERY);
-            MetadataInvoker.getInstance().attachMetadataAndKylinProps(project, dumpInfo);
+            config.setQueryHistoryUrl(config.getQueryHistoryUrl().toString());
+            dumpKylinProps(config);
+            // dump metadata to HDFS
+            DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.ASYNC_QUERY);
+            MetadataInvoker.getInstance().dumpMetadata(project, dumpInfo);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }

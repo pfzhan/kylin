@@ -19,6 +19,7 @@
 package org.apache.kylin.job.execution;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -42,6 +44,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
@@ -235,8 +239,11 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             // property value contains placeholder (eg. "kylin.engine.spark-conf.spark.yarn.dist.files") will be replaced with specified path.
             // in case of ha, not every candidate node will have the same path
             // upload kylin.properties only
-            DumpInfo dumpInfo = generateDumpInfo(config, isResumable(), DumpInfo.DumpType.DATA_LOADING);
-            MetadataInvoker.getInstance().attachMetadataAndKylinProps(project, dumpInfo);
+            dumpKylinProps(config);
+            if (!isResumable()) {
+                DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.DATA_LOADING);
+                MetadataInvoker.getInstance().dumpMetadata(project, dumpInfo);
+            }
         } catch (Exception e) {
             throw new ExecuteException("meta dump failed", e);
         }
@@ -454,25 +461,41 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     public void attachMetadataAndKylinProps(KylinConfig config) throws Exception {
-        DumpInfo dumpInfo = generateDumpInfo(config, false, DumpInfo.DumpType.DATA_LOADING);
-        MetadataInvoker.getInstance().attachMetadataAndKylinProps(getProject(), dumpInfo);
+        dumpKylinProps(config);
+        DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.DATA_LOADING);
+        MetadataInvoker.getInstance().dumpMetadata(getProject(), dumpInfo);
     }
 
-    protected DumpInfo generateDumpInfo(KylinConfig config, boolean kylinPropsOnly, DumpInfo.DumpType type) {
+    protected void dumpKylinProps(KylinConfig config) throws IOException {
+        String metaDumpUrl = getDistMetaUrl();
+        if (StringUtils.isEmpty(metaDumpUrl)) {
+            throw new RuntimeException("Missing metaUrl");
+        }
+
+        File tmpDir = File.createTempFile("kylin_job_meta", EMPTY);
+        FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
+
+        final Properties props = config.exportToProperties();
+        // If we don't remove these configurations,
+        // they will be overwritten in the SparkApplication
+        props.setProperty("kylin.metadata.url", metaDumpUrl);
+        modifyDump(props);
+
+        ResourceStore.dumpKylinProps(tmpDir, props);
+
+        // copy kylinProperties to target metaUrl
+        KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
+        MetadataStore.createMetadataStore(dstConfig).uploadFromFile(tmpDir);
+        // clean up
+        logger.debug("Copied kylinProperties to the target metaUrl, delete the temp dir: {}", tmpDir);
+        FileUtils.forceDelete(tmpDir);
+    }
+
+    protected DumpInfo generateDumpInfo(KylinConfig config, DumpInfo.DumpType type) {
         String project = getProject();
-        String jobId = getId();
-        String parentId = getParentId();
-        String dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
-        String logPath = getLogPath();
-        String yarnQueue = getParent() == null ? null : getParent().getSparkYarnQueue();
         String distMetaUrl = getDistMetaUrl();
         Set<String> metadataDumpList = getMetadataDumpList(config);
-        Map<String, String> overrideProps = new HashMap<>();
-        if (config instanceof KylinConfigExt) {
-            overrideProps = ((KylinConfigExt) config).getExtendedOverrides();
-        }
-        return new DumpInfo(project, jobId, parentId, dataflow, logPath, yarnQueue, kylinPropsOnly, distMetaUrl,
-                metadataDumpList, overrideProps, type);
+        return new DumpInfo(project, distMetaUrl, metadataDumpList, type);
     }
 
     private void modifyDump(Properties props) {

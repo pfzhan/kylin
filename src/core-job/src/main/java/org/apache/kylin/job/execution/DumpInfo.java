@@ -18,7 +18,6 @@
 
 package org.apache.kylin.job.execution;
 
-import java.util.Map;
 import java.util.Set;
 
 import lombok.AllArgsConstructor;
@@ -28,17 +27,10 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DumpInfo{
+public class DumpInfo {
     private String project;
-    private String jobId;
-    private String parentId;
-    private String dataflow;
-    private String logPath;
-    private String yarnQueue;
-    private boolean kylinPropsOnly;
     private String distMetaUrl;
     private Set<String> metadataDumpList;
-    private Map<String, String> overrideProps;
     private DumpType type;
 
     public enum DumpType {

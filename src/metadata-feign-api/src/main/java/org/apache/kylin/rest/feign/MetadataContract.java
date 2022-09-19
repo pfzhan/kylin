@@ -29,5 +29,5 @@ public interface MetadataContract {
 
     void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
 
-    void attachMetadataAndKylinProps(String project, DumpInfo dumpInfo) throws Exception;
+    void dumpMetadata(String project, DumpInfo dumpInfo) throws Exception;
 }
