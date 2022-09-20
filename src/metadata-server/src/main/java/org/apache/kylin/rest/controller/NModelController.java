@@ -1006,10 +1006,17 @@ public class NModelController extends NBasicController {
         modelService.makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
     }
 
-    @PostMapping(value = "/feign/attach_metadata_and_kylin_props")
+    @PostMapping(value = "/feign/dump_metadata")
     @ResponseBody
     public void attachMetadataAndKylinProps(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo)
             throws Exception {
         modelService.dumpMetadata(project, dumpInfo);
+    }
+
+    @PostMapping(value = "/feign/merge_metadata_for_sampling_or_snapshot")
+    @ResponseBody
+    public void mergeMetadataForSamplingOrSnapshot(@RequestParam("project") String project,
+            @RequestBody MergerInfo mergerInfo) {
+        modelService.mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
     }
 }

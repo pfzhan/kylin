@@ -87,6 +87,6 @@ public abstract class ExecutableHandler {
     }
 
     public enum HandlerType {
-        ADD_CUBOID, ADD_SEGMENT, MERGE_OR_REFRESH;
+        ADD_CUBOID, ADD_SEGMENT, MERGE_OR_REFRESH, SAMPLING, SNAPSHOT;
     }
 }

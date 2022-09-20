@@ -27,7 +27,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.engine.spark.ExecutableUtils;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.MergerInfo.TaskMergeInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
@@ -37,7 +36,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.jetbrains.annotations.TestOnly;
 
 import com.clearspring.analytics.util.Lists;
 
@@ -169,7 +167,6 @@ public class AfterMergeOrRefreshResourceMerger extends MetadataMerger {
         return update.getToAddOrUpdateLayouts();
     }
 
-    @Override
     public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
             ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         if (CollectionUtils.isNotEmpty(partitions)) {
@@ -178,13 +175,6 @@ public class AfterMergeOrRefreshResourceMerger extends MetadataMerger {
         } else {
             return mergeNormalModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType, partitions);
         }
-    }
-
-    @TestOnly
-    public void merge(AbstractExecutable abstractExecutable) {
-        TaskMergeInfo taskMergeInfo = new TaskMergeInfo(abstractExecutable,
-                ExecutableUtils.needBuildSnapshots(abstractExecutable));
-        merge(taskMergeInfo);
     }
 
     @Override

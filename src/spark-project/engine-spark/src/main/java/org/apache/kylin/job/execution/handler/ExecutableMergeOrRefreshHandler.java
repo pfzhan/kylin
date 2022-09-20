@@ -49,7 +49,7 @@ public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
         val errorOrPausedJobCount = getErrorOrPausedJobCount();
         boolean isCubingJob = executable instanceof NSparkCubingJob;
         String jobSubmitter = executable.getSubmitter();
-        MergerInfo mergerInfo = new MergerInfo(project, null, modelId, jobId, errorOrPausedJobCount,
+        MergerInfo mergerInfo = new MergerInfo(project, modelId, jobId, errorOrPausedJobCount,
                 HandlerType.MERGE_OR_REFRESH, isCubingJob, jobSubmitter);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
                 .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));

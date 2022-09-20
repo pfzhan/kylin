@@ -28,8 +28,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -43,6 +44,7 @@ import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.cube.model.SegmentPartition;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,14 +75,17 @@ public abstract class MetadataMerger {
         return KylinConfigExt.createInstance(globalConfig, projectConfig);
     }
 
-    public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions);
+    @TestOnly
+    public void merge(AbstractExecutable abstractExecutable) {
+        MergerInfo.TaskMergeInfo taskMergeInfo = new MergerInfo.TaskMergeInfo(abstractExecutable,
+                ExecutableUtils.needBuildSnapshots(abstractExecutable));
+        merge(taskMergeInfo);
+    }
 
-    public abstract void merge(AbstractExecutable abstractExecutable);
-
-    public abstract NDataLayout[] merge(MergerInfo.TaskMergeInfo info);
+    public abstract <T> T merge(MergerInfo.TaskMergeInfo info);
 
     protected void mergeSnapshotMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {
+
         if (!isSnapshotManualManagementEnabled(remoteResourceStore)) {
             val remoteTblMgr = NTableMetadataManager.getInstance(remoteResourceStore.getConfig(), getProject());
             val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
@@ -196,5 +201,22 @@ public abstract class MetadataMerger {
         indexPlanManager.updateIndexPlan(dfId, copyForWrite -> {
             copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
         });
+    }
+
+    public static MetadataMerger createMetadataMerger(String project, ExecutableHandler.HandlerType type) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        switch (type) {
+        case MERGE_OR_REFRESH:
+            return new AfterMergeOrRefreshResourceMerger(config, project);
+        case ADD_CUBOID:
+        case ADD_SEGMENT:
+            return new AfterBuildResourceMerger(config, project);
+        case SAMPLING:
+            return new AfterSamplingMerger(config, project);
+        case SNAPSHOT:
+            return new AfterSnapshotMerger(config, project);
+        default:
+            throw new IllegalArgumentException("Unknown HandlerType: " + type);
+        }
     }
 }

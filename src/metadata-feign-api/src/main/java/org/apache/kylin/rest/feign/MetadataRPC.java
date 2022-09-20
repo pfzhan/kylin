@@ -39,6 +39,10 @@ public interface MetadataRPC extends MetadataContract{
             @RequestParam("segmentId") String segmentId,
             @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount);
 
-    @PostMapping(value = "/attach_metadata_and_kylin_props")
+    @PostMapping(value = "/dump_metadata")
     void dumpMetadata(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo);
+
+    @PostMapping(value = "/merge_metadata_for_sampling_or_snapshot")
+    void mergeMetadataForSamplingOrSnapshot(@RequestParam("project") String project,
+            @RequestBody MergerInfo mergerInfo);
 }

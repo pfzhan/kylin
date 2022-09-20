@@ -63,4 +63,16 @@ public class ExecutableParaUtil {
         String param = buildTask.getParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS);
         return StringUtils.isBlank(param) || Boolean.parseBoolean(param);
     }
+
+    public static String getTableIdentity(AbstractExecutable buildTask) {
+        return buildTask.getParam(NBatchConstants.P_TABLE_NAME);
+    }
+
+    public static String getSelectPartCol(AbstractExecutable buildTask) {
+        return buildTask.getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
+    }
+
+    public static boolean isIncrementBuild(AbstractExecutable buildTask) {
+        return "true".equals(buildTask.getParam(NBatchConstants.P_INCREMENTAL_BUILD));
+    }
 }

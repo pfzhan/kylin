@@ -22,11 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import lombok.NoArgsConstructor;
 import org.apache.kylin.job.util.ExecutableParaUtil;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
@@ -45,18 +45,31 @@ public class MergerInfo {
 
     public MergerInfo(String project, String toBeDeleteLayoutIdsStr, String modelId, String jobId, int errorOrPausedJobCount,
                       ExecutableHandler.HandlerType handlerType, boolean isCubingJob, String jobSubmitter) {
-        this.project = project;
+        this(project, modelId, jobId, errorOrPausedJobCount, handlerType, isCubingJob, jobSubmitter);
         this.toBeDeleteLayoutIdsStr = toBeDeleteLayoutIdsStr;
+    }
+
+    public MergerInfo(String project, String modelId, String jobId, int errorOrPausedJobCount,
+            ExecutableHandler.HandlerType handlerType, boolean isCubingJob, String jobSubmitter) {
+        this(project, handlerType);
         this.modelId = modelId;
         this.jobId = jobId;
-        this.handlerType = handlerType;
         this.errorOrPausedJobCount = errorOrPausedJobCount;
         this.isCubingJob = isCubingJob;
         this.jobSubmitter = jobSubmitter;
     }
 
+    public MergerInfo(String project, ExecutableHandler.HandlerType handlerType) {
+        this.project = project;
+        this.handlerType = handlerType;
+    }
+
     public void addTaskMergeInfo(AbstractExecutable job, boolean needBuildSnapshots) {
         this.taskMergeInfoList.add(new TaskMergeInfo(job, needBuildSnapshots));
+    }
+
+    public void addTaskMergeInfo(AbstractExecutable job) {
+        this.taskMergeInfoList.add(new TaskMergeInfo(job));
     }
 
     @Data
@@ -64,12 +77,18 @@ public class MergerInfo {
     @NoArgsConstructor
     public static class TaskMergeInfo {
         private String outputMetaUrl;
+        // Used for AfterBuildResourceMerger & AfterMergeOrRefreshResourceMerger
         private String dataFlowId;
         private Set<String> segmentIds;
         private Set<Long> layoutIds;
         private Set<Long> partitionIds;
         private JobTypeEnum jobType;
         private boolean needBuildSnapshots;
+        // Used for AfterSamplingMerger & AfterSnapshotMerger
+        private String tableIdentity;
+        private long createTime;
+        private String selectPartCol;
+        private boolean incrementBuild;
 
         public TaskMergeInfo(AbstractExecutable job, boolean needBuildSnapshots) {
             this.outputMetaUrl = ExecutableParaUtil.getOutputMetaUrl(job);
@@ -79,6 +98,14 @@ public class MergerInfo {
             this.partitionIds = ExecutableParaUtil.getPartitionIds(job);
             this.jobType = job.getJobType();
             this.needBuildSnapshots = needBuildSnapshots;
+        }
+
+        public TaskMergeInfo(AbstractExecutable job) {
+            this.outputMetaUrl = ExecutableParaUtil.getOutputMetaUrl(job);
+            this.tableIdentity = ExecutableParaUtil.getTableIdentity(job);
+            this.createTime = job.getCreateTime();
+            this.selectPartCol = ExecutableParaUtil.getSelectPartCol(job);
+            this.incrementBuild = ExecutableParaUtil.isIncrementBuild(job);
         }
     }
 }

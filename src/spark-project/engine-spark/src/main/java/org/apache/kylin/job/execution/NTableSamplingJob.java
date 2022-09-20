@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.stats.utils.HiveTableRefChecker;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -36,16 +35,13 @@ import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.TableMetadataBaseInvoker;
-import org.apache.kylin.rest.request.MergeAndUpdateTableExtRequest;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -147,34 +143,15 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
             if (!result.succeed()) {
                 return result;
             }
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                if (checkSuicide()) {
-                    log.info(
-                            "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");
-                    return null;
-                }
-                mergeRemoteMetaAfterSampling();
+            if (checkSuicide()) {
+                log.info(
+                        "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");
                 return null;
-            }, getProject());
-            return result;
-        }
-
-        private void mergeRemoteMetaAfterSampling() {
-            try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
-                val remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(), getProject());
-                val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-                val tableMetadataBaseInvoker = TableMetadataBaseInvoker.getInstance();
-                tableMetadataBaseInvoker.mergeAndUpdateTableExt(project,
-                        new MergeAndUpdateTableExtRequest(localTblMgr.getOrCreateTableExt(getTableIdentity()),
-                                remoteTblMgr.getOrCreateTableExt(getTableIdentity())));
-
-                // use create time of sampling job to update the create time of TableExtDesc
-                final TableDesc tableDesc = localTblMgr.getTableDesc(getTableIdentity());
-                final TableExtDesc tableExt = localTblMgr.getTableExtIfExists(tableDesc);
-                TableExtDesc copyForWrite = localTblMgr.copyForWrite(tableExt);
-                copyForWrite.setCreateTime(this.getCreateTime());
-                tableMetadataBaseInvoker.saveTableExt(project, copyForWrite);
             }
+            MergerInfo mergerInfo = new MergerInfo(project, ExecutableHandler.HandlerType.SAMPLING);
+            mergerInfo.addTaskMergeInfo(this);
+            MetadataInvoker.getInstance().mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
+            return result;
         }
 
         @Override

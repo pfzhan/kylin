@@ -58,6 +58,10 @@ public class MetadataInvoker {
         return delegate;
     }
 
+    public void mergeMetadataForSamplingOrSnapshot(String project, MergerInfo mergerInfo) {
+        getDelegate().mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
+    }
+
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
         return getDelegate().mergeMetadata(project, mergerInfo);
     }

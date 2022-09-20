@@ -245,8 +245,6 @@ import org.apache.kylin.rest.response.SegmentRangeResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
 import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.security.MutableAclRecord;
-import org.apache.kylin.rest.service.merger.AfterBuildResourceMerger;
-import org.apache.kylin.rest.service.merger.AfterMergeOrRefreshResourceMerger;
 import org.apache.kylin.rest.service.merger.MetadataMerger;
 import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
@@ -1805,15 +1803,21 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return optRecService.approveAllRecItemsImpl(project, modelId, modelAlias, recActionType);
     }
 
+    public void mergeMetadataForSamplingOrSnapshot(String project, MergerInfo mergerInfo) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            MetadataMerger merger = MetadataMerger.createMetadataMerger(project, mergerInfo.getHandlerType());
+
+            List<MergerInfo.TaskMergeInfo> infoList = mergerInfo.getTaskMergeInfoList();
+            Preconditions.checkArgument(infoList.size() == 1);
+
+            merger.merge(infoList.get(0));
+            return null;
+        }, project);
+    }
+
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
         List<NDataLayout[]> result = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            MetadataMerger merger;
-            if (mergerInfo.getHandlerType() == HandlerType.MERGE_OR_REFRESH) {
-                merger = new AfterMergeOrRefreshResourceMerger(config, project);
-            } else {
-                merger = new AfterBuildResourceMerger(config, project);
-            }
+            MetadataMerger merger = MetadataMerger.createMetadataMerger(project, mergerInfo.getHandlerType());
 
             List<NDataLayout[]> mergedLayouts = new ArrayList<>();
             mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));

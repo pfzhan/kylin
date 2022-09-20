@@ -25,6 +25,8 @@ import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 
 public interface MetadataContract {
+    void mergeMetadataForSamplingOrSnapshot(String project, MergerInfo mergerInfo);
+
     List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo);
 
     void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
