@@ -187,12 +187,12 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 res.addAll(refreshSegmentById(refreshSegmentParams));
             } else {
                 JobParam jobParam = new JobParam(segment, modelId, getUsername())
-                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
-                    .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
-            addJobParamExtParams(jobParam, params);
-            res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                            () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)))));
+                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
+                        .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
+                addJobParamExtParams(jobParam, params);
+                res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                        getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> JobMetadataBaseInvoker
+                                .getInstance().addSegmentJob(new JobMetadataRequest(jobParam)))));
             }
         }
         JobInfoResponse jobInfoResponse = new JobInfoResponse();

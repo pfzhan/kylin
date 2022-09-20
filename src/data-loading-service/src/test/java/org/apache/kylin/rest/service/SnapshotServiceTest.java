@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
@@ -48,7 +47,6 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.constant.SnapshotStatus;
-import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.request.SnapshotConfigRequest;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.response.NInitTablesResponse;
@@ -100,9 +98,6 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected TableService tableService = Mockito.spy(TableService.class);
 
-    @Mock
-    protected TableMetadataInvoker tableMetadataInvoker = Mockito.spy(TableMetadataInvoker.class);
-
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
@@ -122,9 +117,10 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(snapshotService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(snapshotService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
-        ReflectionTestUtils.setField(snapshotService, "tableMetadataInvoker", tableMetadataInvoker);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
 
+        // init snapshot job factory
+        new NSparkSnapshotJob();
         JobContextUtil.cleanUp();
         JobContextUtil.getJobInfoDao(getTestConfig());
     }
@@ -205,8 +201,8 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         String actual = "";
         try {
             snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), true, 3, null, null);
-        } catch (TransactionException e) {
-            actual = e.getCause().getMessage();
+        } catch (Exception e) {
+            actual = e.getMessage();
         }
         Assert.assertEquals(expected, actual);
     }
@@ -342,9 +338,9 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.READY, initialJob.getStatus());
         try {
             snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null, null);
-        } catch (TransactionException e) {
-            Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
-            Assert.assertEquals(JOB_CREATE_CHECK_FAIL.getMsg(), (e.getCause()).getMessage());
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof JobSubmissionException);
+            Assert.assertEquals(JOB_CREATE_CHECK_FAIL.getMsg(), e.getMessage());
         }
     }
 

@@ -44,22 +44,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.exception.JobSubmissionException;
-import org.apache.kylin.job.execution.ExecutableManager;
-import org.apache.kylin.job.execution.NSparkSnapshotJob;
-import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
+import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -70,9 +68,8 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.SnapshotStatus;
-import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
-import org.apache.kylin.rest.delegate.TableMetadataInvoker;
-import org.apache.kylin.rest.request.MergeAndUpdateTableExtRequest;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.response.JobInfoResponse;
 import org.apache.kylin.rest.response.NInitTablesResponse;
@@ -100,6 +97,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import lombok.SneakyThrows;
 import lombok.val;
 
 @Component("snapshotService")
@@ -114,12 +112,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     @Autowired
     private TableService tableService;
 
-    @Autowired
-    private TableMetadataInvoker tableMetadataInvoker;
-
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, List<String> tables) {
-        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .fetchNotFinalJobsByTypes(project, SNAPSHOT_JOB_TYPES, tables);
+        return JobMetadataBaseInvoker.getInstance().fetchRunningJob(project, SNAPSHOT_JOB_TYPES, tables);
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables){
@@ -162,6 +156,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                 .collect(Collectors.toSet());
     }
 
+    @SneakyThrows
     public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables,
             Map<String, SnapshotRequest.TableOption> options, boolean isRefresh, int priority, String yarnQueue,
             Object tag) {
@@ -191,41 +186,32 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         List<String> jobIds = new ArrayList<>();
 
+        checkRunningSnapshotTask(project, needBuildSnapshotTables);
+        for (TableDesc tableDesc : tables) {
+            SnapshotRequest.TableOption option = decideBuildOption(tableDesc, options.get(tableDesc.getIdentity()));
+            finalOptions.put(tableDesc.getIdentity(), option);
 
-        ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            checkRunningSnapshotTask(project, needBuildSnapshotTables);
-            JobManager.checkStorageQuota(project);
-            getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> {
-                for (TableDesc tableDesc : tables) {
-                    long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-                    JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, null, 0, 0, 1);
-
-                    SnapshotRequest.TableOption option = decideBuildOption(tableDesc,
-                            options.get(tableDesc.getIdentity()));
-                    finalOptions.put(tableDesc.getIdentity(), option);
-
-                    logger.info(
-                            "create snapshot job with args, table: {}, selectedPartCol: {}, selectedPartition{}, incrementBuild: {},isRefresh: {}",
-                            tableDesc.getIdentity(), option.getPartitionCol(), option.getPartitionsToBuild(),
-                            option.isIncrementalBuild(), isRefresh);
-
-                    NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, BasicService.getUsername(),
-                            option.getPartitionCol(), option.isIncrementalBuild(), option.getPartitionsToBuild(),
-                            isRefresh, yarnQueue, tag);
-                    ExecutablePO po = ExecutableManager.toPO(job, project);
-                    po.setPriority(priority);
-                    execMgr.addJob(po);
-
-                    jobIds.add(job.getId());
-                }
-                return null;
-            });
-
-            NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-            for (TableDesc tableDesc : tables) {
-                SnapshotRequest.TableOption option = finalOptions.get(tableDesc.getIdentity());
+            logger.info(
+                    "create snapshot job with args, table: {}, selectedPartCol: {}, selectedPartition{}, incrementBuild: {},isRefresh: {}",
+                    tableDesc.getIdentity(), option.getPartitionCol(), option.getPartitionsToBuild(),
+                    option.isIncrementalBuild(), isRefresh);
+            JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
+            String value = option.getPartitionsToBuild() == null ? null : JsonUtil.writeValueAsString(option.getPartitionsToBuild());
+            JobParam jobParam = new JobParam()
+                    .withProject(project)
+                    .withTable(tableDesc.getTableAlias())
+                    .withPriority(priority)
+                    .withYarnQueue(yarnQueue)
+                    .withJobTypeEnum(jobType)
+                    .withTag(tag)
+                    .withOwner(BasicService.getUsername())
+                    .addExtParams(NBatchConstants.P_INCREMENTAL_BUILD, String.valueOf(option.isIncrementalBuild()))
+                    .addExtParams(NBatchConstants.P_SELECTED_PARTITION_COL, option.getPartitionCol())
+                    .addExtParams(NBatchConstants.P_SELECTED_PARTITION_VALUE, value);
+            jobIds.add(getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                    () -> JobMetadataBaseInvoker.getInstance().addJob(new JobMetadataRequest(jobParam))));
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
                 if (tableDesc.isSnapshotHasBroken()
                         || !StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
                     TableDesc newTable = tableManager.copyForWrite(tableDesc);
@@ -233,12 +219,11 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                     if (!StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
                         newTable.setSelectedSnapshotPartitionCol(option.getPartitionCol());
                     }
-                    tableMetadataInvoker.updateTableDesc(project, newTable);
+                    tableManager.updateTableDesc(newTable);
                 }
-            }
-            return null;
-        }, project);
-
+                return null;
+            }, project);
+        }
         String jobName = isRefresh ? SNAPSHOT_REFRESH.toString() : SNAPSHOT_BUILD.toString();
         return JobInfoResponse.of(jobIds, jobName);
     }
@@ -285,8 +270,6 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         List<TableDesc> nonPermittedTables = tables.stream().filter(tableDesc -> !isAuthorizedTableAndColumn(tableDesc))
                 .collect(Collectors.toList());
         if (!nonPermittedTables.isEmpty()) {
-            List<String> tableIdentities = nonPermittedTables.stream().map(TableDesc::getIdentity)
-                    .collect(Collectors.toList());
             throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSnapshotOperationPermissionDenied());
         }
 
@@ -300,17 +283,13 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         checkTablePermission(tables);
         checkTableSnapshotExist(project, tables);
 
-        List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
-
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-
-        ExecutableManager execMgr = ExecutableManager.getInstance(getConfig(), project);
         List<JobInfo> conflictJobs = fetchAllRunningSnapshotTasks(project, tables);
 
         SnapshotCheckResponse response = new SnapshotCheckResponse();
         conflictJobs.forEach(job -> {
-            execMgr.discardJob(job.getJobId());
-            updateSnapcheckResponse(job, response);
+            JobMetadataBaseInvoker.getInstance().discardJob(project, job.getJobId());
+            updateSnapshotCheckResponse(job, response);
         });
         tableNames.forEach(tableName -> {
             TableDesc src = tableManager.getTableDesc(tableName);
@@ -321,8 +300,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             TableExtDesc extCopy = tableManager.copyForWrite(ext);
             extCopy.setOriginalSize(-1);
 
-            tableMetadataInvoker.mergeAndUpdateTableExt(project, new MergeAndUpdateTableExtRequest(ext, extCopy));
-            tableMetadataInvoker.updateTableDesc(project, copy);
+            tableManager.mergeAndUpdateTableExt(ext, extCopy);
+            tableManager.updateTableDesc(copy);
         });
         return response;
     }
@@ -337,11 +316,11 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         List<JobInfo> conflictJobs = fetchAllRunningSnapshotTasks(project, tables);
 
         SnapshotCheckResponse response = new SnapshotCheckResponse();
-        conflictJobs.forEach(job -> updateSnapcheckResponse(job, response));
+        conflictJobs.forEach(job -> updateSnapshotCheckResponse(job, response));
         return response;
     }
 
-    private void updateSnapcheckResponse(JobInfo job, SnapshotCheckResponse response) {
+    private void updateSnapshotCheckResponse(JobInfo job, SnapshotCheckResponse response) {
         String tableIdentity = job.getSubject();
         String[] tableSplit = tableIdentity.split("\\.");
         String database = "";
@@ -593,25 +572,6 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                 .collect(Collectors.toList()));
     }
 
-    private boolean isAuthorizedTable(TableDesc originTable) {
-        String project = originTable.getProject();
-        Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, true)) {
-            return true;
-        }
-
-        String username = AclPermissionUtil.getCurrentUsername();
-        AclTCRDigest userAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, username, true);
-        Set<String> allTables = userAuth.getTables();
-        AclTCRDigest groupAuth;
-        for (val group : groups) {
-            groupAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, group, false);
-            allTables.addAll(groupAuth.getTables());
-        }
-
-        return allTables.contains(originTable.getIdentity());
-    }
-
     private Set<String> getAuthorizedTables(String project, AclTCRManager aclTCRManager) {
         Set<String> groups = getCurrentUserGroups();
 
@@ -751,7 +711,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             }
             colName = colName == null ? null : colName.toUpperCase(Locale.ROOT);
             table.setSelectedSnapshotPartitionCol(colName);
-            tableMetadataInvoker.updateTableDesc(project, table);
+            tableManager.updateTableDesc(table);
         });
 
     }

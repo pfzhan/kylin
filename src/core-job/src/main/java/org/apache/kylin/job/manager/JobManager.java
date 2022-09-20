@@ -36,6 +36,7 @@ import org.apache.kylin.job.handler.AddIndexHandler;
 import org.apache.kylin.job.handler.AddSegmentHandler;
 import org.apache.kylin.job.handler.MergeSegmentHandler;
 import org.apache.kylin.job.handler.RefreshSegmentHandler;
+import org.apache.kylin.job.handler.SnapshotJobHandler;
 import org.apache.kylin.job.handler.TableSamplingJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.job.util.JobContextUtil;
@@ -158,6 +159,10 @@ public class JobManager {
                 break;
             case TABLE_SAMPLING:
                 handler = new TableSamplingJobHandler();
+                break;
+            case SNAPSHOT_BUILD:
+            case SNAPSHOT_REFRESH:
+                handler = new SnapshotJobHandler();
                 break;
             case EXPORT_TO_SECOND_STORAGE:
                 throw new UnsupportedOperationException();
