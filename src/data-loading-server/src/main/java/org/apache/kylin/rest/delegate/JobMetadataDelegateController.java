@@ -174,11 +174,16 @@ public class JobMetadataDelegateController {
         jobMetadataDelegate.stopBatchJob(project, tableDesc);
     }
 
-
     @PostMapping(value = "/feign/clear_project_jobs")
     @ResponseBody
     public void clearJobsByProject(@RequestParam("project") String project){
         jobMetadataDelegate.clearJobsByProject(project);
     }
 
+    @PostMapping(value = "/feign/check_suicide_job_of_model")
+    @ResponseBody
+    public void checkSuicideJobOfModel(@RequestParam("project") String project,
+            @RequestParam("modelId") String modelId) {
+        jobMetadataDelegate.checkSuicideJobOfModel(project, modelId);
+    }
 }

@@ -68,4 +68,5 @@ public interface JobMetadataContract {
 
     void clearJobsByProject(String project);
 
+    void checkSuicideJobOfModel(String project, String modelId);
 }

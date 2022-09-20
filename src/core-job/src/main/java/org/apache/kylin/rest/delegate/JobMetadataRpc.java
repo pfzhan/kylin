@@ -96,4 +96,7 @@ public interface JobMetadataRpc extends JobMetadataContract {
 
     @PostMapping(value = "clear_project_jobs")
     void clearJobsByProject(@RequestParam("project") String project);
+
+    @PostMapping(value = "check_suicide_job_of_model")
+    void checkSuicideJobOfModel(@RequestParam("project") String project, @RequestParam("modelId") String modelId);
 }

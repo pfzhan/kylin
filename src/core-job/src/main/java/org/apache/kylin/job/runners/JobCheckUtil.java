@@ -94,11 +94,12 @@ public class JobCheckUtil {
     public static boolean markSuicideJob(String jobId, JobContext jobContext) {
         try {
             return JobContextUtil.withTxAndRetry(() -> {
-                if (checkSuicide(jobId, jobContext)) {
-                    JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                            .suicideJob(jobId);
-                    return true;
+                JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                String project = jobInfo.getProject();
+                ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                AbstractExecutable job = executableManager.fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo));
+                if (checkSuicide(job)) {
+                    executableManager.suicideJob(jobId);
                 }
                 return false;
             });
@@ -108,10 +109,7 @@ public class JobCheckUtil {
         return false;
     }
 
-    private static boolean checkSuicide(String jobId, JobContext jobContext) {
-        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-        AbstractExecutable job = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                .getJob(jobId);
+    public static boolean checkSuicide(AbstractExecutable job) {
         if (job.getStatus().isFinalState()) {
             return false;
         }

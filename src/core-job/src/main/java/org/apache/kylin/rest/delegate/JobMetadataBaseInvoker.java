@@ -135,4 +135,8 @@ public class JobMetadataBaseInvoker {
     public void discardJob(String project, String jobId) {
         jobMetadataBaseDelegate.discardJob(project, jobId);
     }
+
+    public void checkSuicideJobOfModel(String project, String modelId) {
+        jobMetadataBaseDelegate.checkSuicideJobOfModel(project, modelId);
+    }
 }

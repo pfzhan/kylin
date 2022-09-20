@@ -25,7 +25,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -33,14 +35,18 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.runners.JobCheckUtil;
+import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.job.util.JobInfoUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import lombok.val;
-import org.apache.kylin.job.util.JobInfoUtil;
-import org.apache.kylin.job.rest.JobMapperFilter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class JobMetadataBaseDelegate {
 
     private <T> T getManager(Class<T> clz, String project) {
@@ -160,5 +166,30 @@ public class JobMetadataBaseDelegate {
 
     public void clearJobsByProject(String project) {
         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).deleteAllJobsOfProject();
+    }
+
+    public void checkSuicideJobOfModel(String project, String modelId) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        jobMapperFilter.setStatuses(Lists.newArrayList(JobStatusEnum.ERROR.name()));
+        List<JobInfo> errorJobInfoList = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fetchJobsByFilter(jobMapperFilter);
+        if (CollectionUtils.isEmpty(errorJobInfoList)) {
+            log.info("No job need to suicide, project: {}, model id: {}", project, modelId);
+            return;
+        }
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (JobInfo jobInfo : errorJobInfoList) {
+            String jobId = jobInfo.getJobId();
+            JobContextUtil.withTxAndRetry(() -> {
+                AbstractExecutable job = executableManager.getJob(jobId);
+                if (JobCheckUtil.checkSuicide(job)) {
+                    executableManager.suicideJob(jobId);
+                    log.info("Suicide job: {}, project: {}, model id: {}", jobId, project, modelId);
+                }
+                return true;
+            });
+        }
     }
 }

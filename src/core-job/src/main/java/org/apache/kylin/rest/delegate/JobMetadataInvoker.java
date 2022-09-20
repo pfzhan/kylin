@@ -181,4 +181,8 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         getDelegate().stopBatchJob(project, tableDesc);
     }
 
+    @Override
+    public void checkSuicideJobOfModel(String project, String modelId) {
+        getDelegate().checkSuicideJobOfModel(project, modelId);
+    }
 }
