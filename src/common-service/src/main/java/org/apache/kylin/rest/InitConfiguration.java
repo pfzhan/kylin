@@ -26,13 +26,11 @@ import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.session.jdbc.config.annotation.SpringSessionDataSource;
 
 import lombok.val;
 
 @Configuration
-@Profile("!dev")
 @ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class InitConfiguration {
 

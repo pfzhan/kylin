@@ -373,7 +373,10 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
         List<JobParam> paramList = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() ->
                 createSegmentsAndJobParams(buildSegmentParams), project);
-        List<JobInfoResponse.JobInfo> jobIds = createJob(paramList);
+        List<JobInfoResponse.JobInfo> jobIds = new LinkedList<>();
+        if (CollectionUtils.isNotEmpty(paramList)) {
+            jobIds = createJob(paramList);
+        }
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
@@ -471,7 +474,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                     .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
                     .withTag(params.getTag());
             NDataSegment segment = createSegment(relParams);
-            res.add(createJobParam(relParams, segment));
+            if (relParams.isNeedBuild()) {
+                res.add(createJobParam(relParams, segment));
+            }
         }
         IncrementBuildSegmentParams relParams = new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
@@ -483,7 +488,9 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
                 .withTag(params.getTag());
         NDataSegment segment = createSegment(relParams);
-        res.add(createJobParam(relParams, segment));
+        if (relParams.isNeedBuild()) {
+            res.add(createJobParam(relParams, segment));
+        }
         return res;
     }
 

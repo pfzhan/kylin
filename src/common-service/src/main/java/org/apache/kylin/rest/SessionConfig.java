@@ -35,7 +35,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.session.SessionProperties;
 import org.springframework.boot.autoconfigure.session.StoreType;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
@@ -46,7 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@Profile("!dev")
 @ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
 
