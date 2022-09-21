@@ -25,6 +25,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.MergerInfo;
+import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.feign.MetadataInvoker;
 
@@ -47,11 +48,12 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
 
         val errorOrPausedJobCount = getErrorOrPausedJobCount();
+        boolean isCubingJob = executable instanceof NSparkCubingJob;
+        String jobSubmitter = executable.getSubmitter();
         MergerInfo mergerInfo = new MergerInfo(project, null, modelId, jobId, errorOrPausedJobCount,
-                HandlerType.ADD_SEGMENT);
+                HandlerType.ADD_SEGMENT, isCubingJob, jobSubmitter);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
                 .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
-        MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
 
         List<NDataLayout[]> mergedLayout = MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
         List<AbstractExecutable> tasks = ExecutableHandleUtils.getNeedMergeTasks(executable);

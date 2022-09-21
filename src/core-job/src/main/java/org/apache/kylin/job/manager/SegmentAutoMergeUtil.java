@@ -19,12 +19,15 @@
 package org.apache.kylin.job.manager;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NSegmentConfigHelper;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,8 +70,10 @@ public class SegmentAutoMergeUtil {
             }
 
             if (mergeSeg != null) {
-                JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .mergeSegmentJob(new JobParam(mergeSeg, modelId, owner));
+                JobParam jobParam = new JobParam(mergeSeg, modelId, owner);
+                jobParam.setProject(project);
+                UnitOfWork.get().doAfterUnit(
+                        () -> JobMetadataBaseInvoker.getInstance().mergeSegmentJob(new JobMetadataRequest(jobParam)));
             }
         }
     }

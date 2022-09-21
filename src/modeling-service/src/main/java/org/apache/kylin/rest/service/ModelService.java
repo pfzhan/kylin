@@ -132,6 +132,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.MergerInfo;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
@@ -1804,9 +1805,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return optRecService.approveAllRecItemsImpl(project, modelId, modelAlias, recActionType);
     }
 
-
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        List<NDataLayout[]> result = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             MetadataMerger merger;
             if (mergerInfo.getHandlerType() == HandlerType.MERGE_OR_REFRESH) {
@@ -1834,6 +1834,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     mergerInfo.getErrorOrPausedJobCount());
             return mergedLayouts;
         }, project);
+        try {
+            if (mergerInfo.isCubingJob()) {
+                SegmentAutoMergeUtil.autoMergeSegments(project, mergerInfo.getModelId(), mergerInfo.getJobSubmitter());
+            }
+        } catch (Exception e) {
+            log.error("Auto merge failed on project {} model {}", project, mergerInfo.getModelId(), e);
+        }
+        return result;
     }
 
     @Transaction(project = 0)

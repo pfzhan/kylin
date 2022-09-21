@@ -40,15 +40,19 @@ public class MergerInfo {
     private int errorOrPausedJobCount;
     private ExecutableHandler.HandlerType handlerType;
     private List<TaskMergeInfo> taskMergeInfoList = new ArrayList<>();
+    private boolean isCubingJob;
+    private String jobSubmitter;
 
     public MergerInfo(String project, String toBeDeleteLayoutIdsStr, String modelId, String jobId, int errorOrPausedJobCount,
-                      ExecutableHandler.HandlerType handlerType) {
+                      ExecutableHandler.HandlerType handlerType, boolean isCubingJob, String jobSubmitter) {
         this.project = project;
         this.toBeDeleteLayoutIdsStr = toBeDeleteLayoutIdsStr;
         this.modelId = modelId;
         this.jobId = jobId;
         this.handlerType = handlerType;
         this.errorOrPausedJobCount = errorOrPausedJobCount;
+        this.isCubingJob = isCubingJob;
+        this.jobSubmitter = jobSubmitter;
     }
 
     public void addTaskMergeInfo(AbstractExecutable job, boolean needBuildSnapshots) {

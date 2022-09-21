@@ -64,17 +64,15 @@ import org.apache.kylin.common.scheduler.JobFinishedNotifier;
 import org.apache.kylin.common.scheduler.JobReadyNotifier;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NSparkCubingJob;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
+import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -149,18 +147,6 @@ public class JobSyncListener {
             postJobInfo(extractJobInfo(notifier));
         } finally {
             updateMetrics(notifier);
-        }
-    }
-
-    @Subscribe
-    public void onBuildJobFinished(JobFinishedNotifier notifier) {
-        try {
-            if (notifier.getJobClass().equals(NSparkCubingJob.class.getName()) && notifier.isSucceed()) {
-                SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
-                        notifier.getOwner());
-            }
-        } catch (Exception e) {
-            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getSubject(), e);
         }
     }
 
