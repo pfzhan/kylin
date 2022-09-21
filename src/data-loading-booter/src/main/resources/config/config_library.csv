@@ -578,3 +578,9 @@ kylin.job.parallel-job-size,Integer,,PENDING status execute max size,TRUE,TRUE
 kylin.job.lock-client-renewal-threads,Integer,,Lock client renewal size,TRUE,TRUE
 kylin.job.metadata.url,String,Kyligence Enterprise 构建任务元数据库路径。,Kyligence Enterprise job meta database path.,TRUE,TRUE
 kylin.metadata.distributed-lock.jdbc.url,String,jdbc distribute lock url,jdbc distribute lock url,TRUE,TRUE
+kylin.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality,Long,,smart filter minimum cardinality,TRUE,TRUE
+kylin.smart.conf.computed-column.suggestion.filter-key.enabled,boolean,,smart filter enabled,TRUE,TRUE
+kylin.smart.frequency-rule-enable,boolean,,smart frequency rule enable,TRUE,TRUE
+kylin.smart.update-topn-time-gap,Long,,smart update topn time gap,TRUE,TRUE
+kylin.query.calcite.extras-props.FUN,String,,calcite ext props,TRUE,TRUE
+kylin.query.queryhistory.url,String,,query history url,TRUE,TRUE
