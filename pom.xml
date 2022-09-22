@@ -141,7 +141,7 @@
         <dropwizard.version>4.1.1</dropwizard.version>
 
         <spring.cloud.version>2021.0.0</spring.cloud.version>
-        <spring.boot.version>2.6.3</spring.boot.version>
+        <spring.boot.version>2.6.8</spring.boot.version>
         <spring-session.version>2.6.1-kylin-r2</spring-session.version>
         <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
         <spring-jdbc.version>5.3.15</spring-jdbc.version>

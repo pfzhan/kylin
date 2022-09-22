@@ -22,8 +22,8 @@ import java.io.File;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.common.util.TempMetadataBuilder;
+import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.tool.kerberos.KerberosLoginTask;
 import org.springframework.boot.SpringApplication;
@@ -58,10 +58,8 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         if (env.acceptsProfiles(Profiles.of("sandbox"))) {
             if (env.acceptsProfiles(Profiles.of("docker"))) {
                 setSandboxEnvs("../../dev-support/sandbox/conf");
-            } else if ("yinglong-smart-booter".equals(System.getProperty("spring.application.name"))) {
-                setSandboxEnvs("../../../kylin/src/examples/test_case_data/sandbox");
             } else {
-                setSandboxEnvs("../examples/test_case_data/sandbox");
+                setSandboxEnvs("../../../kylin/src/examples/test_case_data/sandbox");
             }
         } else if (env.acceptsProfiles(Profiles.of("dev"))) {
             setLocalEnvs();
