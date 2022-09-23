@@ -31,6 +31,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.mapper.JobInfoMapper;
@@ -197,7 +199,12 @@ public class JobInfoDao {
         jobInfo.setCreateTime(new Date(executablePO.getCreateTime()));
         jobInfo.setUpdateTime(new Date(executablePO.getLastModified()));
         jobInfo.setJobContent(JobInfoUtil.serializeExecutablePO(executablePO));
-        jobInfo.setJobDurationMillis(executablePO.getDurationByPO());
+
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                executablePO.getProject());
+        AbstractExecutable executable = executableManager.fromPO(executablePO);
+        long duration = executable.getDurationFromStepOrStageDurationSum(executablePO);
+        jobInfo.setJobDurationMillis(duration);
         jobInfo.setMvcc(mvcc);
         return jobInfo;
     }

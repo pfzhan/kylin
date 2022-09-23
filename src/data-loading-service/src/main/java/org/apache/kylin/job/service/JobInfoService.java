@@ -28,6 +28,7 @@ import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -263,7 +264,25 @@ public class JobInfoService extends BasicService implements JobSupporter {
                             .fromPO(executablePO);
                     return this.convert(executable, executablePO);
                 }).collect(Collectors.toList());
+        sortByDurationIfNeed(result, jobMapperFilter);
         return result;
+    }
+
+    public void sortByDurationIfNeed(List<ExecutableResponse> list, JobMapperFilter jobMapperFilter){
+        // when job is running, System.currentTimeMillis goto compute duration, and this need sort by real-time
+        // job_duration_millis is metadata db column, means duration
+        if (!"job_duration_millis".equalsIgnoreCase(jobMapperFilter.getOrderByFiled())){
+            return;
+        }
+        
+        list.sort(new Comparator<ExecutableResponse>() {
+            @Override
+            public int compare(ExecutableResponse o1, ExecutableResponse o2) {
+                return (int) ("ASC".equalsIgnoreCase(jobMapperFilter.getOrderType())
+                        ? o1.getDuration() - o2.getDuration()
+                        : o2.getDuration() - o1.getDuration());
+            }
+        });
     }
 
     public long countJobs(final JobFilter jobFilter){
