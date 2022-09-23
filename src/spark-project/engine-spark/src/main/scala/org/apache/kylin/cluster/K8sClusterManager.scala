@@ -37,6 +37,11 @@ class K8sClusterManager extends IClusterManager with Logging {
   private val SPARK_ROLE = "spark-role"
   private val DRIVER = "driver"
   private val DEFAULT_NAMESPACE = "default"
+  private var config : KylinConfig = null
+
+  override def withConfig(config: KylinConfig): Unit = {
+    this.config = config
+  }
 
   override def fetchMaximumResourceAllocation: ResourceInfo = {
     ResourceInfo(Int.MaxValue, 1000)
@@ -60,7 +65,7 @@ class K8sClusterManager extends IClusterManager with Logging {
 
   override def killApplication(jobStepPrefix: String, jobStepId: String): Unit = {
     logInfo(s"Kill Application $jobStepPrefix $jobStepId !")
-    withKubernetesClient(kubernetesClient => {
+    withKubernetesClient(config, kubernetesClient => {
       val pName = jobStepPrefix + jobStepId
       val pods = getPods(pName, kubernetesClient)
       if (!pods.isEmpty) {
@@ -74,7 +79,7 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   override def isApplicationBeenKilled(jobStepId: String): Boolean = {
-    withKubernetesClient(kubernetesClient => {
+    withKubernetesClient(config, kubernetesClient => {
       val pods = getPods(jobStepId, kubernetesClient)
       pods.isEmpty
     })
@@ -89,7 +94,7 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   override def applicationExisted(jobStepId: String): Boolean = {
-    withKubernetesClient(kubernetesClient => {
+    withKubernetesClient(config, kubernetesClient => {
       val pName = s"$JOB_STEP_PREFIX" + jobStepId
       val pods = getPods(pName, kubernetesClient)
       !pods.isEmpty
@@ -124,8 +129,7 @@ object K8sClusterManager extends Logging {
     }
   }
 
-  def withKubernetesClient[T](body: KubernetesClient => T): T = {
-    val config = KylinConfig.getInstanceFromEnv
+  def withKubernetesClient[T](config: KylinConfig, body: KubernetesClient => T): T = {
     val master = config.getSparkMaster.substring("k8s://".length)
     val namespace = config.getKubernetesNameSpace
     withKubernetesClient(master, namespace, body)
