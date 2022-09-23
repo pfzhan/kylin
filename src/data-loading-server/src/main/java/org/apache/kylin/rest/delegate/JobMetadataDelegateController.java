@@ -96,6 +96,14 @@ public class JobMetadataDelegateController {
         return jobMetadataDelegate.fetchJobList(jobMapperFilter);
     }
 
+    @PostMapping(value = "/feign/fetch_not_final_jobs_by_types")
+    @ResponseBody
+    public List<JobInfo> fetchNotFinalJobsByTypes(@RequestParam("project") String project,
+                                                  @RequestParam("jobTypes") List<String> jobTypes,
+                                                  @RequestParam("subjects") List<String> subjects) {
+        return jobMetadataDelegate.fetchNotFinalJobsByTypes(project, jobTypes, subjects);
+    }
+
 
     @PostMapping(value = "/feign/merge_segment_job")
     @ResponseBody

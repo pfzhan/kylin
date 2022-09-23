@@ -21,20 +21,18 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.domain.JobInfo;
-import org.apache.kylin.job.rest.JobMapperFilter;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -150,16 +148,8 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         return getDelegate().fetchJobList(filter);
     }
 
-    public List<JobInfo> fetchRunningJob(String project, List<String> jobNames, List<String> subjects) {
-        JobMapperFilter mapperFilter = JobMapperFilter.builder()
-                .jobNames(jobNames)
-                .statuses(Lists.newArrayList(JobStatusEnum.READY.name(),
-                        JobStatusEnum.PENDING.name(),
-                        JobStatusEnum.RUNNING.name()))
-                .subjects(subjects)
-                .project(project)
-                .build();
-        return fetchJobList(mapperFilter);
+    public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {
+        return getDelegate().fetchNotFinalJobsByTypes(project, jobNames, subjects);
     }
 
     @Override

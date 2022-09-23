@@ -59,6 +59,11 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "/fetch_job_list")
     List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter);
 
+    @PostMapping(value = "/fetch_not_final_jobs_by_types")
+    public List<JobInfo> fetchNotFinalJobsByTypes(@RequestParam("project") String project,
+                                                  @RequestParam("jobTypes") List<String> jobTypes,
+                                                  @RequestParam("subjects") List<String> subjects);
+
     @PostMapping(value = "/refresh_segment_job")
     String refreshSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest,
                              @RequestParam("refreshAllLayouts") boolean refreshAllLayouts);

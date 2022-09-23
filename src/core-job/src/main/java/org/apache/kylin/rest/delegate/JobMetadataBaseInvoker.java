@@ -120,8 +120,8 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.fetchJobList(filter);
     }
 
-    public List<JobInfo> fetchRunningJob(String project, List<String> jobNames, List<String> subjects) {
-        return jobMetadataBaseDelegate.fetchRunningJob(project, jobNames, subjects);
+    public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {
+        return jobMetadataBaseDelegate.fetchNotFinalJobsByTypes(project, jobNames, subjects);
     }
 
     public void deleteJobByIdList(String project, List<String> jobIds) {

@@ -46,6 +46,8 @@ public interface JobMetadataContract {
 
     List<JobInfo> fetchJobList(JobMapperFilter filter);
 
+    List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobTypes, List<String> subjects);
+
     String refreshSegmentJob(JobMetadataRequest jobMetadataRequest, boolean refreshAllLayouts);
 
     Set<Long> getLayoutsByRunningJobs(String project, String modelId);

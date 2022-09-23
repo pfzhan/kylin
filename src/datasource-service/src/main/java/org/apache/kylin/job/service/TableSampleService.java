@@ -48,7 +48,7 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     }
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
-        return JobMetadataBaseInvoker.getInstance().fetchRunningJob(project,
+        return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project,
                 Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()), Lists.newArrayList(table));
     }
 

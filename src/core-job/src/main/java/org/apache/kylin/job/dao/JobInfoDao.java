@@ -77,10 +77,10 @@ public class JobInfoDao {
         return jobInfoList;
     }
 
-    public long countByFilter(JobMapperFilter jobMapperFilter){
+    public long countByFilter(JobMapperFilter jobMapperFilter) {
         return jobInfoMapper.countByJobFilter(jobMapperFilter);
     }
-    
+
     public List<ExecutablePO> getJobs(String project) {
         JobMapperFilter filter = new JobMapperFilter();
         filter.setProject(project);
@@ -105,7 +105,7 @@ public class JobInfoDao {
 
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
 
-        if(!KylinConfig.getInstanceFromEnv().isUTEnv() && !JdbcUtil.isInExistingTx()){
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !JdbcUtil.isInExistingTx()) {
             logger.warn("Job is updated without explicitly opening a transaction.");
         }
 
@@ -119,8 +119,8 @@ public class JobInfoDao {
             copyForWrite.setLastModified(System.currentTimeMillis());
             int updateAffect = jobInfoMapper.updateByJobIdSelective(constructJobInfo(copyForWrite, jobInfo.getMvcc()));
             if (updateAffect == 0) {
-                String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d",
-                        job.getId(), jobInfo.getMvcc());
+                String errorMeg = String.format("job_info update fail for mvcc, job_id = %1s, mvcc = %2d", job.getId(),
+                        jobInfo.getMvcc());
                 logger.warn(errorMeg);
                 throw new OptimisticLockingFailureException(errorMeg);
             }
@@ -135,7 +135,8 @@ public class JobInfoDao {
         return null;
     }
 
-    public List<ExecutablePO> getExecutablePoByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
+    public List<ExecutablePO> getExecutablePoByStatus(String project, List<String> jobIds,
+            List<String> filterStatuses) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setStatuses(filterStatuses);
@@ -144,16 +145,19 @@ public class JobInfoDao {
         if (CollectionUtils.isEmpty(jobInfoList)) {
             return new ArrayList<>();
         }
-        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo)).collect(Collectors.toList());
+        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
+                .collect(Collectors.toList());
     }
 
     public void dropJob(String jobId) {
         jobInfoMapper.deleteByJobId(jobId);
     }
-    
+
     public void dropJobByIdList(List<String> jobIdList) {
-        jobInfoMapper.deleteByJobIdList(Arrays.stream(ExecutableState.getFinalStates())
-                .map(executableState -> executableState.toJobStatus().name()).collect(Collectors.toList()), jobIdList);
+        jobInfoMapper.deleteByJobIdList(
+                Arrays.stream(ExecutableState.getFinalStates())
+                        .map(executableState -> executableState.toJobStatus().name()).collect(Collectors.toList()),
+                jobIdList);
     }
 
     public void dropAllJobs() {
@@ -180,9 +184,11 @@ public class JobInfoDao {
         } else if (null != executablePO.getTargetModel() && null != executablePO.getProject()) {
             try {
                 // ignore if model is delete
-                subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(), executablePO.getProject());
+                subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(),
+                        executablePO.getProject());
             } catch (Exception e) {
-                logger.warn("can not get modelName for modelId {}, project {}", executablePO.getTargetModel(), executablePO.getProject());
+                logger.warn("can not get modelName for modelId {}, project {}", executablePO.getTargetModel(),
+                        executablePO.getProject());
             }
         }
 
@@ -195,7 +201,7 @@ public class JobInfoDao {
         jobInfo.setMvcc(mvcc);
         return jobInfo;
     }
-    
+
     public void deleteJobsByProject(String project) {
         int count = jobInfoMapper.deleteByProject(project);
         logger.info("delete {} jobs for project {}", count, project);

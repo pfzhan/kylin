@@ -113,7 +113,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     private TableService tableService;
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, List<String> tables) {
-        return JobMetadataBaseInvoker.getInstance().fetchRunningJob(project, SNAPSHOT_JOB_TYPES, tables);
+        return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, SNAPSHOT_JOB_TYPES, tables);
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables){
