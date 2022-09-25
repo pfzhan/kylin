@@ -22,7 +22,7 @@ import io.kyligence.kap.softaffinity.SoftAffinityManager
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.{Ascending, Attribute, Expression, SortOrder}
+import org.apache.spark.sql.catalyst.expressions.{Ascending, Attribute, BloomAndRangeFilterExpression, Expression, SortOrder}
 import org.apache.spark.sql.catalyst.plans.physical.{HashPartitioning, Partitioning, UnknownPartitioning}
 import org.apache.spark.sql.catalyst.{InternalRow, TableIdentifier}
 import org.apache.spark.sql.execution.datasource.{FilePruner, ShardSpec}
@@ -53,7 +53,12 @@ class KylinFileSourceScanExec(
   @transient override lazy val selectedPartitions: Array[PartitionDirectory] = {
     val optimizerMetadataTimeNs = relation.location.metadataOpsTimeNs.getOrElse(0L)
     val startTime = System.nanoTime()
-    val ret = relation.location.listFiles(partitionFilters, dataFilters)
+    val rangeRuntimeFilters = dataFilters.filter(_.isInstanceOf[BloomAndRangeFilterExpression])
+      .flatMap(filter => filter.asInstanceOf[BloomAndRangeFilterExpression].rangeRow)
+    logInfo(s"Extra runtime filters from BloomAndRangeFilterExpression to " +
+      s"prune segment: ${rangeRuntimeFilters.mkString(",")}")
+    val collectFilters = dataFilters ++ rangeRuntimeFilters
+    val ret = relation.location.listFiles(partitionFilters, collectFilters)
     val timeTakenMs = ((System.nanoTime() - startTime) + optimizerMetadataTimeNs) / 1000 / 1000
 
     metrics("numFiles").add(ret.map(_.files.size.toLong).sum)
