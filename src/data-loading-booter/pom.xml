@@ -31,6 +31,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-source-jdbc</artifactId>
+        </dependency>
+
+
+        <dependency>
             <groupId>io.kyligence.saas</groupId>
             <artifactId>saas-nacos-discovery-starter</artifactId>
         </dependency>

@@ -584,3 +584,4 @@ kylin.smart.frequency-rule-enable,boolean,,smart frequency rule enable,TRUE,TRUE
 kylin.smart.update-topn-time-gap,Long,,smart update topn time gap,TRUE,TRUE
 kylin.query.calcite.extras-props.FUN,String,,calcite ext props,TRUE,TRUE
 kylin.query.queryhistory.url,String,,query history url,TRUE,TRUE
+kylin.source.hive.databases,String,hive datasource,hive datasource,TRUE,TRUE
