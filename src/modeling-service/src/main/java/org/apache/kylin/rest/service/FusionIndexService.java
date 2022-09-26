@@ -74,7 +74,6 @@ public class FusionIndexService extends BasicService {
     @Autowired
     private IndexPlanService indexPlanService;
 
-    @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
         val model = getManager(NDataModelManager.class, project).getDataModelDesc(request.getModelId());

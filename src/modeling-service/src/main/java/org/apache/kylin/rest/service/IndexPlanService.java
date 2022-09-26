@@ -48,7 +48,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -73,6 +72,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
+import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
@@ -94,6 +94,7 @@ import org.apache.kylin.rest.response.IndexResponse;
 import org.apache.kylin.rest.response.IndexStatResponse;
 import org.apache.kylin.rest.response.TableIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -157,32 +158,33 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         return newRuleBasedCuboid;
     }
 
-    @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         try {
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val indexPlanManager = getManager(NIndexPlanManager.class, project);
             val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
             IndexPlan originIndexPlan = getIndexPlan(request.getProject(), request.getModelId());
             val model = modelManager.getDataModelDesc(request.getModelId());
 
             Preconditions.checkNotNull(model);
+            IndexPlan indexPlan = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                val indexPlanManager = getManager(NIndexPlanManager.class, project);
+                return indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
+                    RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
+                    ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
+                    copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
+                            request.isRestoreDeletedIndex());
+                });
+            }, project);
 
-            val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-                RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
-                ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
-                copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
-                        request.isRestoreDeletedIndex());
-            });
             BuildIndexResponse response = new BuildIndexResponse();
             if (request.isLoadData()) {
                 response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
                         originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
             }
             modelChangeSupporters.forEach(listener -> listener.onUpdate(project, request.getModelId()));
-            return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
+            return new Pair<>(indexPlan, response);
         } catch (Exception e) {
             logger.error("Update agg index failed...", e);
             throw e;
