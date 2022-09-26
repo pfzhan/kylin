@@ -1019,4 +1019,11 @@ public class NModelController extends NBasicController {
             @RequestBody MergerInfo mergerInfo) {
         modelService.mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
     }
+
+    @PostMapping(value = "/feign/check_and_auto_merge_segments")
+    @ResponseBody
+    public void checkAndAutoMergeSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                          @RequestParam("owner") String owner) {
+        modelService.checkAndAutoMergeSegments(project, modelId, owner);
+    }
 }

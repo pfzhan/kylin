@@ -49,9 +49,7 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
 
         val errorOrPausedJobCount = getErrorOrPausedJobCount();
         boolean isCubingJob = executable instanceof NSparkCubingJob;
-        String jobSubmitter = executable.getSubmitter();
-        MergerInfo mergerInfo = new MergerInfo(project, modelId, jobId, errorOrPausedJobCount,
-                HandlerType.ADD_SEGMENT, isCubingJob, jobSubmitter);
+        MergerInfo mergerInfo = new MergerInfo(project, modelId, jobId, errorOrPausedJobCount, HandlerType.ADD_SEGMENT);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
                 .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
 

@@ -45,4 +45,8 @@ public interface MetadataRPC extends MetadataContract{
     @PostMapping(value = "/merge_metadata_for_sampling_or_snapshot")
     void mergeMetadataForSamplingOrSnapshot(@RequestParam("project") String project,
             @RequestBody MergerInfo mergerInfo);
+
+    @PostMapping(value = "/check_and_auto_merge_segments")
+    void checkAndAutoMergeSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+            @RequestParam("owner") String owner);
 }

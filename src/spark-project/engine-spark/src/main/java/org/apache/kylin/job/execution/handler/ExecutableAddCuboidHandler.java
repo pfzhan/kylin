@@ -25,7 +25,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.MergerInfo;
-import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.util.ExecutableParaUtil;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.feign.MetadataInvoker;
@@ -57,10 +56,8 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
 
         val errorOrPausedJobCount = getErrorOrPausedJobCount();
         String toBeDeletedLayoutIdsStr = ExecutableParaUtil.getToBeDeletedLayoutIdsStr(executable);
-        boolean isCubingJob = executable instanceof NSparkCubingJob;
-        String jobSubmitter = executable.getSubmitter();
         MergerInfo mergerInfo = new MergerInfo(project, toBeDeletedLayoutIdsStr, modelId, jobId, errorOrPausedJobCount,
-                HandlerType.ADD_CUBOID, isCubingJob, jobSubmitter);
+                HandlerType.ADD_CUBOID);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
                 .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
 

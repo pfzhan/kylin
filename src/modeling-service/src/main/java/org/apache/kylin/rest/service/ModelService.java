@@ -1816,7 +1816,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
-        List<NDataLayout[]> result = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             MetadataMerger merger = MetadataMerger.createMetadataMerger(project, mergerInfo.getHandlerType());
 
             List<NDataLayout[]> mergedLayouts = new ArrayList<>();
@@ -1838,14 +1838,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     mergerInfo.getErrorOrPausedJobCount());
             return mergedLayouts;
         }, project);
-        try {
-            if (mergerInfo.isCubingJob()) {
-                SegmentAutoMergeUtil.autoMergeSegments(project, mergerInfo.getModelId(), mergerInfo.getJobSubmitter());
-            }
-        } catch (Exception e) {
-            log.error("Auto merge failed on project {} model {}", project, mergerInfo.getModelId(), e);
-        }
-        return result;
     }
 
     @Transaction(project = 0)
@@ -1913,6 +1905,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     public void dumpMetadata(String project, DumpInfo info) throws Exception {
         MetadataUtil.dumpMetadata(info);
+    }
+
+    public void checkAndAutoMergeSegments(String project, String modelId, String owner) {
+        try {
+            SegmentAutoMergeUtil.autoMergeSegments(project, modelId, owner);
+        } catch (Exception e) {
+            log.error("Auto merge failed on project {} model {}", project, modelId, e);
+        }
     }
 
     public void checkNewModels(String project, List<ModelRequest> newModels) {

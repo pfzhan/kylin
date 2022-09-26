@@ -32,4 +32,6 @@ public interface MetadataContract {
     void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
 
     void dumpMetadata(String project, DumpInfo dumpInfo) throws Exception;
+
+    void checkAndAutoMergeSegments(String project, String modelId, String owner);
 }

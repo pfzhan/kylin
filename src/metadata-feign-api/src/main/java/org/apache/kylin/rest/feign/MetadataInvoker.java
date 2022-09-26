@@ -74,4 +74,8 @@ public class MetadataInvoker {
         getDelegate().dumpMetadata(project, dumpInfo);
     }
 
+    public void checkAndAutoMergeSegments(String project, String modelId, String owner) {
+        getDelegate().checkAndAutoMergeSegments(project, modelId, owner);
+    }
+
 }
