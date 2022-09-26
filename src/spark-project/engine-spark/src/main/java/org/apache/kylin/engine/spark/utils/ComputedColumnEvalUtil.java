@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -76,7 +77,8 @@ public class ComputedColumnEvalUtil {
     public static void evalDataTypeOfCCInAuto(List<ComputedColumnDesc> computedColumns, NDataModel nDataModel,
             int start, int end) {
         try {
-            evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, start, end);
+            evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSessionWithConfig(KylinConfig.getInstanceFromEnv()),
+                    nDataModel, start, end);
         } catch (Exception e) {
             if (end - start > 1) { //numbers of CC > 1
                 evalDataTypeOfCCInAuto(computedColumns, nDataModel, start, start + (end - start) / 2);

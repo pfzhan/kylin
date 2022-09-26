@@ -66,14 +66,18 @@ object SparderEnv extends Logging {
   @volatile
   var lastStartSparkFailureTime: Long = 0
 
-  def getSparkSession: SparkSession = {
+  def getSparkSessionWithConfig(config: KylinConfig): SparkSession = {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
-      initSpark(() => doInitSpark())
+      initSpark(() => doInitSpark(), config)
     }
     if (spark == null)
       throw new KylinException(ServerErrorCode.SPARK_FAILURE, MsgPicker.getMsg.getSparkFailure)
     spark
+  }
+
+  def getSparkSession: SparkSession = {
+    getSparkSessionWithConfig(null)
   }
 
   def rollUpEventLog(): String = {
@@ -146,7 +150,7 @@ object SparderEnv extends Logging {
     }
   }
 
-  def initSpark(doInit: () => Unit): Unit = {
+  def initSpark(doInit: () => Unit, config: KylinConfig = null): Unit = {
     // do init
     try {
       initializingLock.lock()
@@ -157,6 +161,9 @@ object SparderEnv extends Logging {
 
         initializingExecutor.submit(new Callable[Unit]() {
           override def call(): Unit = {
+            if (config != null) {
+              KylinConfig.setAndUnsetThreadLocalConfig(config)
+            }
             try {
               logInfo("Initializing Spark thread starting.")
               doInit()
