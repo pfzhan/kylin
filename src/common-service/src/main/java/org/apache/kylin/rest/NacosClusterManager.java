@@ -19,7 +19,6 @@ package org.apache.kylin.rest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -66,7 +65,7 @@ public class NacosClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getQueryServers() {
-        return Collections.emptyList();
+        return getServersByServerId(QUERY);
     }
 
     @Override

@@ -320,7 +320,6 @@ public class BaseController {
         return data;
     }
 
-
     public String checkProjectName(String project) {
         if (StringUtils.isEmpty(project)) {
             throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEmptyProjectName());
@@ -469,6 +468,6 @@ public class BaseController {
     protected void forwardRequestToTargetNode(byte[] requestEntity, HttpHeaders headers, String node, String url)
             throws IOException {
         RestClient client = new RestClient(node);
-        client.forwardPut(requestEntity, headers, url);
+        client.forwardPut(requestEntity, headers, url, true);
     }
 }

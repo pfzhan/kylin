@@ -291,9 +291,7 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
-        jobInfoService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
-                sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
-                sparkJobUpdateRequest.getYarnAppUrl());
+        jobInfoService.updateSparkJobInfo(sparkJobUpdateRequest);
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

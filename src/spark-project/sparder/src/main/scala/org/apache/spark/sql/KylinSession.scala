@@ -25,7 +25,7 @@ import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.query.BigQueryThresholdUpdater
 import org.apache.kylin.query.util.ExtractFactory
 import org.apache.spark.internal.Logging
-import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
+import org.apache.spark.scheduler.{ContainerInitializeListener, SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
 import org.apache.spark.sql.internal.{SQLConf, SessionState, SharedState, StaticSQLConf}
 import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinSharedState}
@@ -34,10 +34,10 @@ import org.apache.spark.util.{KylinReflectUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.expression.common.TemplateParserContext
 import org.springframework.expression.spel.standard.SpelExpressionParser
-
 import java.io._
 import java.net.URI
 import java.nio.file.Paths
+
 import scala.collection.JavaConverters._
 
 
@@ -334,6 +334,17 @@ object KylinSession extends Logging {
           sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.AsyncProfilerSparkPlugin")
         } else {
           sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.AsyncProfilerSparkPlugin," + plugins)
+        }
+      }
+
+      if (KylinConfig.getInstanceFromEnv.isContainerSchedulerEnabled) {
+        ContainerInitializeListener.start()
+        val key = "spark.extraListeners";
+        val extraListeners = sparkConf.get(key, "")
+        if (extraListeners.isEmpty) {
+          sparkConf.set(key, "org.apache.spark.scheduler.ContainerInitializeListener")
+        } else {
+          sparkConf.set(key, "org.apache.spark.scheduler.ContainerInitializeListener," + extraListeners)
         }
       }
 

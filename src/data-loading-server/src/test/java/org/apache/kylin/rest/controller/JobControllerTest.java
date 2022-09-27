@@ -289,8 +289,10 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         request.setTaskId("c");
         request.setYarnAppUrl("url");
         request.setYarnAppId("app_id");
-        Mockito.doNothing().when(jobInfoService).updateSparkJobInfo(request.getProject(), request.getJobId(),
-                request.getTaskId(), request.getYarnAppId(), request.getYarnAppUrl());
+        request.setCores("1");
+        request.setMemory("1024");
+        request.setQueueName("queue");
+        Mockito.doNothing().when(jobInfoService).updateSparkJobInfo(request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/spark").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

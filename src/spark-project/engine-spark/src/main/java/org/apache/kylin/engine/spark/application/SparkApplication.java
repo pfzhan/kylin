@@ -68,6 +68,7 @@ import org.apache.kylin.engine.spark.job.UdfManager;
 import org.apache.kylin.engine.spark.scheduler.ClusterMonitor;
 import org.apache.kylin.engine.spark.utils.JobMetricsUtils;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
@@ -89,6 +90,7 @@ import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
+import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,6 +230,10 @@ public abstract class SparkApplication implements Application {
         String applicationId = sparkSession.sparkContext().applicationId();
         Map<String, String> extraInfo = new HashMap<>();
         extraInfo.put("yarn_app_id", applicationId);
+        val conf = sparkSession.sparkContext().conf();
+        extraInfo.put(ExecutableConstants.QUEUE_NAME, ResourceUtils.getQueueName(conf));
+        extraInfo.put(ExecutableConstants.CORES, "" + ResourceUtils.getAllCores(conf, config));
+        extraInfo.put(ExecutableConstants.MEMORY, "" + ResourceUtils.getAllMemory(conf, config));
         try {
             String trackingUrl = getTrackingUrl(clusterManager, sparkSession);
             if (StringUtils.isBlank(trackingUrl)) {

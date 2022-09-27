@@ -115,7 +115,8 @@ public class ExecutableManager {
 
     private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
             ExecutableConstants.YARN_APP_URL, ExecutableConstants.YARN_JOB_WAIT_TIME,
-            ExecutableConstants.YARN_JOB_RUN_TIME);
+            ExecutableConstants.YARN_JOB_RUN_TIME, ExecutableConstants.QUEUE_NAME, ExecutableConstants.CORES,
+            ExecutableConstants.MEMORY);
 
     public static ExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {

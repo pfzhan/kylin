@@ -98,6 +98,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.request.JobUpdateRequest;
+import org.apache.kylin.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.service.BasicService;
@@ -510,23 +511,21 @@ public class JobInfoService extends BasicService implements JobSupporter {
     /**
      * update the spark job info, such as yarnAppId, yarnAppUrl.
      *
-     * @param project
-     * @param jobId
-     * @param taskId
-     * @param yarnAppId
-     * @param yarnAppUrl
      */
-    public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
-        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+    public void updateSparkJobInfo(SparkJobUpdateRequest request) {
+        if (request.getJobId().contains(ASYNC_QUERY_JOB_ID_PRE)) {
             return;
         }
-        val executableManager = getManager(ExecutableManager.class, project);
+        val executableManager = getManager(ExecutableManager.class, request.getProject());
         Map<String, String> extraInfo = Maps.newHashMap();
-        extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
-        extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, request.getYarnAppId());
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, request.getYarnAppUrl());
+        extraInfo.put(ExecutableConstants.QUEUE_NAME, request.getQueueName());
+        extraInfo.put(ExecutableConstants.CORES, request.getCores());
+        extraInfo.put(ExecutableConstants.MEMORY, request.getMemory());
 
         JobContextUtil.withTxAndRetry(() -> {
-            executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+            executableManager.updateJobOutput(request.getTaskId(), null, extraInfo, null, null);
             return true;
         });
     }

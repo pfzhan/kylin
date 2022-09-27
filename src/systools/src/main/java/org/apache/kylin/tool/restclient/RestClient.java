@@ -56,6 +56,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -94,6 +95,8 @@ public class RestClient {
     private static final int HTTP_CONNECTION_TIMEOUT_MS = 30000;
     private static final int HTTP_SOCKET_TIMEOUT_MS = 120000;
     public static final String ROUTED = "routed";
+    private static final String COOKIE = "Cookie";
+    private static final String AUTHORIZATION = "Authorization";
     protected static Pattern fullRestPattern = Pattern.compile("(?:([^:]+)[:]([^@]+)[@])?([^:]+)(?:[:](\\d+))?");
 
     public static boolean matchFullRestPattern(String uri) {
@@ -108,6 +111,7 @@ public class RestClient {
     protected String userName;
     protected String password;
     protected DefaultHttpClient client;
+
     /**
      * @param uri "user:pwd@host:port"
      */
@@ -224,12 +228,35 @@ public class RestClient {
         return response;
     }
 
-    public HttpResponse forwardPut(byte[] requestEntity, HttpHeaders headers, String targetUrl) throws IOException {
+    public HttpResponse forwardGet(HttpHeaders headers, String targetUrl, boolean autoClean) throws IOException {
+        String url = baseUrl + targetUrl;
+        HttpGet get = newGet(url);
+        get.addHeader(ROUTED, "true");
+        get.addHeader(AUTHORIZATION, headers.getFirst(AUTHORIZATION));
+        get.addHeader(COOKIE, headers.getFirst(COOKIE));
+        HttpResponse response = null;
+        try {
+            response = client.execute(get);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_FORWARD_METADATA_ACTION,
+                        response.getStatusLine().getStatusCode() + "\n" + url + "\n" + msg);
+            }
+        } finally {
+            if (autoClean) {
+                cleanup(get, response);
+            }
+        }
+        return response;
+    }
+
+    public HttpResponse forwardPut(byte[] requestEntity, HttpHeaders headers, String targetUrl, boolean autoClean)
+            throws IOException {
         String url = baseUrl + targetUrl;
         HttpPut put = newPut(url);
         put.addHeader(ROUTED, "true");
-        put.addHeader("Authorization", headers.getFirst("Authorization"));
-        put.addHeader("Cookie", headers.getFirst("Cookie"));
+        put.addHeader(AUTHORIZATION, headers.getFirst(AUTHORIZATION));
+        put.addHeader(COOKIE, headers.getFirst(COOKIE));
         HttpResponse response = null;
         try {
             put.setEntity(new ByteArrayEntity(requestEntity, ContentType.APPLICATION_JSON));
@@ -240,7 +267,9 @@ public class RestClient {
                         + response.getStatusLine().getStatusCode() + " with url " + url + "\n" + msg);
             }
         } finally {
-            cleanup(put, response);
+            if (autoClean) {
+                cleanup(put, response);
+            }
         }
         return response;
     }
@@ -250,9 +279,9 @@ public class RestClient {
         String url = baseUrl + targetUrl;
         HttpPost httpPost = new HttpPost(url);
         httpPost.addHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
-        httpPost.addHeader("Authorization", headers.getFirst("Authorization"));
+        httpPost.addHeader(AUTHORIZATION, headers.getFirst(AUTHORIZATION));
         httpPost.addHeader(ROUTED, "true");
-        httpPost.addHeader("Cookie", headers.getFirst("Cookie"));
+        httpPost.addHeader(COOKIE, headers.getFirst(COOKIE));
         List<NameValuePair> nameValuePairs = new ArrayList<>();
         if (null != form) {
             form.entrySet()
@@ -276,6 +305,12 @@ public class RestClient {
     private void addHttpHeaders(HttpRequestBase method) {
         method.addHeader("Accept", "application/json, text/plain, */*");
         method.addHeader("Content-Type", "application/json");
+    }
+
+    private HttpGet newGet(String url) {
+        HttpGet get = new HttpGet(url);
+        addHttpHeaders(get);
+        return get;
     }
 
     private HttpPost newPost(String url) {

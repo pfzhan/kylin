@@ -18,6 +18,12 @@
 
 package org.apache.spark.sql
 
+import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
+import java.util.Map
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{Callable, ExecutorService}
+
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException, ServerErrorCode}
@@ -28,7 +34,7 @@ import org.apache.kylin.metadata.model.{NTableMetadataManager, TableExtDesc}
 import org.apache.kylin.metadata.project.NProjectManager
 import org.apache.kylin.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.spark.internal.Logging
-import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
+import org.apache.spark.scheduler.{ContainerSchedulerManager, SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin
 import org.apache.spark.sql.catalyst.parser.ParseException
@@ -38,13 +44,7 @@ import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.hive.ReplaceLocationRule
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{ThreadUtils, Utils}
-import org.apache.spark.{SparkConf, SparkContext}
-
-import java.lang.{Boolean => JBoolean, String => JString}
-import java.security.PrivilegedAction
-import java.util.Map
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.{Callable, ExecutorService}
+import org.apache.spark.{ExecutorAllocationClient, SparkConf, SparkContext}
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -65,6 +65,8 @@ object SparderEnv extends Logging {
 
   @volatile
   var lastStartSparkFailureTime: Long = 0
+
+  private var _containerSchedulerManager: Option[ContainerSchedulerManager] = None
 
   def getSparkSessionWithConfig(config: KylinConfig): SparkSession = {
     if (spark == null || spark.sparkContext.isStopped) {
@@ -243,10 +245,10 @@ object SparderEnv extends Logging {
             //if user defined other master in kylin.properties,
             // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
             .withExtensions { ext =>
-            ext.injectPlannerStrategy(_ => KylinSourceStrategy)
-            ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
-            ext.injectPostHocResolutionRule(ReplaceLocationRule)
-            ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
+              ext.injectPlannerStrategy(_ => KylinSourceStrategy)
+              ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+              ext.injectPostHocResolutionRule(ReplaceLocationRule)
+              ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
             }
             .enableHiveSupport()
             .getOrCreateKylinSession()
@@ -260,6 +262,7 @@ object SparderEnv extends Logging {
           .getContextClassLoader
           .toString)
       registerListener(sparkSession.sparkContext)
+      registerContainerSchedulerManager(sparkSession.sparkContext)
       APP_MASTER_TRACK_URL = null
       startSparkFailureTimes = 0
       lastStartSparkFailureTime = 0
@@ -276,6 +279,28 @@ object SparderEnv extends Logging {
         logError("Error for initializing spark ", throwable)
         startSparkFailureTimes += 1
         lastStartSparkFailureTime = System.currentTimeMillis()
+    }
+  }
+
+  def containerSchedulerManager: Option[ContainerSchedulerManager] = _containerSchedulerManager
+
+  //for test
+  def setContainerSchedulerManager(containerSchedulerManager: ContainerSchedulerManager): Unit = {
+    _containerSchedulerManager = Some(containerSchedulerManager)
+    _containerSchedulerManager.foreach(_.start())
+  }
+
+  def registerContainerSchedulerManager(sc: SparkContext): Unit = {
+    if (KylinConfig.getInstanceFromEnv.isContainerSchedulerEnabled) {
+      _containerSchedulerManager = sc.schedulerBackend match {
+        case client: ExecutorAllocationClient =>
+          Some(new ContainerSchedulerManager(
+            client, sc.listenerBus, sc.conf,
+            cleaner = sc.cleaner, resourceProfileManager = sc.resourceProfileManager))
+        case _ =>
+          None
+      }
+      _containerSchedulerManager.foreach(_.start())
     }
   }
 
@@ -346,7 +371,7 @@ object SparderEnv extends Logging {
 
   }
 
-  def getHadoopConfiguration(): /**/Configuration = {
+  def getHadoopConfiguration(): /**/ Configuration = {
     var configuration = HadoopUtil.getCurrentConfiguration
     spark.conf.getAll.filter(item => item._1.startsWith("fs.")).foreach(item => configuration.set(item._1, item._2))
     configuration

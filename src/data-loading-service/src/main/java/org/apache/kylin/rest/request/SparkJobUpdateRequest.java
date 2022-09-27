@@ -38,4 +38,9 @@ public class SparkJobUpdateRequest implements ProjectInsensitiveRequest {
     @JsonProperty("yarn_app_url")
     private String yarnAppUrl;
 
+    @JsonProperty("queue_name")
+    private String queueName;
+    private String cores;
+    private String memory;
+
 }

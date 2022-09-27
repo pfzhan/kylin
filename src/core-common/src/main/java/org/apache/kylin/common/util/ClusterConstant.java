@@ -31,10 +31,12 @@ public class ClusterConstant implements Serializable {
     public static final String DATA_LOADING = ServerModeEnum.DATA_LOADING.name;
     public static final String SMART = ServerModeEnum.SMART.name;
     public static final String METADATA = ServerModeEnum.METADATA.name;
+    public static final String RESOURCE = ServerModeEnum.RESOURCE.name;
 
     @Getter
     public enum ServerModeEnum {
-        QUERY("query"), ALL("all"), JOB("job"), DATA_LOADING("data_loading"), SMART("smart"), METADATA("metadata");
+        QUERY("query"), ALL("all"), JOB("job"), DATA_LOADING("data_loading"), SMART("smart"), METADATA(
+                "metadata"), RESOURCE("resource");
 
         private String name;
 
