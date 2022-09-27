@@ -700,8 +700,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
         segmentHelper.refreshRelatedModelSegments(project, table, segmentRange);
     }
-
-    @Transaction(project = 0)
+    
     public JobInfoResponse refreshSegmentPartition(PartitionsRefreshRequest param, String modelId) {
         val project = param.getProject();
         modelService.checkSegmentsExistById(modelId, project, new String[] { param.getSegmentId() });
@@ -729,10 +728,10 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         val jobManager = getManager(JobManager.class, project);
         JobParam jobParam = new JobParam(Sets.newHashSet(segment.getId()), null, modelId, getUsername(), partitions,
                 null).withIgnoredSnapshotTables(param.getIgnoredSnapshotTables()).withPriority(param.getPriority())
-                        .withYarnQueue(param.getYarnQueue()).withTag(param.getTag());
+                        .withYarnQueue(param.getYarnQueue()).withTag(param.getTag()).withProject(project);
 
         val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> jobManager.refreshSegmentJob(jobParam));
+                () -> JobMetadataBaseInvoker.getInstance().refreshSegmentJob(new JobMetadataRequest(jobParam)));
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
     }
 
