@@ -52,6 +52,6 @@ if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.xml ]]; then
 fi
 
 mkdir -p ${KYLIN_HOME}/logs
-result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" org.apache.kylin.tool.KylinConfigCLI $@ 2>>${KYLIN_HOME}/logs/shell.stderr`
+result=`java ${KYLIN_KERBEROS_OPTS} -Dkylin.external.config.infos.properties.needInit=false -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" org.apache.kylin.tool.KylinConfigCLI $@ 2>>${KYLIN_HOME}/logs/shell.stderr`
 
 echo "$result"
