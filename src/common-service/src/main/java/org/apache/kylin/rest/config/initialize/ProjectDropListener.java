@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.epoch.EpochManager;
+import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
@@ -55,6 +56,7 @@ public class ProjectDropListener {
             JobMetadataBaseInvoker.getInstance().clearJobsByProject(project);
             StreamingJobManager.getInstance(kylinConfig, project).destroyAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
+            QueryHistoryIdOffsetManager.getInstance(project).delete();
             RawRecManager.getInstance(project).deleteByProject(project);
 
             MetricsGroup.removeProjectMetrics(project);

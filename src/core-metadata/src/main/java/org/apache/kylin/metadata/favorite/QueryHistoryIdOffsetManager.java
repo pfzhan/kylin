@@ -63,4 +63,8 @@ public class QueryHistoryIdOffsetManager {
         }
         return offset;
     }
+
+    public void delete() {
+        jdbcIdOffsetStore.deleteByProject(project);
+    }
 }
