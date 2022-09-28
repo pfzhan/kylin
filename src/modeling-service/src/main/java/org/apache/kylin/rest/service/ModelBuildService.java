@@ -385,9 +385,12 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
     private List<JobInfoResponse.JobInfo> createJob(List<JobParam> jobParamList) {
         List<JobInfoResponse.JobInfo> res = Lists.newArrayList();
         for (JobParam params : jobParamList) {
-            res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getManager(SourceUsageManager.class)
-                    .licenseCheckWrap(params.getProject(),
-                            () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(params)))));
+            JobInfoResponse.JobInfo jobInfo = params == null ? null
+                    : new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                            getManager(SourceUsageManager.class).licenseCheckWrap(params.getProject(),
+                                    () -> JobMetadataBaseInvoker.getInstance()
+                                            .addSegmentJob(new JobMetadataRequest(params))));
+            res.add(jobInfo);
         }
         return res;
     }
@@ -474,9 +477,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                     .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
                     .withTag(params.getTag());
             NDataSegment segment = createSegment(relParams);
-            if (relParams.isNeedBuild()) {
-                res.add(createJobParam(relParams, segment));
-            }
+            res.add(createJobParam(relParams, segment));
         }
         IncrementBuildSegmentParams relParams = new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
@@ -488,13 +489,14 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
                 .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
                 .withTag(params.getTag());
         NDataSegment segment = createSegment(relParams);
-        if (relParams.isNeedBuild()) {
-            res.add(createJobParam(relParams, segment));
-        }
+        res.add(createJobParam(relParams, segment));
         return res;
     }
 
     public JobParam createJobParam(IncrementBuildSegmentParams params, NDataSegment segment) {
+        if (!params.isNeedBuild()) {
+            return null;
+        }
         String project = params.getProject();
         String modelId = params.getModelId();
         NDataModel dataModel = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
