@@ -574,3 +574,5 @@ kylin.smart.update-topn-time-gap,Long,,smart update topn time gap,TRUE,TRUE
 kylin.query.calcite.extras-props.FUN,String,,calcite ext props,TRUE,TRUE
 kylin.query.queryhistory.url,String,,query history url,TRUE,TRUE
 kylin.source.hive.databases,String,hive datasource,hive datasource,TRUE,TRUE
+kylin.smart.conf.rowkey.uhc.min-cardinality,Long,smart config1,smart config1,TRUE,TRUE
+kylin.server.store-type,String,kylin server store type,kylin server store type,TRUE,TRUE
