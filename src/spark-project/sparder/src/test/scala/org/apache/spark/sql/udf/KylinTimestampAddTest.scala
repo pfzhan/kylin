@@ -21,18 +21,18 @@ package org.apache.spark.sql.udf
 import java.sql.{Date, Timestamp}
 
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
-import org.apache.spark.sql.catalyst.expressions.TimestampAdd
+import org.apache.spark.sql.catalyst.expressions.KylinTimestampAdd
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{FunctionEntity, Row}
 import org.scalatest.BeforeAndAfterAll
 
-class TimestampAddTest extends SparderBaseFunSuite with SharedSparkSession with BeforeAndAfterAll {
+class KylinTimestampAddTest extends SparderBaseFunSuite with SharedSparkSession with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    val function = FunctionEntity(expression[TimestampAdd]("TIMESTAMPADD"))
+    val function = FunctionEntity(expression[KylinTimestampAdd]("TIMESTAMPADD"))
     spark.sessionState.functionRegistry.registerFunction(function.name, function.info, function.builder)
   }
 

@@ -21,16 +21,16 @@ package org.apache.spark.sql.udf
 import java.sql.{Date, Timestamp}
 
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
-import org.apache.spark.sql.catalyst.expressions.TimestampDiff
+import org.apache.spark.sql.catalyst.expressions.KylinTimestampDiff
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{FunctionEntity, Row}
 import org.scalatest.BeforeAndAfterAll
 
-class TimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with BeforeAndAfterAll {
+class KylinTimestampDiffTest extends SparderBaseFunSuite with SharedSparkSession with BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     super.beforeAll()
-    val function = FunctionEntity(expression[TimestampDiff]("TIMESTAMPDIFF"))
+    val function = FunctionEntity(expression[KylinTimestampDiff]("TIMESTAMPDIFF"))
     spark.sessionState.functionRegistry.registerFunction(function.name, function.info, function.builder)
   }
 

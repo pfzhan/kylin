@@ -227,7 +227,7 @@ case class KapDayOfWeek(a: Expression)
     copy(a = newChild)
 }
 
-case class TimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+case class KylinTimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
   override def dataType: DataType = getResultDataType
 
@@ -305,7 +305,7 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
   }
 }
 
-case class TimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression
+case class KylinTimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression
   with ExpectsInputTypes
   with NotSupportPushDown {
 
