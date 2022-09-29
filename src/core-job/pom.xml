@@ -85,6 +85,11 @@
             <artifactId>spring-cloud-openfeign-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-core</artifactId>
+        </dependency>
+
         <!--Env & Test-->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

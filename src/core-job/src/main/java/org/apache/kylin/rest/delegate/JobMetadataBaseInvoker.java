@@ -26,12 +26,12 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
-import org.apache.kylin.job.domain.JobInfo;
-import org.apache.kylin.job.rest.JobMapperFilter;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.rest.util.SpringContext;
 
 public class JobMetadataBaseInvoker {
 

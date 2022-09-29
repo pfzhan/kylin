@@ -24,6 +24,8 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.common.exception.FeignRpcException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.domain.JobInfo;
@@ -32,6 +34,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.aspect.WaitForSyncBeforeRPC;
+import org.apache.kylin.rest.controller.NBasicController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,7 +46,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON,
         HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class JobMetadataDelegateController {
+public class JobMetadataDelegateController extends NBasicController {
 
     @Autowired
     private JobMetadataDelegate jobMetadataDelegate;
@@ -52,7 +55,11 @@ public class JobMetadataDelegateController {
     @ResponseBody
     @WaitForSyncBeforeRPC
     public String addIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.addIndexJob(jobMetadataRequest);
+        try {
+            return jobMetadataDelegate.addIndexJob(jobMetadataRequest);
+        } catch (KylinException e) {
+            throw new FeignRpcException(e);
+        }
     }
 
     @PostMapping(value = "/feign/add_second_storage_job")
@@ -80,7 +87,11 @@ public class JobMetadataDelegateController {
     @ResponseBody
     @WaitForSyncBeforeRPC
     public String addRelatedIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.addRelatedIndexJob(jobMetadataRequest);
+        try {
+            return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
+        } catch (KylinException e) {
+            throw new FeignRpcException(e);
+        }
     }
 
     @PostMapping(value = "/feign/add_job")

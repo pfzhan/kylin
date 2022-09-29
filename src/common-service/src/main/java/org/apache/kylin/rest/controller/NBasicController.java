@@ -71,28 +71,30 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.exception.FeignErrorResponse;
+import org.apache.kylin.common.exception.FeignRpcException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.streaming.KafkaConfigManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
+import org.apache.kylin.rest.request.Validation;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ErrorResponse;
+import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
-import org.apache.kylin.common.persistence.transaction.TransactionException;
-import org.apache.kylin.common.util.Unsafe;
-import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.metadata.streaming.KafkaConfigManager;
-import org.apache.kylin.rest.request.Validation;
-import org.apache.kylin.rest.service.ProjectService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -235,6 +237,16 @@ public class NBasicController {
         getLogger().error("", ex);
         KylinException cause = (KylinException) ex;
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
+    }
+
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(FeignRpcException.class)
+    @ResponseBody
+    FeignErrorResponse handleFeignRpcException(HttpServletRequest req, Throwable ex) {
+        getLogger().error("", ex);
+        FeignRpcException cause = (FeignRpcException) ex;
+        String msg = "Exception happened when using feign rpc: " + Unsafe.getUrlFromHttpServletRequest(req);
+        return new FeignErrorResponse(msg, cause.getExceptionSerialized());
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

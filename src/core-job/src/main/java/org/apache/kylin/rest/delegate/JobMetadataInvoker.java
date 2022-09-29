@@ -21,11 +21,15 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.FeignErrorResponse;
+import org.apache.kylin.common.exception.FeignRpcException;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -35,6 +39,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -73,7 +78,11 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
 
     @Override
     public String addIndexJob(JobMetadataRequest jobMetadataRequest) {
-        return getDelegate().addIndexJob(jobMetadataRequest);
+        try {
+            return getDelegate().addIndexJob(jobMetadataRequest);
+        } catch (FeignException e) {
+            throw handleFeignRpcException(e);
+        }
     }
 
     @Override
@@ -92,7 +101,29 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
 
     @Override
     public String addRelatedIndexJob(JobMetadataRequest jobMetadataRequest) {
-        return getDelegate().addRelatedIndexJob(jobMetadataRequest);
+        try {
+            return getDelegate().addRelatedIndexJob(jobMetadataRequest);
+        } catch (FeignException e) {
+            throw handleFeignRpcException(e);
+        }
+    }
+
+    private RuntimeException handleFeignRpcException(FeignException feignException) {
+        String errorResponseStr = feignException.contentUTF8();
+        if (StringUtils.isEmpty(errorResponseStr)) {
+            return feignException;
+        }
+        try {
+            FeignErrorResponse feignErrorResponse = JsonUtil.readValue(errorResponseStr, FeignErrorResponse.class);
+            String serializedRemoteException = feignErrorResponse.getSerializedException();
+            if (null == serializedRemoteException) {
+                return feignException;
+            }
+            FeignRpcException feignRpcException = new FeignRpcException(serializedRemoteException);
+            return feignRpcException.parseException();
+        } catch (Exception ex) {
+            return feignException;
+        }
     }
 
     @Override
