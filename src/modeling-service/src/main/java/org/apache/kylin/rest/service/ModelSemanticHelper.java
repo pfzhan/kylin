@@ -47,7 +47,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ModifyTableNameSqlVisitor;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
@@ -97,6 +96,7 @@ import org.apache.kylin.rest.response.BuildIndexResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SCD2SimplificationConvertUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1013,6 +1013,17 @@ public class ModelSemanticHelper extends BasicService {
             final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
             jobParam.setProject(project);
             JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
+        }
+    }
+
+    public void buildForModelSegments(String project, String modelId, Set<String> targetSegments) {
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getIndexPlan(modelId);
+        if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
+            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
+            jobParam.setProject(project);
+            jobParam.withTargetSegments(targetSegments);
+            JobMetadataBaseInvoker.getInstance().addRelatedIndexJob(new JobMetadataRequest(jobParam));
         }
     }
 

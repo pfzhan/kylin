@@ -2940,7 +2940,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
     }
-    
+
     public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -3186,7 +3186,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
                 BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
                 if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
-                    UnitOfWork.get().doAfterUnit(() -> semanticUpdater.buildForModel(project, modelId));
+                    val targetSegments = SegmentUtil.getValidSegments(modelId, project).stream()
+                            .map(NDataSegment::getId).collect(Collectors.toSet());
+                    UnitOfWork.get()
+                            .doAfterUnit(() -> semanticUpdater.buildForModelSegments(project, modelId, targetSegments));
                 }
                 modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
 

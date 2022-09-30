@@ -24,13 +24,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
@@ -43,6 +47,7 @@ import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -148,8 +153,17 @@ public class SegmentUtil {
      */
     public static Segments<NDataSegment> getValidSegments(String modelId, String project) {
         val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
-        val executables = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
+
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        jobMapperFilter.setStatuses(ExecutableState.getNotFinalStateNames());
+        List<JobInfo> runningJobInfoList = JobMetadataBaseInvoker.getInstance().fetchJobList(jobMapperFilter);
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<AbstractExecutable> executables = runningJobInfoList.stream()
+                .map(jobInfo -> executableManager.fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo)))
+                .collect(Collectors.toList());
+
         val runningSegs = new Segments<NDataSegment>();
         executables.stream().filter(e -> e.getTargetSegments() != null) //
                 .flatMap(e -> e.getTargetSegments().stream()) //

@@ -88,7 +88,7 @@ public class JobMetadataDelegateController extends NBasicController {
     @WaitForSyncBeforeRPC
     public String addRelatedIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
         try {
-            return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
+            return jobMetadataDelegate.addRelatedIndexJob(jobMetadataRequest);
         } catch (KylinException e) {
             throw new FeignRpcException(e);
         }
