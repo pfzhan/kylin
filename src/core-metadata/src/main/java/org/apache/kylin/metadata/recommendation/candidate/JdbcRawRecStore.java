@@ -401,10 +401,9 @@ public class JdbcRawRecStore {
             RawRecItemMapper mapper = sqlSessionTemplate.getMapper(RawRecItemMapper.class);
             List<UpdateStatementProvider> providers = Lists.newArrayList();
             long updateTime = System.currentTimeMillis();
+            idList.forEach(id -> providers.add(changeRecStateProvider(id, state, updateTime)));
             if (FINAL_STATE.contains(state)) {
-                idList.forEach((id -> providers.add(changeRecStateAndClearFlagProvider(id, state, updateTime))));
-            } else {
-                idList.forEach(id -> providers.add(changeRecStateProvider(id, state, updateTime)));
+                idList.forEach((id -> providers.add(clearFlagProvider(id, updateTime))));
             }
             providers.forEach(mapper::update);
             log.info("Update {} raw recommendation(s) to state({}) takes {} ms", idList.size(), state.name(),
@@ -718,13 +717,13 @@ public class JdbcRawRecStore {
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
-    UpdateStatementProvider changeRecStateAndClearFlagProvider(int id, RawRecItem.RawRecState state, long updateTime) {
+    UpdateStatementProvider clearFlagProvider(int id, long updateTime) {
         return SqlBuilder.update(table) //
                 .set(table.uniqueFlag).equalToNull() //
-                .set(table.state).equalTo(state) //
                 .set(table.updateTime).equalTo(updateTime) //
                 .set(table.mvcc).equalTo(add(table.mvcc, constant("1"))) //
                 .where(table.id, isEqualTo(id)) //
+                .and(table.type, isIn(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, RawRecItem.RawRecType.REMOVAL_LAYOUT)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 

@@ -25,9 +25,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.common.util.DefaultHostInfoFetcher;
 import org.apache.kylin.common.util.HostInfoFetcher;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.cluster.DefaultClusterManager;
 import org.apache.kylin.rest.handler.KapNoOpResponseErrorHandler;
@@ -46,6 +46,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -164,6 +165,11 @@ public class AppConfig implements WebMvcConfigurer {
                 SimpleBeanPropertyFilter.serializeAllExcept("password"));
 
         return objectMapper.setFilterProvider(filterProvider);
+    }
+
+    @Bean
+    public MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
+        return new MappingJackson2HttpMessageConverter(getObjectMapper());
     }
 
     @Bean
