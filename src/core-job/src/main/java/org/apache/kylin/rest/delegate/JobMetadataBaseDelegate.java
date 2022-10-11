@@ -172,7 +172,8 @@ public class JobMetadataBaseDelegate {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
-        jobMapperFilter.setStatuses(Lists.newArrayList(JobStatusEnum.ERROR.name()));
+        jobMapperFilter.setStatuses(Lists.newArrayList(JobStatusEnum.ERROR.name(), JobStatusEnum.STOPPED.name(),
+                JobStatusEnum.STOPPING.name()));
         List<JobInfo> errorJobInfoList = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .fetchJobsByFilter(jobMapperFilter);
         if (CollectionUtils.isEmpty(errorJobInfoList)) {
