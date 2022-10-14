@@ -201,6 +201,7 @@ public class JobMetadataDelegateController extends NBasicController {
 
     @PostMapping(value = "/feign/check_suicide_job_of_model")
     @ResponseBody
+    @WaitForSyncBeforeRPC
     public void checkSuicideJobOfModel(@RequestParam("project") String project,
             @RequestParam("modelId") String modelId) {
         jobMetadataDelegate.checkSuicideJobOfModel(project, modelId);
