@@ -69,11 +69,9 @@ import org.apache.kylin.rest.request.ModelCheckRequest;
 import org.apache.kylin.rest.request.ModelCloneRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.request.ModelSuggestionRequest;
 import org.apache.kylin.rest.request.ModelUpdateRequest;
 import org.apache.kylin.rest.request.ModelValidationRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
-import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.PartitionColumnRequest;
 import org.apache.kylin.rest.request.UnlinkModelRequest;
@@ -91,10 +89,7 @@ import org.apache.kylin.rest.response.InvalidIndexesResponse;
 import org.apache.kylin.rest.response.ModelConfigResponse;
 import org.apache.kylin.rest.response.ModelSaveCheckResponse;
 import org.apache.kylin.rest.response.MultiPartitionValueResponse;
-import org.apache.kylin.rest.response.OpenRecApproveResponse;
-import org.apache.kylin.rest.response.OptRecResponse;
 import org.apache.kylin.rest.response.PurgeModelAffectedResponse;
-import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.service.FusionIndexService;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.IndexPlanService;
@@ -820,52 +815,11 @@ public class NModelController extends NBasicController {
 
     // feign API for smart module
 
-    @PostMapping(value = "/feign/batch_save_models")
-    @ResponseBody
-    public void batchCreateModel(@RequestBody ModelSuggestionRequest request) {
-        modelService.batchCreateModel(request);
-    }
-
     @PostMapping(value = "/feign/update_recommendations_count")
     @ResponseBody
     public void updateRecommendationsCount(@RequestParam("project") String project,
                                            @RequestParam("modelId") String modelId, @RequestParam("size") int size) {
         modelService.updateRecommendationsCount(project, modelId, size);
-    }
-
-    @PostMapping(value = "/feign/approve")
-    @ResponseBody
-    public OptRecResponse approve(@RequestParam("project") String project, @RequestBody OptRecRequest request) {
-        return modelService.approve(project, request);
-    }
-
-    @PostMapping(value = "/feign/approve_all_rec_items")
-    @ResponseBody
-    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(@RequestParam("project") String project,
-                                                                        @RequestParam("modelId") String modelId, @RequestParam("modelAlias") String modelAlias,
-                                                                        @RequestParam("recActionType") String recActionType) {
-        return modelService.approveAllRecItems(project, modelId, modelAlias, recActionType);
-    }
-
-    @PostMapping(value = "/feign/save_new_models_and_indexes")
-    @ResponseBody
-    public void saveNewModelsAndIndexes(@RequestParam("project") String project,
-                                        @RequestBody List<ModelRequest> newModels) {
-        modelService.saveNewModelsAndIndexes(project, newModels);
-    }
-
-    @PostMapping(value = "/feign/save_rec_result")
-    @ResponseBody
-    public void saveRecResult(@RequestBody SuggestionResponse modelSuggestionResponse,
-                              @RequestParam("project") String project) {
-        modelService.saveRecResult(modelSuggestionResponse, project);
-    }
-
-    @PostMapping(value = "/feign/update_models")
-    @ResponseBody
-    public void updateModels(@RequestBody List<SuggestionResponse.ModelRecResponse> reusedModels,
-                             @RequestParam("project") String project) {
-        modelService.updateModels(reusedModels, project);
     }
 
     // feign API for data_loading module

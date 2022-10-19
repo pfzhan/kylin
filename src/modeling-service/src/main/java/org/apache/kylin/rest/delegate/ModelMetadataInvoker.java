@@ -21,7 +21,6 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.Segments;
@@ -30,13 +29,9 @@ import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.request.ModelSuggestionRequest;
-import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
-import org.apache.kylin.rest.response.OpenRecApproveResponse;
-import org.apache.kylin.rest.response.OptRecResponse;
-import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -140,32 +135,7 @@ public class ModelMetadataInvoker extends ModelMetadataBaseInvoker {
         return getDelegate().getSegmentsByRange(modelId, project, start, end);
     }
 
-    public void batchCreateModel(ModelSuggestionRequest request) {
-        getDelegate().batchCreateModel(request);
-    }
-
     public void updateRecommendationsCount(String project, String modelId, int size) {
         getDelegate().updateRecommendationsCount(project, modelId, size);
-    }
-
-    public OptRecResponse approve(String project, OptRecRequest request) {
-        return getDelegate().approve(project, request);
-    }
-
-    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId,
-                                                                        String modelAlias, String recActionType) {
-        return getDelegate().approveAllRecItems(project, modelId, modelAlias, recActionType);
-    }
-
-    public void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
-        getDelegate().saveNewModelsAndIndexes(project, newModels);
-    }
-
-    public void saveRecResult(SuggestionResponse newModels, String project) {
-        getDelegate().saveRecResult(newModels, project);
-    }
-
-    public void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project) {
-        getDelegate().updateModels(reusedModels, project);
     }
 }

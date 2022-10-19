@@ -18,12 +18,11 @@
 
 package io.kyligence.kap.rest.controller.open;
 
+import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.INDEX_PARAMETER_INVALID;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -38,15 +37,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.controller.NBasicController;
 import org.apache.kylin.rest.controller.NModelController;
@@ -57,6 +52,8 @@ import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
 import org.apache.kylin.rest.request.PartitionColumnRequest;
 import org.apache.kylin.rest.request.UpdateMultiPartitionValueRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.IndexResponse;
 import org.apache.kylin.rest.response.NModelDescResponse;
 import org.apache.kylin.rest.response.OpenGetIndexResponse;
@@ -76,7 +73,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -153,7 +149,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse,
             @RequestParam(value = "batch_index_ids", required = false) List<Long> batchIndexIds) {
         String projectName = checkProjectName(project);
-        NDataModel model = getModel(modelAlias, projectName);
+        NDataModel model = modelService.getModel(modelAlias, projectName);
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
         List<IndexEntity.Status> statuses = checkIndexStatus(status);
@@ -237,30 +233,13 @@ public class OpenModelController extends NBasicController {
         throw new KylinException(INDEX_PARAMETER_INVALID, "sort_by", String.join(", ", INDEX_SORT_BY_SET));
     }
 
-    @VisibleForTesting
-    public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
-                .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
-                        || dataModel.getAlias().equalsIgnoreCase(modelAlias))
-                .findFirst().orElse(null);
-
-        if (model == null) {
-            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
-        }
-        if (model.isBroken()) {
-            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAlias));
-        }
-        return model;
-    }
-
     @ApiOperation(value = "getModelDesc", tags = { "AI" })
     @GetMapping(value = "/{project}/{model}/model_desc")
     @ResponseBody
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias) {
         String projectName = checkProjectName(project);
-        val dataModel = getModel(modelAlias, projectName);
+        val dataModel = modelService.getModel(modelAlias, projectName);
         if (dataModel.isStreaming()) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
                     MsgPicker.getMsg().getStreamingOperationNotSupport());
@@ -286,7 +265,7 @@ public class OpenModelController extends NBasicController {
         }
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
-        val dataModel = getModel(modelAlias, projectName);
+        val dataModel = modelService.getModel(modelAlias, projectName);
         modelService.updateModelPartitionColumn(projectName, dataModel.getAlias(), modelParatitionDescRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -297,7 +276,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias,
             @RequestParam("project") String project) {
         String projectName = checkProjectName(project);
-        String modelId = getModel(modelAlias, projectName).getId();
+        String modelId = modelService.getModel(modelAlias, projectName).getId();
         return modelController.deleteModel(modelId, projectName);
     }
 
@@ -309,7 +288,7 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(mappingRequest.getProject());
         checkProjectMLP(projectName);
         mappingRequest.setProject(projectName);
-        val modelId = getModel(modelAlias, mappingRequest.getProject()).getId();
+        val modelId = modelService.getModel(modelAlias, mappingRequest.getProject()).getId();
         return modelController.updateMultiPartitionMapping(modelId, mappingRequest);
     }
 
@@ -320,7 +299,7 @@ public class OpenModelController extends NBasicController {
             @RequestBody UpdateMultiPartitionValueRequest request) {
         String projectName = checkProjectName(request.getProject());
         checkProjectMLP(projectName);
-        val modelId = getModel(modelAlias, projectName).getId();
+        val modelId = modelService.getModel(modelAlias, projectName).getId();
         return modelController.addMultiPartitionValues(modelId, request);
     }
 
@@ -334,7 +313,7 @@ public class OpenModelController extends NBasicController {
             checkProjectMLP(projectName);
         }
         param.setProject(projectName);
-        val modelId = getModel(modelAlias, param.getProject()).getId();
+        val modelId = modelService.getModel(modelAlias, param.getProject()).getId();
         return modelController.updatePartitionSemantic(modelId, param);
     }
 
@@ -348,7 +327,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
-        String modelId = getModel(modelAlias, projectName).getId();
+        String modelId = modelService.getModel(modelAlias, projectName).getId();
         modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
     }
 
@@ -364,7 +343,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "measures", required = false) List<String> measures, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
-        String modelId = getModel(modelAlias, projectName).getId();
+        String modelId = modelService.getModel(modelAlias, projectName).getId();
         modelController.biExport(modelId, projectName, exportAs, element, host, port, dimensions, measures, request,
                 response);
     }
@@ -375,7 +354,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> updateModelName(@PathVariable("model_name") String modelAlias,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
         String projectName = checkProjectName(modelRenameRequest.getProject());
-        String modelId = getModel(modelAlias, projectName).getId();
+        String modelId = modelService.getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);
         return modelController.updateModelName(modelId, modelRenameRequest);
     }
@@ -386,7 +365,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model_name") String modelAlias,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
         String projectName = checkProjectName(modelRenameRequest.getProject());
-        String modelId = getModel(modelAlias, projectName).getId();
+        String modelId = modelService.getModel(modelAlias, projectName).getId();
         return modelController.updateModelStatus(modelId, modelRenameRequest);
     }
 

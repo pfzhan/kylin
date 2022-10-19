@@ -29,12 +29,7 @@ import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.request.ModelSuggestionRequest;
-import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
-import org.apache.kylin.rest.response.OpenRecApproveResponse;
-import org.apache.kylin.rest.response.OptRecResponse;
-import org.apache.kylin.rest.response.SuggestionResponse;
 
 public interface ModelMetadataContract {
 
@@ -76,18 +71,5 @@ public interface ModelMetadataContract {
 
     void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status);
 
-    void batchCreateModel(ModelSuggestionRequest request);
-
     void updateRecommendationsCount(String project, String modelId, int size);
-
-    OptRecResponse approve(String project, OptRecRequest request);
-
-    OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId, String modelAlias,
-                                                                 String recActionType);
-
-    void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels);
-
-    void saveRecResult(SuggestionResponse newModels, String project);
-
-    void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project);
 }

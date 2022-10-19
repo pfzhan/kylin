@@ -23,6 +23,7 @@ import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DIS
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
@@ -610,6 +611,12 @@ public class NBasicController {
         //both empty
         if (ArrayUtils.isEmpty(ids) && ArrayUtils.isEmpty(names)) {
             throw new KylinException(SEGMENT_EMPTY_PARAMETER);
+        }
+    }
+
+    public static void checkNotEmpty(List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNullEmptySql());
         }
     }
 }

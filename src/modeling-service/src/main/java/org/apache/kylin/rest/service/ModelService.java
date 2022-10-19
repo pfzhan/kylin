@@ -208,9 +208,7 @@ import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
 import org.apache.kylin.rest.request.ModelParatitionDescRequest;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.request.ModelSuggestionRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
-import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
 import org.apache.kylin.rest.response.AffectedModelsResponse;
@@ -234,8 +232,6 @@ import org.apache.kylin.rest.response.NDataModelOldParams;
 import org.apache.kylin.rest.response.NDataModelResponse;
 import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.response.NModelDescResponse;
-import org.apache.kylin.rest.response.OpenRecApproveResponse;
-import org.apache.kylin.rest.response.OptRecResponse;
 import org.apache.kylin.rest.response.PurgeModelAffectedResponse;
 import org.apache.kylin.rest.response.RefreshAffectedSegmentsResponse;
 import org.apache.kylin.rest.response.RelatedModelResponse;
@@ -243,7 +239,6 @@ import org.apache.kylin.rest.response.SegmentCheckResponse;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.response.SegmentRangeResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
-import org.apache.kylin.rest.response.SuggestionResponse;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.merger.MetadataMerger;
 import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
@@ -357,9 +352,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     @Autowired(required = false)
     private ModelSmartSupporter modelSmartService;
 
-    @Autowired(required = false)
-    private OptRecSupport optRecService;
-
     public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
@@ -376,6 +368,22 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
         }
         return nDataModel;
+    }
+
+    public NDataModel getModel(String modelAliasOrUuid, String project) {
+        NDataModel model = getManager(NDataModelManager.class, project).listAllModels().stream() //
+                .filter(dataModel -> dataModel.getUuid().equals(modelAliasOrUuid) //
+                        || dataModel.getAlias().equalsIgnoreCase(modelAliasOrUuid))
+                .findFirst().orElse(null);
+
+        if (model == null) {
+            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAliasOrUuid);
+        }
+        if (model.isBroken()) {
+            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAliasOrUuid));
+        }
+        return model;
     }
 
     @Override
@@ -1737,9 +1745,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }, project);
     }
 
-    public void batchCreateModel(ModelSuggestionRequest request) {
-        batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
-    }
 
     public void updateRecommendationsCount(String project, String modelId, int size) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -1750,57 +1755,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             }
             return null;
         }, project);
-    }
-
-    @VisibleForTesting
-    public void saveRecResult(SuggestionResponse modelSuggestionResponse, String project) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (SuggestionResponse.ModelRecResponse response : modelSuggestionResponse.getReusedModels()) {
-
-                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
-                        modelMgr.getDataModelDesc(response.getId()), false);
-                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
-                    copyForWrite.setJoinTables(response.getJoinTables());
-                    copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
-                    copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
-                    copyForWrite.setAllMeasures(response.getAllMeasures());
-                });
-                NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                val targetIndexPlan = response.getIndexPlan();
-                indexMgr.updateIndexPlan(response.getId(),
-                        copyForWrite -> copyForWrite.setIndexes(targetIndexPlan.getIndexes()));
-                baseIndexUpdater.update(indexPlanService);
-            }
-            return null;
-        }, project);
-    }
-
-    public void updateModels(List<SuggestionResponse.ModelRecResponse> reusedModels, String project) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (SuggestionResponse.ModelRecResponse response : reusedModels) {
-                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
-                    List<JoinTableDesc> newJoinTables = response.getJoinTables();
-                    if (newJoinTables.size() != copyForWrite.getJoinTables().size()) {
-                        copyForWrite.setJoinTables(newJoinTables);
-                        copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
-                        copyForWrite.setAllMeasures(response.getAllMeasures());
-                        copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
-                    }
-                });
-            }
-            return null;
-        }, project);
-    }
-
-    public OptRecResponse approve(String project, OptRecRequest request) {
-        return optRecService.approveImpl(project, request);
-    }
-
-    public OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(String project, String modelId,
-                                                                        String modelAlias, String recActionType) {
-        return optRecService.approveAllRecItemsImpl(project, modelId, modelAlias, recActionType);
     }
 
     public void mergeMetadataForSamplingOrSnapshot(String project, MergerInfo mergerInfo) {
@@ -1925,7 +1879,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    @Transaction(project = 0)
     public void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
         if (CollectionUtils.isEmpty(newModels)) {
             return;

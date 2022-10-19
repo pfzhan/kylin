@@ -30,12 +30,7 @@ import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.request.ModelSuggestionRequest;
-import org.apache.kylin.rest.request.OptRecRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
-import org.apache.kylin.rest.response.OpenRecApproveResponse;
-import org.apache.kylin.rest.response.OptRecResponse;
-import org.apache.kylin.rest.response.SuggestionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -127,35 +122,8 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
     void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
             @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds);
 
-    @PostMapping(value = "/batch_save_models")
-    @WaitForSyncAfterRPC
-    void batchCreateModel(@RequestBody ModelSuggestionRequest request);
-
     @PostMapping(value = "/update_recommendations_count")
     @WaitForSyncAfterRPC
     void updateRecommendationsCount(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
             @RequestParam("size") int size);
-
-    @PostMapping(value = "/approve")
-    @WaitForSyncAfterRPC
-    OptRecResponse approve(@RequestParam("project") String project, @RequestBody OptRecRequest request);
-
-    @PostMapping(value = "/approve_all_rec_items")
-    @WaitForSyncAfterRPC
-    OpenRecApproveResponse.RecToIndexResponse approveAllRecItems(@RequestParam("project") String project,
-            @RequestParam("modelId") String modelId, @RequestParam("modelAlias") String modelAlias,
-            @RequestParam("recActionType") String recActionType);
-
-    @PostMapping(value = "/save_new_models_and_indexes")
-    @WaitForSyncAfterRPC
-    void saveNewModelsAndIndexes(@RequestParam("project") String project, @RequestBody List<ModelRequest> newModels);
-
-    @PostMapping(value = "/save_rec_result")
-    @WaitForSyncAfterRPC
-    void saveRecResult(@RequestBody SuggestionResponse newModels, @RequestParam("project") String project);
-
-    @PostMapping(value = "/update_models")
-    @WaitForSyncAfterRPC
-    void updateModels(@RequestBody List<SuggestionResponse.ModelRecResponse> reusedModels,
-            @RequestParam("project") String project);
 }

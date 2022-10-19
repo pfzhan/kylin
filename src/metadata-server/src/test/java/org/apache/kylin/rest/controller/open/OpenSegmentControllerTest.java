@@ -39,18 +39,15 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.SegmentController;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
@@ -59,12 +56,15 @@ import org.apache.kylin.rest.request.IndexesToSegmentsRequest;
 import org.apache.kylin.rest.request.PartitionsBuildRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentsRequest;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.IndexResponse;
 import org.apache.kylin.rest.response.NDataModelResponse;
 import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -113,7 +113,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(openSegmentController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
@@ -165,7 +165,7 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
     private NDataModelResponse mockGetModelName(String modelName, String project, String modelId) {
         NDataModelResponse model = new NDataModelResponse();
         model.setUuid(modelId);
-        Mockito.doReturn(model).when(openSegmentController).getModel(modelName, project);
+        Mockito.doReturn(model).when(modelService).getModel(modelName, project);
         return model;
     }
 
@@ -481,10 +481,10 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
     public void testGetModel() {
         NDataModelManager nDataModelManager = Mockito.mock(NDataModelManager.class);
         when(modelService.getManager(any(), anyString())).thenReturn(nDataModelManager);
-
+        when(modelService.getModel(anyString(), anyString())).thenCallRealMethod();
         when(nDataModelManager.listAllModels()).thenReturn(Collections.emptyList());
         try {
-            openSegmentController.getModel("SOME_ALIAS", "SOME_PROJECT");
+            modelService.getModel("SOME_ALIAS", "SOME_PROJECT");
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);

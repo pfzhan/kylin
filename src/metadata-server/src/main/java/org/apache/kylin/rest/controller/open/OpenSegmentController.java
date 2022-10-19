@@ -20,7 +20,6 @@ package org.apache.kylin.rest.controller.open;
 
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_MULTI_PARTITION_DISABLE;
 
 import java.util.List;
@@ -28,17 +27,11 @@ import java.util.Locale;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.NBasicController;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.NDataModelManager;
-import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.controller.SegmentController;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
@@ -49,12 +42,15 @@ import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentsRequest;
 import org.apache.kylin.rest.response.BuildIndexResponse;
 import org.apache.kylin.rest.response.CheckSegmentResponse;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.JobInfoResponse;
 import org.apache.kylin.rest.response.JobInfoResponseWithFailure;
 import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -67,7 +63,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
 import io.swagger.annotations.ApiOperation;
@@ -89,23 +84,6 @@ public class OpenSegmentController extends NBasicController {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @VisibleForTesting
-    public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getManager(NDataModelManager.class, project).listAllModels().stream() //
-                .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
-                        || dataModel.getAlias().equalsIgnoreCase(modelAlias))
-                .findFirst().orElse(null);
-
-        if (model == null) {
-            throw new KylinException(MODEL_NAME_NOT_EXIST, modelAlias);
-        }
-        if (model.isBroken()) {
-            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBrokenModelOperationDenied(), modelAlias));
-        }
-        return model;
-    }
-
     @ApiOperation(value = "getSegments", tags = { "AI" })
     @GetMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
@@ -120,7 +98,7 @@ public class OpenSegmentController extends NBasicController {
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean reverse) {
         String projectName = checkProjectName(project);
-        String modelId = getModel(modelAlias, projectName).getUuid();
+        String modelId = modelService.getModel(modelAlias, projectName).getUuid();
         return segmentController.getSegments(modelId, projectName, status, offset, limit, start, end, null, null, false,
                 sortBy, reverse);
     }
@@ -138,7 +116,7 @@ public class OpenSegmentController extends NBasicController {
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         String projectName = checkProjectName(project);
-        String modelId = getModel(modelAlias, project).getId();
+        String modelId = modelService.getModel(modelAlias, project).getId();
         return segmentController.getMultiPartition(modelId, projectName, segId, status, pageOffset, pageSize, sortBy,
                 reverse);
     }
@@ -151,7 +129,7 @@ public class OpenSegmentController extends NBasicController {
         String projectName = checkProjectName(buildSegmentsRequest.getProject());
         buildSegmentsRequest.setProject(projectName);
         validatePriority(buildSegmentsRequest.getPriority());
-        String modelId = getModel(modelAlias, buildSegmentsRequest.getProject()).getUuid();
+        String modelId = modelService.getModel(modelAlias, buildSegmentsRequest.getProject()).getUuid();
         return segmentController.buildSegmentsManually(modelId, buildSegmentsRequest);
     }
 
@@ -163,7 +141,7 @@ public class OpenSegmentController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         validatePriority(request.getPriority());
-        String modelId = getModel(modelAlias, request.getProject()).getUuid();
+        String modelId = modelService.getModel(modelAlias, request.getProject()).getUuid();
         return segmentController.refreshOrMergeSegments(modelId, request);
     }
 
@@ -180,7 +158,7 @@ public class OpenSegmentController extends NBasicController {
         if (purge) {
             ids = new String[0];
         }
-        String modelId = getModel(modelAlias, projectName).getUuid();
+        String modelId = modelService.getModel(modelAlias, projectName).getUuid();
         return segmentController.deleteSegments(modelId, projectName, purge, force, ids, names);
     }
 
@@ -199,7 +177,7 @@ public class OpenSegmentController extends NBasicController {
             @RequestParam(value = "tag", required = false) Object tag) {
         String projectName = checkProjectName(project);
         checkSegmentParams(ids, names);
-        String modelId = getModel(modelAlias, projectName).getUuid();
+        String modelId = modelService.getModel(modelAlias, projectName).getUuid();
         Pair<String, String[]> pair = fusionModelService.convertSegmentIdWithName(modelId, projectName, ids, names);
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(projectName);
@@ -221,7 +199,7 @@ public class OpenSegmentController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         validatePriority(request.getPriority());
-        String modelId = getModel(modelAlias, request.getProject()).getId();
+        String modelId = modelService.getModel(modelAlias, request.getProject()).getId();
         return segmentController.buildIndicesManually(modelId, request);
     }
 
@@ -236,7 +214,7 @@ public class OpenSegmentController extends NBasicController {
         checkRequiredArg("start", request.getStart());
         checkRequiredArg("end", request.getEnd());
         validateDataRange(request.getStart(), request.getEnd());
-        NDataModel model = getModel(modelAlias, projectName);
+        NDataModel model = modelService.getModel(modelAlias, projectName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.checkSegments(request.getProject(),
                 model.getAlias(), request.getStart(), request.getEnd()), "");
     }
@@ -249,7 +227,7 @@ public class OpenSegmentController extends NBasicController {
         String projectName = checkProjectName(param.getProject());
         checkProjectMLP(projectName);
         param.setProject(projectName);
-        val modelId = getModel(modelAlias, param.getProject()).getId();
+        val modelId = modelService.getModel(modelAlias, param.getProject()).getId();
         return segmentController.buildMultiPartition(modelId, param);
     }
 
@@ -261,7 +239,7 @@ public class OpenSegmentController extends NBasicController {
         String projectName = checkProjectName(param.getProject());
         checkProjectMLP(projectName);
         param.setProject(projectName);
-        val modelId = getModel(modelAlias, param.getProject()).getId();
+        val modelId = modelService.getModel(modelAlias, param.getProject()).getId();
         return segmentController.refreshMultiPartition(modelId, param);
     }
 
@@ -275,7 +253,7 @@ public class OpenSegmentController extends NBasicController {
         checkProjectMLP(projectName);
         checkRequiredArg("sub_partition_values", subPartitionValues);
         checkMLP("sub_partition_values", subPartitionValues);
-        NDataModel model = getModel(modelAlias, projectName);
+        NDataModel model = modelService.getModel(modelAlias, projectName);
         modelService.deletePartitionsByValues(project, segmentId, model.getId(), subPartitionValues);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

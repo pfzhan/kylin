@@ -21,11 +21,14 @@ package org.apache.kylin.rest.request;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.metadata.insensitive.ProjectInsensitiveRequest;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import lombok.Data;
-import org.apache.kylin.metadata.insensitive.ProjectInsensitiveRequest;
 
 @Data
 public class OptRecRequest implements ProjectInsensitiveRequest {
@@ -34,6 +37,7 @@ public class OptRecRequest implements ProjectInsensitiveRequest {
     private String project;
 
     @JsonProperty("model_id")
+    @JsonAlias("modelId")
     private String modelId;
 
     @JsonProperty("recs_to_remove_layout")

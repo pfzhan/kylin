@@ -117,7 +117,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(openModelController).defaultRequest(MockMvcRequestBuilders.get("/"))
                 .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
@@ -169,7 +169,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private NDataModelResponse mockGetModelName(String modelName, String project, String modelId) {
         NDataModelResponse model = new NDataModelResponse();
         model.setUuid(modelId);
-        Mockito.doReturn(model).when(openModelController).getModel(modelName, project);
+        Mockito.doReturn(model).when(modelService).getModel(modelName, project);
         return model;
     }
 
@@ -199,6 +199,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid(modelId);
         model.setAlias(modelName);
         val modelManager = Mockito.mock(NDataModelManager.class);
+        Mockito.doCallRealMethod().when(modelService).getModel(Mockito.anyString(), Mockito.anyString());
         Mockito.when(modelService.getManager(NDataModelManager.class, project)).thenReturn(modelManager);
         Mockito.when(modelManager.listAllModels()).thenReturn(Lists.newArrayList(model));
 
