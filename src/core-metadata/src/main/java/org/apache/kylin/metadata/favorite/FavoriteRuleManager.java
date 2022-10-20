@@ -27,12 +27,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.annotation.Clarification;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -45,50 +45,24 @@ public class FavoriteRuleManager {
 
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleManager.class);
 
+    private final FavoriteRuleStore favoriteRuleStore;
     private final String project;
 
-    private final KylinConfig kylinConfig;
-
-    private CachedCrudAssist<FavoriteRule> crud;
-
-    public static FavoriteRuleManager getInstance(KylinConfig kylinConfig, String project) {
-        return kylinConfig.getManager(project, FavoriteRuleManager.class);
+    public static FavoriteRuleManager getInstance(String project) {
+        return Singletons.getInstance(project, FavoriteRuleManager.class);
     }
 
-    // called by reflection
-    static FavoriteRuleManager newInstance(KylinConfig config, String project) {
-        return new FavoriteRuleManager(config, project);
-    }
-
-    private FavoriteRuleManager(KylinConfig kylinConfig, String project) {
-        if (!UnitOfWork.isAlreadyInTransaction())
-            logger.info("Initializing FavoriteRuleManager with config {} for project {}", kylinConfig, project);
-
-        this.kylinConfig = kylinConfig;
+    private FavoriteRuleManager(String project) throws Exception {
         this.project = project;
-        init();
+        this.favoriteRuleStore = new FavoriteRuleStore(KylinConfig.getInstanceFromEnv());
     }
 
-    private void init() {
-
-        final ResourceStore store = ResourceStore.getKylinMetaStore(this.kylinConfig);
-        final String resourceRoot = "/" + this.project + ResourceStore.QUERY_FILTER_RULE_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<FavoriteRule>(store, resourceRoot, FavoriteRule.class) {
-            @Override
-            protected FavoriteRule initEntityAfterReload(FavoriteRule entity, String resourceName) {
-                return entity;
-            }
-        };
-
-        crud.setCheckCopyOnWrite(true);
-        crud.reloadAll();
+    public DataSourceTransactionManager getTransactionManager() {
+        return favoriteRuleStore.getTransactionManager();
     }
 
     public List<FavoriteRule> getAll() {
-        List<FavoriteRule> favoriteRules = Lists.newArrayList();
-
-        favoriteRules.addAll(crud.listAll());
-        return favoriteRules;
+        return favoriteRuleStore.queryByProject(project);
     }
 
     public List<FavoriteRule> listAll() {
@@ -96,11 +70,7 @@ public class FavoriteRuleManager {
     }
 
     public FavoriteRule getByName(String name) {
-        for (FavoriteRule rule : getAll()) {
-            if (rule.getName().equals(name))
-                return rule;
-        }
-        return null;
+        return favoriteRuleStore.queryByName(project, name);
     }
 
     public String getValue(String ruleName) {
@@ -122,29 +92,40 @@ public class FavoriteRuleManager {
     }
 
     public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
-        FavoriteRule copy = crud.copyForWrite(getOrDefaultByName(ruleName));
+        JdbcUtil.withTxAndRetry(getTransactionManager(), () -> {
+            FavoriteRule rule = getOrDefaultByName(ruleName);
+            rule.setEnabled(isEnabled);
+            List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
+            if (!conditions.isEmpty()) {
+                newConditions.addAll(conditions);
+            }
+            rule.setConds(newConditions);
+            saveOrUpdate(rule);
+            return null;
+        });
+    }
 
-        copy.setEnabled(isEnabled);
-
-        List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
-        if (!conditions.isEmpty()) {
-            newConditions.addAll(conditions);
+    private void saveOrUpdate(FavoriteRule rule) {
+        if (rule.getId() == 0) {
+            rule.setProject(project);
+            rule.setCreateTime(System.currentTimeMillis());
+            rule.setUpdateTime(rule.getCreateTime());
+            favoriteRuleStore.save(rule);
+        } else {
+            rule.setUpdateTime(System.currentTimeMillis());
+            favoriteRuleStore.update(rule);
         }
-
-        copy.setConds(newConditions);
-        crud.save(copy);
     }
 
     public void delete(FavoriteRule favoriteRule) {
-        crud.delete(favoriteRule);
+        favoriteRuleStore.deleteByName(project, favoriteRule.getName());
     }
 
     @VisibleForTesting
     public void createRule(final FavoriteRule rule) {
         if (getByName(rule.getName()) != null)
             return;
-
-        crud.save(rule);
+        saveOrUpdate(rule);
     }
 
     @VisibleForTesting

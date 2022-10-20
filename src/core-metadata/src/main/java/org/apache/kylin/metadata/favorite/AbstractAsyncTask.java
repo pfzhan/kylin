@@ -18,9 +18,9 @@
 
 package org.apache.kylin.metadata.favorite;
 
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,12 +31,30 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode
-public class AbstractAsyncTask extends RootPersistentEntity {
+public class AbstractAsyncTask {
+    private int id;
+
+    private String project;
 
     @JsonProperty("task_type")
     private String taskType;
 
+    @JsonProperty("task_attributes")
+    protected TaskAttributes taskAttributes;
+
+    private long updateTime;
+
+    private long createTime;
+
+    private long mvcc;
+
     public AbstractAsyncTask(String taskType) {
         this.taskType = taskType;
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
+    @JsonSubTypes({ @JsonSubTypes.Type(AsyncAccelerationTask.AccelerationTaskAttributes.class) })
+    @NoArgsConstructor
+    protected static class TaskAttributes {
     }
 }

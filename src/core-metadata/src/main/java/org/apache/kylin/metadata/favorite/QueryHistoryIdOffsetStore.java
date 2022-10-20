@@ -61,7 +61,7 @@ public class QueryHistoryIdOffsetStore {
         this(config, genQueryHistoryIdOffsetTableName(config));
     }
 
-    public QueryHistoryIdOffsetStore(KylinConfig config, String tableName) throws Exception {
+    private QueryHistoryIdOffsetStore(KylinConfig config, String tableName) throws Exception {
         StorageURL url = config.getQueryHistoryUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);

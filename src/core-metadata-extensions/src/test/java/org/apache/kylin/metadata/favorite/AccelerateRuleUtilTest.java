@@ -18,11 +18,12 @@
 
 package org.apache.kylin.metadata.favorite;
 
-import org.apache.kylin.common.KylinConfig;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.favorite.AccelerateRuleUtil;
-import org.apache.kylin.metadata.favorite.FavoriteRule;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.junit.After;
 import org.junit.Assert;
@@ -30,11 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class AccelerateRuleUtilTest extends NLocalFileMetadataTestCase {
 
@@ -73,13 +69,13 @@ public class AccelerateRuleUtilTest extends NLocalFileMetadataTestCase {
         qh6.setQuerySubmitter("OTHER2");
         qh6.setDuration(3000L);
 
-        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateRule(
+        FavoriteRuleManager.getInstance(PROJECT).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition("1", "2")), true, FavoriteRule.DURATION_RULE_NAME);
 
-        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateRule(
+        FavoriteRuleManager.getInstance(PROJECT).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition(null, "ADMIN")), true, FavoriteRule.SUBMITTER_RULE_NAME);
 
-        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).updateRule(
+        FavoriteRuleManager.getInstance(PROJECT).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition(null, "ROLE_ADMIN")), true,
                 FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 

@@ -78,9 +78,6 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
 import org.apache.kylin.metadata.epoch.EpochManager;
-import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
-import org.apache.kylin.metadata.favorite.AsyncTaskManager;
-import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NDataModelManager;
@@ -96,7 +93,6 @@ import org.apache.kylin.rest.config.initialize.ProjectDropListener;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.ProjectMetadataContract;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
 import org.apache.kylin.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.kylin.rest.request.JdbcRequest;
@@ -147,7 +143,7 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
 @Component("projectService")
-public class ProjectService extends BasicService implements ProjectMetadataContract {
+public class ProjectService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
     @Autowired
@@ -944,7 +940,7 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
     }
 
     private void resetProjectRecommendationConfig(String project) {
-        getManager(FavoriteRuleManager.class, project).resetRule();
+        FavoriteRuleManager.getInstance(project).resetRule();
         NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels()
                 .forEach(model -> projectModelSupporter.onModelUpdate(project, model.getUuid()));
     }
@@ -1062,17 +1058,6 @@ public class ProjectService extends BasicService implements ProjectMetadataContr
         // Use JDBC Source
         overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_JDBC));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
-    }
-
-    @Transaction(project = 3)
-    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName,
-                           String project) {
-        getManager(FavoriteRuleManager.class, project).updateRule(conditions, isEnabled, ruleName);
-    }
-
-    @Transaction(project = 0)
-    public void saveAsyncTask(String project, AsyncAccelerationTask task) {
-        AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(task);
     }
 
     public void updateStatMetaImmediately(String project) {

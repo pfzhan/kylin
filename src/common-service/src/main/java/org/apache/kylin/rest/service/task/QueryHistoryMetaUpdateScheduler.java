@@ -137,7 +137,7 @@ public class QueryHistoryMetaUpdateScheduler {
     }
 
     public boolean isInterruptByUser() {
-        AsyncTaskManager instance = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        AsyncTaskManager instance = AsyncTaskManager.getInstance(getProject());
         AbstractAsyncTask task = instance.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
         return ((AsyncAccelerationTask) task).isAlreadyRunning();
     }

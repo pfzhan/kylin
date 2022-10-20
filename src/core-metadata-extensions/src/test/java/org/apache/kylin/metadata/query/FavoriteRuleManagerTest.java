@@ -18,37 +18,61 @@
 
 package org.apache.kylin.metadata.query;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.metadata.favorite.FavoriteRule;
+import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.collect.Lists;
-
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.favorite.FavoriteRule;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 
 public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     private static String PROJECT = "default";
     private static FavoriteRuleManager manager;
+    private JdbcTemplate jdbcTemplate;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         createTestMetadata();
-        manager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
+        manager = FavoriteRuleManager.getInstance(PROJECT);
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
+        createRules();
     }
 
     @After
     public void cleanUp() {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
+    }
+
+    private void createRules() {
+        FavoriteRule.SQLCondition cond1 = new FavoriteRule.SQLCondition("1", "SELECT *\nFROM \"TEST_KYLIN_FACT\"");
+        FavoriteRule.Condition cond2 = new FavoriteRule.Condition(null, "10");
+        FavoriteRule.Condition cond3 = new FavoriteRule.Condition(null, "ROLE_ADMIN");
+        FavoriteRule.Condition cond4 = new FavoriteRule.Condition(null, "userA");
+        FavoriteRule.Condition cond5 = new FavoriteRule.Condition(null, "userB");
+        FavoriteRule.Condition cond6 = new FavoriteRule.Condition(null, "userC");
+        FavoriteRule.Condition cond7 = new FavoriteRule.Condition("5", "8");
+        manager.createRule(new FavoriteRule(Collections.singletonList(cond1), "blacklist", false));
+        manager.createRule(new FavoriteRule(Collections.singletonList(cond2), "count", true));
+        manager.createRule(new FavoriteRule(Collections.singletonList(cond3), "submitter_group", true));
+        manager.createRule(new FavoriteRule(Arrays.asList(cond4, cond5, cond6), "submitter", true));
+        manager.createRule(new FavoriteRule(Collections.singletonList(cond7), "duration", true));
     }
 
     @Test

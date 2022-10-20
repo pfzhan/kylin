@@ -22,13 +22,11 @@ import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobMetadataRpc;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.delegate.ProjectMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.apache.kylin.rest.delegate.TableSamplingRPC;
 import org.apache.kylin.rest.service.JobStatisticsService;
 import org.apache.kylin.rest.service.ModelService;
-import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.TableExtService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
@@ -48,7 +46,6 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingRPC.class));
         JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataRpc.class));
-        ProjectMetadataInvoker.setDelegate(applicationContext.getBean(ProjectService.class));
     }
 
     @Override

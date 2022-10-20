@@ -40,7 +40,6 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-
 import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.favorite.FavoriteRule;
@@ -107,7 +106,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         }, "project12", 1);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val ruleMgr = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), "project12");
+            val ruleMgr = FavoriteRuleManager.getInstance("project12");
             FavoriteRule.Condition cond2 = new FavoriteRule.Condition();
             cond2.setRightThreshold("4");
             List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList(cond2);
@@ -133,7 +132,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "project13", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val ruleMgr = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), "project13");
+            val ruleMgr = FavoriteRuleManager.getInstance("project13");
             FavoriteRule.Condition cond2 = new FavoriteRule.Condition();
             cond2.setRightThreshold("4");
             List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList(cond2);
@@ -153,7 +152,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "project14", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val ruleMgr = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), "project14");
+            val ruleMgr = FavoriteRuleManager.getInstance("project14");
             FavoriteRule.Condition cond2 = new FavoriteRule.Condition();
             cond2.setRightThreshold("4");
             List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList(cond2);
@@ -188,7 +187,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "project15", 1);
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val ruleMgr = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), "project15");
+            val ruleMgr = FavoriteRuleManager.getInstance("project15");
             FavoriteRule.Condition cond2 = new FavoriteRule.Condition();
             cond2.setRightThreshold("4");
             List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList(cond2);

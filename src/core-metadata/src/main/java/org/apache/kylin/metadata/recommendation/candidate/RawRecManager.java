@@ -163,7 +163,7 @@ public class RawRecManager {
         OptRecV2 optRecV2 = new OptRecV2(project, model, false);
         List<RawRecItem> topNCandidates = Lists.newArrayList();
         int minCost = Integer.parseInt(
-                FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getValue(MIN_HIT_COUNT));
+                FavoriteRuleManager.getInstance(project).getValue(MIN_HIT_COUNT));
         RawRecItem.CostMethod costMethod = RawRecItem.CostMethod.getCostMethod(project);
         minCost = costMethod == RawRecItem.CostMethod.HIT_COUNT ? minCost : -1;
         int offset = 0;

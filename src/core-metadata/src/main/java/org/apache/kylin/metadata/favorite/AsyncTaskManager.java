@@ -18,20 +18,14 @@
 
 package org.apache.kylin.metadata.favorite;
 
-import java.util.List;
-
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.metadata.epoch.EpochManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,62 +35,62 @@ public class AsyncTaskManager {
 
     public static final String ASYNC_ACCELERATION_TASK = "async_acceleration_task";
 
-    public static final Serializer<AsyncAccelerationTask> ASYNC_ACCELERATION_SERIALIZER = new JsonSerializer<>(
-            AsyncAccelerationTask.class);
+    private final AsyncTaskStore asyncTaskStore;
+    private final String project;
 
-    private final KylinConfig kylinConfig;
-    private final ResourceStore resourceStore;
-    private final String resourceRoot;
-
-    private AsyncTaskManager(KylinConfig kylinConfig, String project) {
-        if (!UnitOfWork.isAlreadyInTransaction())
-            log.info("Initializing AccelerateTagManager with KylinConfig Id: {} for project {}",
-                    System.identityHashCode(kylinConfig), project);
-        this.kylinConfig = kylinConfig;
-        resourceStore = ResourceStore.getKylinMetaStore(this.kylinConfig);
-        this.resourceRoot = "/" + project + ResourceStore.ASYNC_TASK;
+    private AsyncTaskManager(String project) throws Exception {
+        this.project = project;
+        this.asyncTaskStore = new AsyncTaskStore(KylinConfig.getInstanceFromEnv());
     }
 
-    // called by reflection
-    static AsyncTaskManager newInstance(KylinConfig config, String project) {
-        return new AsyncTaskManager(config, project);
+    public static AsyncTaskManager getInstance(String project) {
+        return Singletons.getInstance(project, AsyncTaskManager.class);
     }
 
-    public static AsyncTaskManager getInstance(KylinConfig kylinConfig, String project) {
-        return kylinConfig.getManager(project, AsyncTaskManager.class);
-    }
-
-    private String path(String uuid) {
-        return this.resourceRoot + "/" + uuid + MetadataConstants.FILE_SURFIX;
+    public DataSourceTransactionManager getTransactionManager() {
+        return asyncTaskStore.getTransactionManager();
     }
 
     public void save(AsyncAccelerationTask asyncTask) {
         if (asyncTask.getTaskType().equalsIgnoreCase(ASYNC_ACCELERATION_TASK)) {
-            resourceStore.checkAndPutResource(path(asyncTask.getUuid()), asyncTask, ASYNC_ACCELERATION_SERIALIZER);
+            saveOrUpdate(asyncTask);
+        }
+    }
+
+    private void saveOrUpdate(AbstractAsyncTask asyncTask) {
+        if (asyncTask.getId() == 0) {
+            asyncTask.setProject(project);
+            asyncTask.setCreateTime(System.currentTimeMillis());
+            asyncTask.setUpdateTime(asyncTask.getCreateTime());
+            asyncTaskStore.save(asyncTask);
+        } else {
+            asyncTask.setUpdateTime(System.currentTimeMillis());
+            asyncTaskStore.update(asyncTask);
         }
     }
 
     public AbstractAsyncTask get(String taskType) {
-        List<AsyncAccelerationTask> asyncAccelerationTaskList = Lists.newArrayList();
-        if (taskType.equalsIgnoreCase(ASYNC_ACCELERATION_TASK)) {
-            asyncAccelerationTaskList = resourceStore.getAllResources(resourceRoot, ASYNC_ACCELERATION_SERIALIZER);
-            if (asyncAccelerationTaskList.isEmpty()) {
-                return new AsyncAccelerationTask(false, Maps.newHashMap(), ASYNC_ACCELERATION_TASK);
-            }
+        if (!taskType.equalsIgnoreCase(ASYNC_ACCELERATION_TASK)) {
+            throw new IllegalArgumentException("TaskType " + taskType + "is not supported!");
         }
-        return asyncAccelerationTaskList.get(0);
+        AbstractAsyncTask syncTask = asyncTaskStore.queryByType(project, ASYNC_ACCELERATION_TASK);
+        if (syncTask == null) {
+            return new AsyncAccelerationTask(false, Maps.newHashMap(), ASYNC_ACCELERATION_TASK);
+        } else {
+            return AsyncAccelerationTask.copyFromAbstractTask(syncTask);
+        }
     }
 
     public static void resetAccelerationTagMap(String project) {
         log.info("reset acceleration tag for project({})", project);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
-                    KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
+        AsyncTaskManager manager = getInstance(project);
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) manager.get(ASYNC_ACCELERATION_TASK);
             asyncAcceleration.setAlreadyRunning(false);
             asyncAcceleration.setUserRefreshedTagMap(Maps.newHashMap());
-            getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+            manager.save(asyncAcceleration);
             return null;
-        }, project);
+        });
         log.info("rest acceleration tag successfully for project({})", project);
     }
 
@@ -113,13 +107,13 @@ public class AsyncTaskManager {
         }
 
         log.info("start to clean acceleration tag by user");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
-                    KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
+        AsyncTaskManager manager = getInstance(project);
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) manager.get(ASYNC_ACCELERATION_TASK);
             asyncAcceleration.getUserRefreshedTagMap().put(userName, false);
-            getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+            manager.save(asyncAcceleration);
             return null;
-        }, project);
+        });
         log.info("clean acceleration tag successfully for project({}: by user {})", project, userName);
     }
 }

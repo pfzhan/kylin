@@ -574,7 +574,7 @@ public class JdbcRawRecStore {
     public Set<String> updateAllCost(String project) {
         final int batchToUpdate = 1000;
         long currentTime = System.currentTimeMillis();
-        int effectiveDays = Integer.parseInt(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+        int effectiveDays = Integer.parseInt(FavoriteRuleManager.getInstance(project)
                 .getValue(FavoriteRule.EFFECTIVE_DAYS));
         RawRecItem.CostMethod costMethod = getCostMethod(project);
         Set<String> updateModels = Sets.newHashSet();

@@ -31,21 +31,21 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.acl.NDataModelAclParams;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExcludedLookupChecker;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
 import org.apache.kylin.rest.util.ModelUtils;
@@ -422,7 +422,7 @@ public class NDataModelResponse extends NDataModel {
     private Set<String> loadExcludedTables() {
         FavoriteRuleManager favoriteRuleManager = null;
         if (!isBroken()) {
-            favoriteRuleManager = FavoriteRuleManager.getInstance(getConfig(), getProject());
+            favoriteRuleManager = FavoriteRuleManager.getInstance(getProject());
         }
         Set<String> excludedTables = Sets.newHashSet();
         if (favoriteRuleManager != null) {

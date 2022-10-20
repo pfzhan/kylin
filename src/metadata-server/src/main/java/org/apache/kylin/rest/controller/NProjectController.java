@@ -44,8 +44,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.FileUtils;
-import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
-import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
@@ -497,19 +495,5 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("jdbc_source_enabled", request.getJdbcSourceEnable());
         projectService.updateJdbcInfo(project, request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
-    }
-
-    @PostMapping(value = "/feign/save_async_task")
-    @ResponseBody
-    public void saveAsyncTask(@RequestParam("project") String project, @RequestBody AsyncAccelerationTask task) {
-        projectService.saveAsyncTask(project, task);
-    }
-
-    @PostMapping(value = "/feign/update_rule")
-    @ResponseBody
-    public void updateRule(@RequestBody List<FavoriteRule.AbstractCondition> conditions,
-            @RequestParam("isEnabled") boolean isEnabled, @RequestParam("ruleName") String ruleName,
-            @RequestParam("project") String project) {
-        projectService.updateRule(conditions, isEnabled, ruleName, project);
     }
 }

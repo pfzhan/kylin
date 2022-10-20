@@ -109,7 +109,7 @@ public class OptRecV2 {
                     uuidToRecItemMap.put(recItem.getRecEntity().getUuid(), recItem);
                 }
         );
-        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, project).getExcludedTables();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(project).getExcludedTables();
         checker = new ExcludedLookupChecker(excludedTables, getModel().getJoinTables(), getModel());
         if (!getModel().isBroken()) {
             initModelColumnRefs(getModel());
@@ -254,7 +254,7 @@ public class OptRecV2 {
     }
 
     private List<RawRecItem> queryBestLayoutRecItems() {
-        FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(config, project)
+        FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(project)
                 .getOrDefaultByName(FavoriteRule.REC_SELECT_RULE_NAME);
         int topN = Integer.parseInt(((FavoriteRule.Condition) favoriteRule.getConds().get(0)).getRightThreshold());
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);

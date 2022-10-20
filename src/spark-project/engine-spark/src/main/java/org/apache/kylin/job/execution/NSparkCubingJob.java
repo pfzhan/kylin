@@ -165,7 +165,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
         job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
-        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, df.getProject());
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(df.getProject());
         Set<String> excludedTables = ruleManager.getExcludedTables();
         // if excludedTables contains factTable, remove factTable in excludedTables
         val rootFactTableName = df.getModel().getRootFactTableName();

@@ -18,24 +18,24 @@
 
 package org.apache.kylin.metadata.query;
 
-import com.google.common.collect.Lists;
-import org.apache.kylin.metadata.favorite.FavoriteRule;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.query.QueryExcludedTablesExtension;
-
 import java.util.List;
 import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.favorite.FavoriteRule;
+import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
+
+import com.google.common.collect.Lists;
 
 public class QueryExcludedTablesExtensionImpl implements QueryExcludedTablesExtension {
     @Override
     public Set<String> getExcludedTables(KylinConfig kylinConfig, String projectName) {
-        return FavoriteRuleManager.getInstance(kylinConfig, projectName).getExcludedTables();
+        return FavoriteRuleManager.getInstance(projectName).getExcludedTables();
     }
 
     @Override
     public void addExcludedTables(KylinConfig config, String projectName, String tableName, boolean isEnabled) {
-        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, projectName);
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(projectName);
         List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
         conds.add(new FavoriteRule.Condition(null, tableName));
         ruleManager.updateRule(conds, isEnabled, FavoriteRule.EXCLUDED_TABLES_RULE);

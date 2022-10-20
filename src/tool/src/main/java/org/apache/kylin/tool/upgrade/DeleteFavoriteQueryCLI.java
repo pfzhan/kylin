@@ -29,10 +29,10 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ExecutableApplication;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.favorite.FavoriteRule;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -89,8 +89,7 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication {
         Map<String, List<FavoriteRule>> globalFavoriteRuleList = Maps.newHashMap();
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         projectManager.listAllProjects().forEach(projectInstance -> {
-            FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(kylinConfig,
-                    projectInstance.getName());
+            FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(projectInstance.getName());
             List<FavoriteRule> favoriteRuleList = favoriteRuleManager.getAll();
 
             globalFavoriteRuleList.put(projectInstance.getName(), favoriteRuleList);
@@ -102,7 +101,7 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication {
         if (optionsHelper.hasOption(OPTION_EXEC)) {
             globalFavoriteRuleList.forEach((project, frList) -> UnitOfWork.doInTransactionWithRetry(() -> {
                 frList.forEach(
-                        fr -> FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).delete(fr));
+                        fr -> FavoriteRuleManager.getInstance(project).delete(fr));
                 return null;
             }, project));
             printlnGreen("recommendation metadata upgrade succeeded.");

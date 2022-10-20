@@ -299,7 +299,7 @@ public class ModelServiceTest extends SourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
+        favoriteRuleManager = FavoriteRuleManager.getInstance(getProject());
 
         try {
             new JdbcRawRecStore(getTestConfig());

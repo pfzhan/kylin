@@ -24,8 +24,6 @@ import org.apache.kylin.rest.delegate.JobStatisticsContract;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataContract;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.delegate.ProjectMetadataContract;
-import org.apache.kylin.rest.delegate.ProjectMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableMetadataContract;
 import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableSamplingContract;
@@ -47,7 +45,6 @@ public class ContractConfig implements InitializingBean, ApplicationContextAware
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataContract.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingContract.class));
         JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataContract.class));
-        ProjectMetadataInvoker.setDelegate(applicationContext.getBean(ProjectMetadataContract.class));
     }
 
     @Override

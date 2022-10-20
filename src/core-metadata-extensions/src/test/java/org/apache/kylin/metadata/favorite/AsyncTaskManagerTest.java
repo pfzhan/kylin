@@ -20,33 +20,38 @@ package org.apache.kylin.metadata.favorite;
 
 import java.util.Map;
 
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.favorite.AsyncAccelerationTask;
-import org.apache.kylin.metadata.favorite.AsyncTaskManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 public class AsyncTaskManagerTest extends NLocalFileMetadataTestCase {
 
+    private JdbcTemplate jdbcTemplate;
     private String getProject() {
         return "gc_test";
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         createTestMetadata();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
     }
 
     @After
     public void cleanUp() {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
     }
 
     @Test
     public void testSave() {
-        AsyncTaskManager instance = AsyncTaskManager.getInstance(getTestConfig(), getProject());
+        AsyncTaskManager instance = AsyncTaskManager.getInstance(getProject());
         AsyncAccelerationTask task = (AsyncAccelerationTask) instance.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
         Map<String, Boolean> userRefreshedTagMap = task.getUserRefreshedTagMap();
         Assert.assertFalse(task.isAlreadyRunning());
@@ -66,7 +71,7 @@ public class AsyncTaskManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testResetAccelerationTagMap() {
-        AsyncTaskManager instance = AsyncTaskManager.getInstance(getTestConfig(), getProject());
+        AsyncTaskManager instance = AsyncTaskManager.getInstance(getProject());
         AsyncAccelerationTask task = (AsyncAccelerationTask) instance.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
         Map<String, Boolean> userRefreshedTagMap = task.getUserRefreshedTagMap();
         Assert.assertFalse(task.isAlreadyRunning());
@@ -89,7 +94,7 @@ public class AsyncTaskManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanAccelerationTagByUser() {
-        AsyncTaskManager instance = AsyncTaskManager.getInstance(getTestConfig(), getProject());
+        AsyncTaskManager instance = AsyncTaskManager.getInstance(getProject());
         AsyncAccelerationTask task = (AsyncAccelerationTask) instance.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
         Map<String, Boolean> userRefreshedTagMap = task.getUserRefreshedTagMap();
         Assert.assertFalse(task.isAlreadyRunning());

@@ -2711,7 +2711,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         checkCCNameAmbiguity(model);
         ComputedColumnDesc checkedCC = null;
 
-        Set<String> excludedTables = getManager(FavoriteRuleManager.class, project).getExcludedTables();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(project).getExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
@@ -3205,7 +3205,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         List<JoinTableDesc> joinTables = convertedModel.getJoinTables();
 
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(uuid);
-        Set<String> excludedTables = getManager(FavoriteRuleManager.class, project).getExcludedTables();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(project).getExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, convertedModel);
         List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(convertedModel);
         Set<Integer> invalidDimensions = checker.getInvalidDimensions(convertedModel);
@@ -3745,7 +3745,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         sqlNode.accept(sqlVisitor);
 
         if (!KylinConfig.getInstanceFromEnv().isBuildExcludedTableEnabled()) {
-            Set<String> excludedTables = getManager(FavoriteRuleManager.class, model.getProject()).getExcludedTables();
+            Set<String> excludedTables = FavoriteRuleManager.getInstance(model.getProject()).getExcludedTables();
             ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
             String antiFlattenLookup = checker.detectFilterConditionDependsLookups(sqlNode.toString(),
                     checker.getExcludedLookups());
@@ -4434,7 +4434,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         String uuid = model.getUuid();
         List<JoinTableDesc> joinTables = model.getJoinTables();
         IndexPlan indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlan(uuid);
-        Set<String> excludedTables = getManager(FavoriteRuleManager.class, project).getExcludedTables();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(project).getExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, model);
         List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(model);
         Set<Integer> invalidDimensions = checker.getInvalidDimensions(model);
