@@ -32,6 +32,7 @@ import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryMetrics;
@@ -41,6 +42,7 @@ import org.apache.kylin.query.engine.QueryExec;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.query.util.QueryUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,7 +55,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
@@ -81,10 +82,10 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv())
                 .getDefaultSchemaName();
-        QueryParams queryParams = new QueryParams(KapQueryUtil.getKylinConfig(queryContext.getProject()),
+        QueryParams queryParams = new QueryParams(NProjectManager.getProjectConfig(queryContext.getProject()),
                 queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(),
                 defaultSchema, false);
-        return KapQueryUtil.massageSql(queryParams);
+        return QueryUtil.massageSql(queryParams);
     }
 
     @Before
