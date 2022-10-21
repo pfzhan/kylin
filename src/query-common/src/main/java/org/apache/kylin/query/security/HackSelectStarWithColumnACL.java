@@ -51,7 +51,6 @@ import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-
 public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDownConverter {
 
     private static final String SELECT_STAR = "*";
