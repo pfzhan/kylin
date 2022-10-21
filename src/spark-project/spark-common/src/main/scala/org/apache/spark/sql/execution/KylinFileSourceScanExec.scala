@@ -18,6 +18,7 @@
 
 package org.apache.spark.sql.execution
 
+import io.kyligence.kap.softaffinity.SoftAffinityManager
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.rdd.RDD
@@ -154,7 +155,17 @@ class KylinFileSourceScanExec(
       FilePartition(shardId, filesToPartitionId.getOrElse(shardId, Nil).toArray)
     }
 
-    new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions,requiredSchema)
+    if (SoftAffinityManager.usingSoftAffinity) {
+      val start = System.currentTimeMillis()
+      val cachePartitions = filePartitions.map(CacheFilePartition.convertFilePartitionToCache)
+      logInfo(s"Convert bucketed file partition took: ${System.currentTimeMillis() - start}")
+      new CacheFileScanRDD(fsRelation.sparkSession, readFile, cachePartitions,
+        requiredSchema, metadataColumns)
+    } else {
+      logInfo(s"Create FileScanRDD")
+      new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions,
+        requiredSchema, metadataColumns)
+    }
   }
 
   /**
@@ -234,7 +245,18 @@ class KylinFileSourceScanExec(
       currentFiles += file
     }
     closePartition()
-    new FileScanRDD(fsRelation.sparkSession, readFile, partitions,requiredSchema)
+
+    if (SoftAffinityManager.usingSoftAffinity) {
+      val start = System.currentTimeMillis()
+      val cachePartitions = partitions.map(CacheFilePartition.convertFilePartitionToCache)
+      logInfo(s"Convert file partition took: ${System.currentTimeMillis() - start}")
+      new CacheFileScanRDD(fsRelation.sparkSession, readFile, cachePartitions,
+        requiredSchema, metadataColumns)
+    } else {
+      logInfo(s"Create FileScanRDD")
+      new FileScanRDD(fsRelation.sparkSession, readFile, partitions,
+        requiredSchema, metadataColumns)
+    }
   }
 
   private def getBlockLocations(file: FileStatus): Array[BlockLocation] = file match {

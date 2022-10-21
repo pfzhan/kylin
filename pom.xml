@@ -53,6 +53,10 @@
         <hive.version>2.3.9</hive.version>
         <hive-hcatalog.version>2.3.9</hive-hcatalog.version>
 
+        <!-- soft affinity -->
+        <alluxio.version>2.7.4</alluxio.version>
+        <libthrift.version>0.12.0</libthrift.version>
+
         <!-- Kafka versions -->
         <kafka.version>2.8.1</kafka.version>
 
@@ -321,6 +325,7 @@
         <module>src/server-base</module>
         <!--        <module>src/license-service</module>-->
         <module>src/server</module>
+        <module>src/spark-project/kylin-soft-affinity-cache</module>
         <module>src/spark-project/spark-common</module>
         <module>src/spark-project/sparder</module>
         <module>src/spark-project/engine-spark</module>
@@ -711,6 +716,11 @@
                 <artifactId>kylin-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-soft-affinity-cache</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
@@ -849,6 +859,12 @@
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-soft-affinity-cache</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
 
 
             <!-- Hadoop2 dependencies -->
@@ -942,6 +958,11 @@
                         <artifactId>protobuf-java</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.alluxio</groupId>
+                <artifactId>alluxio-shaded-client</artifactId>
+                <version>${alluxio.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -1447,6 +1468,155 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+                <version>${hive.version}</version>
+                <classifier>core</classifier>
+                <exclusions>
+                    <!-- pull this in when needed; the explicit definition culls the surplus-->
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-metastore</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-shims</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-ant</artifactId>
+                    </exclusion>
+                    <!-- break the loop -->
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>spark-client</artifactId>
+                    </exclusion>
+
+                    <!-- excluded dependencies & transitive.
+                     Some may be needed to be explicitly included-->
+                    <exclusion>
+                        <groupId>ant</groupId>
+                        <artifactId>ant</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.ant</groupId>
+                        <artifactId>ant</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.esotericsoftware.kryo</groupId>
+                        <artifactId>kryo</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-codec</groupId>
+                        <artifactId>commons-codec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
+                        <artifactId>avro-mapred</artifactId>
+                    </exclusion>
+                    <!--  Do not need Calcite because we disabled hive.cbo.enable -->
+                    <exclusion>
+                        <groupId>org.apache.calcite</groupId>
+                        <artifactId>calcite-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.calcite</groupId>
+                        <artifactId>calcite-avatica</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>apache-curator</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>curator-client</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>curator-framework</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libfb303</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-all</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jline</groupId>
+                        <artifactId>jline</artifactId>
+                    </exclusion>
+                    <!-- Cat X license now; see SPARK-18262 -->
+                    <exclusion>
+                        <groupId>org.json</groupId>
+                        <artifactId>json</artifactId>
+                    </exclusion>
+                    <!-- Begin of Hive 2.3 exclusion -->
+                    <!-- Do not need Tez -->
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-llap-tez</artifactId>
+                    </exclusion>
+                    <!-- Do not need Calcite, see SPARK-27054 -->
+                    <exclusion>
+                        <groupId>org.apache.calcite</groupId>
+                        <artifactId>calcite-druid</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.calcite.avatica</groupId>
+                        <artifactId>avatica</artifactId>
+                    </exclusion>
+                    <!-- org.apache.logging.log4j:* conflict with log4j 1.2.17 -->
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.hydromatic</groupId>
+                        <artifactId>eigenbase-properties</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.janino</groupId>
+                        <artifactId>commons-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.janino</groupId>
+                        <artifactId>janino</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.pentaho</groupId>
+                        <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+                    </exclusion>
+                    <!-- End of Hive 2.3 exclusion -->
+                </exclusions>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.ant</groupId>
                 <artifactId>ant</artifactId>
                 <version>${ant.version}</version>
@@ -1518,6 +1688,28 @@
                     </exclusion>
                 </exclusions>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.thrift</groupId>
+                <artifactId>libthrift</artifactId>
+                <version>${libthrift.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.thrift</groupId>
+                <artifactId>libfb303</artifactId>
+                <version>0.9.3</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hive</groupId>
