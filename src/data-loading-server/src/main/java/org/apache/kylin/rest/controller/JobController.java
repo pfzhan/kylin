@@ -112,7 +112,7 @@ public class JobController extends BaseController {
         Integer pageOffsetNew = pageOffset * pageSize;
         List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffsetNew, pageSize);
         long count = jobInfoService.countJobs(jobFilter);
-        DataResult<List<ExecutableResponse>> executables = new DataResult<>(result, (int) count);
+        DataResult<List<ExecutableResponse>> executables = new DataResult<>(result, (int) count, pageOffset, pageSize);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
     }
 
