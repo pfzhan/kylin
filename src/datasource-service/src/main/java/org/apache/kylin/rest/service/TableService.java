@@ -188,7 +188,7 @@ import lombok.var;
 public class TableService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
-    private static final String REFRESH_SINGLE_CATALOG_PATH = "/kylin/api/tables/single_catalog_cache";
+    private static final String REFRESH_SINGLE_CATALOG_PATH = "/kylin/api/query/single_catalog_cache";
 
     @Autowired
     private TableModelSupporter modelService;

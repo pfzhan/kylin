@@ -23,6 +23,7 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.ForceToTieredStorage;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
@@ -46,9 +48,11 @@ import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
+import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.service.QueryCacheManager;
 import org.apache.kylin.rest.service.QueryHistoryService;
 import org.apache.kylin.rest.service.QueryService;
+import org.apache.kylin.rest.service.TableService;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,10 +66,12 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -84,15 +90,19 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     private QueryHistoryService queryHistoryService;
     @Mock
     private QueryCacheManager queryCacheManager;
+    @Mock
+    private TableService tableService;
     @InjectMocks
     private NQueryController nQueryController = Mockito.spy(new NQueryController());
+
+    private static final String APPLICATION_PUBLIC_JSON = HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(nQueryController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+                .defaultResponseCharacterEncoding(StandardCharsets.UTF_8).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         super.createTestMetadata();
@@ -604,5 +614,35 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0]").value("MODEL1"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[1]").value("MODEL2"));
         Mockito.verify(nQueryController).getQueryHistoryModels(PROJECT, request.getFilterModelName(), 3);
+    }
+
+    @Test
+    public void testRefreshSingleCatalogCache() throws Exception {
+        List<String> tables = Lists.newArrayList();
+        tables.add("DEFAULT.TEST_KYLIN_FACT");
+        HashMap request = new HashMap();
+        request.put("tables", tables);
+        TableRefresh tableRefresh = new TableRefresh();
+        tableRefresh.setCode(KylinException.CODE_SUCCESS);
+        Mockito.doReturn(tableRefresh).when(tableService).refreshSingleCatalogCache(Mockito.any());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/single_catalog_cache")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testRefreshSingleCatalogCacheError() throws Exception {
+        HashMap request = new HashMap();
+        request.put("tables", "DEFAULT.TEST_KYLIN_FACT");
+        String errorMsg = "The “table“ parameter is invalid. Please check and try again.";
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/query/single_catalog_cache")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 }

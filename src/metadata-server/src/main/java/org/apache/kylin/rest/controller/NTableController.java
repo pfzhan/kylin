@@ -22,15 +22,12 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLING_RANGE_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -64,8 +61,6 @@ import org.apache.kylin.rest.response.PreReloadTableResponse;
 import org.apache.kylin.rest.response.PreUnloadTableResponse;
 import org.apache.kylin.rest.response.RefreshAffectedSegmentsResponse;
 import org.apache.kylin.rest.response.TableNameResponse;
-import org.apache.kylin.rest.response.TableRefresh;
-import org.apache.kylin.rest.response.TableRefreshAll;
 import org.apache.kylin.rest.response.TablesAndColumnsResponse;
 import org.apache.kylin.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.kylin.rest.service.ModelService;
@@ -73,6 +68,7 @@ import org.apache.kylin.rest.service.TableExtService;
 import org.apache.kylin.rest.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -83,6 +79,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.View;
 
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -499,21 +496,12 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableService.checkSSBDataBase(), "");
     }
 
-    @ApiOperation(value = "catalogCache", tags = { "DW" })
-    @PutMapping(value = "single_catalog_cache", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-    @ResponseBody
-    public EnvelopeResponse<TableRefresh> refreshSingleCatalogCache(@RequestBody HashMap refreshRequest) {
-        checkRefreshParam(refreshRequest);
-        TableRefresh response = tableService.refreshSingleCatalogCache(refreshRequest);
-        return new EnvelopeResponse<>(response.getCode(), response, response.getMsg());
-    }
-
+    @Deprecated
     @ApiOperation(value = "catalogCache", tags = { "DW" })
     @PutMapping(value = "catalog_cache", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-    @ResponseBody
-    public EnvelopeResponse refreshCatalogCache(final HttpServletRequest refreshRequest) {
-        TableRefreshAll response = tableService.refreshAllCatalogCache(refreshRequest);
-        return new EnvelopeResponse<>(response.getCode(), response, response.getMsg());
+    public String refreshCatalogCache(final HttpServletRequest refreshRequest) {
+        refreshRequest.setAttribute(View.RESPONSE_STATUS_ATTRIBUTE, HttpStatus.PERMANENT_REDIRECT);
+        return "redirect:/api/query/catalog_cache";
     }
 
     @ApiOperation(value = "modelTables", tags = { "AI" })
@@ -524,18 +512,6 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         val res = tableService.getTablesOfModel(project, modelName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
-    }
-
-    private void checkRefreshParam(Map refreshRequest) {
-        val message = MsgPicker.getMsg();
-        Object tables = refreshRequest.get("tables");
-        if (tables == null) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamInvalid(), false);
-        } else if (refreshRequest.keySet().size() > 1) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamMore(), false);
-        } else if (!(tables instanceof List)) {
-            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTableRefreshParamInvalid(), false);
-        }
     }
 
     @GetMapping(value = "/feign/get_table_names_by_fuzzy_key")

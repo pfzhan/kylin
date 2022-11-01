@@ -24,12 +24,10 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_SAMPLIN
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.service.TableSampleService;
@@ -48,7 +46,6 @@ import org.apache.kylin.rest.request.TopTableRequest;
 import org.apache.kylin.rest.request.UpdateAWSTableExtDescRequest;
 import org.apache.kylin.rest.response.LoadTableResponse;
 import org.apache.kylin.rest.response.TableNameResponse;
-import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TablesAndColumnsResponse;
 import org.apache.kylin.rest.response.UpdateAWSTableExtDescResponse;
 import org.apache.kylin.rest.service.ModelService;
@@ -675,36 +672,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).reloadHiveTablename("", false);
-    }
-
-    @Test
-    public void testRefreshSingleCatalogCache() throws Exception {
-        List<String> tables = Lists.newArrayList();
-        tables.add("DEFAULT.TEST_KYLIN_FACT");
-        HashMap request = new HashMap();
-        request.put("tables", tables);
-        TableRefresh tableRefresh = new TableRefresh();
-        tableRefresh.setCode(KylinException.CODE_SUCCESS);
-        Mockito.doReturn(tableRefresh).when(tableService).refreshSingleCatalogCache(Mockito.any());
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testRefreshSingleCatalogCacheError() throws Exception {
-        HashMap request = new HashMap();
-        request.put("tables", "DEFAULT.TEST_KYLIN_FACT");
-        String errorMsg = "The “table“ parameter is invalid. Please check and try again.";
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
-        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
