@@ -47,7 +47,8 @@ public class NacosClusterManager implements ClusterManager {
     public static final String DATA_LOADING = "yinglong-data-loading-booter";
     public static final String SMART = "yinglong-smart-booter";
     public static final String METADATA = "yinglong-common-booter";
-    private static final List<String> SERVER_IDS = Arrays.asList(QUERY, DATA_LOADING, SMART, METADATA);
+    public static final String OPS = "yinglong-ops-booter";
+    private static final List<String> SERVER_IDS = Arrays.asList(QUERY, DATA_LOADING, SMART, METADATA, OPS);
 
     private final Registration registration;
 
@@ -101,6 +102,9 @@ public class NacosClusterManager implements ClusterManager {
             break;
         case SMART:
             mode = ClusterConstant.SMART;
+            break;
+        case OPS:
+            mode = ClusterConstant.OPS;
             break;
         default:
             throw new KylinRuntimeException(String.format("Unexpected serverId: {%s}", serverId));

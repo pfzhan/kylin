@@ -40,10 +40,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @MetadataInfo(onlyProps = true)
-class HAConfigurationTest {
+class SessionConfigurationTest {
 
     @InjectMocks
-    HAConfiguration configuration = Mockito.spy(new HAConfiguration());
+    SessionConfig configuration = Mockito.spy(new SessionConfig());
 
     @Mock
     SessionProperties sessionProperties;

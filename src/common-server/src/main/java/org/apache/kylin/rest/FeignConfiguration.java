@@ -18,16 +18,17 @@
 
 package org.apache.kylin.rest;
 
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
 
 @Configuration
-public class DataLoadingFeignConfiguration implements RequestInterceptor {
+public class FeignConfiguration implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate template) {

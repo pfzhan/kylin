@@ -2102,6 +2102,8 @@ public abstract class KylinConfigBase implements Serializable {
             return ClusterConstant.DATA_LOADING;
         } else if ("yinglong-resource-booter".equals(serverName)) {
             return ClusterConstant.RESOURCE;
+        } else if ("yinglong-ops-booter".equals(serverName)) {
+            return ClusterConstant.OPS;
         } else {
             return null;
         }

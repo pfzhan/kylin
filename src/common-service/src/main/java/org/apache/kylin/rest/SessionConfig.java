@@ -21,14 +21,15 @@ package org.apache.kylin.rest;
 import static org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,13 +41,14 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
 import org.springframework.session.web.context.AbstractHttpSessionApplicationInitializer;
 
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
+    private static final String CREATE_SCHEMA_SESSION_TABLE = "create.schema-session.table";
+    private static final String CREATE_SCHEMA_SESSION_ATTRIBUTES_TABLE = "create.schema-session-attributes.table";
 
     @Autowired
     @Qualifier("defaultDataSource")
@@ -55,10 +57,9 @@ public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
     @Autowired
     SessionProperties sessionProperties;
 
-    private void initSessionTable(String replaceName, String sqlFile) throws IOException {
+    private void initSessionTable(String replaceName, String sessionScript) throws IOException {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
 
-        var sessionScript = IOUtils.toString(getClass().getClassLoader().getResourceAsStream(sqlFile), StandardCharsets.UTF_8);
         sessionScript = sessionScript.replaceAll("SPRING_SESSION", replaceName);
         populator.addScript(new InMemoryResource(sessionScript));
         populator.setContinueOnError(false);
@@ -72,31 +73,17 @@ public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
         }
 
         String tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session_v2";
-        String attributesTableName = tableName + "_attributes";
+        // mysql table name is case sensitive, sql template is using capital letters.
+        String attributesTableName = tableName + "_ATTRIBUTES";
 
-        String sessionFile = "script/schema-session-pg.sql";
-        String sessionAttributesFile = "script/schema-session-attributes-pg.sql";
-        if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
-                && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
-                        .startsWith("com.mysql")) {
-            sessionFile = "script/schema-session-mysql.sql";
-            sessionAttributesFile = "script/schema-session-attributes-mysql.sql";
-
-            // mysql table name is case sensitive, sql file is using capital letters.
-            attributesTableName = tableName + "_ATTRIBUTES";
-        } else if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
-                && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
-                        .equals("org.h2.Driver")) {
-            sessionFile = "script/schema-session-h2.sql";
-            sessionAttributesFile = "script/schema-session-attributes-h2.sql";
-        }
+        Properties properties = JdbcUtil.getProperties((BasicDataSource) dataSource);
 
         if (!isTableExists(dataSource.getConnection(), tableName)) {
-            initSessionTable(tableName, sessionFile);
+            initSessionTable(tableName, properties.getProperty(CREATE_SCHEMA_SESSION_TABLE));
         }
 
         if (!isTableExists(dataSource.getConnection(), attributesTableName)) {
-            initSessionTable(tableName, sessionAttributesFile);
+            initSessionTable(tableName, properties.getProperty(CREATE_SCHEMA_SESSION_ATTRIBUTES_TABLE));
         }
     }
 
