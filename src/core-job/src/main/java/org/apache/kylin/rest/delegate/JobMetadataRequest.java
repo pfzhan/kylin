@@ -68,6 +68,8 @@ public class JobMetadataRequest {
 
     private String yarnQueue;
 
+    private Object tag;
+
     public JobParam parseJobParam() {
         JobParam jobParam = new JobParam();
         if (null != this.getProject()) {
@@ -109,6 +111,9 @@ public class JobMetadataRequest {
         }
         if (null != this.getYarnQueue()) {
             jobParam.setYarnQueue(this.getYarnQueue());
+        }
+        if (null != this.getTag()) {
+            jobParam.setTag(this.getTag());
         }
         return jobParam;
     }
@@ -153,6 +158,9 @@ public class JobMetadataRequest {
         }
         if (null != jobParam.getYarnQueue()) {
             setYarnQueue(jobParam.getYarnQueue());
+        }
+        if (null != jobParam.getTag()) {
+            setTag(jobParam.getTag());
         }
     }
 

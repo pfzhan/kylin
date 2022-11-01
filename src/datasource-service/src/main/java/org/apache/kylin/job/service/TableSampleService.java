@@ -65,6 +65,7 @@ public class TableSampleService extends BasicService implements TableSamplingSup
                     .withYarnQueue(yarnQueue)
                     .withPriority(priority)
                     .withJobTypeEnum(JobTypeEnum.TABLE_SAMPLING)
+                    .withTag(tag)
                     .addExtParams(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
             jobIds.add(JobMetadataBaseInvoker.getInstance().addJob(new JobMetadataRequest(jobParam)));
         }
