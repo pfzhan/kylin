@@ -122,6 +122,7 @@ public class JobFilterUtil {
         case "target_subject":
             return "model_id";
         case "duration":
+        case "total_duration":
             return "job_duration_millis";
         case "last_modified":
             return "update_time";

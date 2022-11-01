@@ -265,25 +265,35 @@ public class JobInfoService extends BasicService implements JobSupporter {
                             .fromPO(executablePO);
                     return this.convert(executable, executablePO);
                 }).collect(Collectors.toList());
-        sortByDurationIfNeed(result, jobMapperFilter);
+        sortByDurationIfNeed(result, jobFilter.getSortBy(), jobMapperFilter.getOrderType());
         return result;
     }
 
-    public void sortByDurationIfNeed(List<ExecutableResponse> list, JobMapperFilter jobMapperFilter){
+    public void sortByDurationIfNeed(List<ExecutableResponse> list, final String orderByField, final String orderType) {
         // when job is running, System.currentTimeMillis goto compute duration, and this need sort by real-time
         // job_duration_millis is metadata db column, means duration
-        if (!"job_duration_millis".equalsIgnoreCase(jobMapperFilter.getOrderByFiled())){
+        Comparator<ExecutableResponse> comparator = null;
+        if ("duration".equalsIgnoreCase(orderByField)) {
+            comparator = new Comparator<ExecutableResponse>() {
+                @Override
+                public int compare(ExecutableResponse o1, ExecutableResponse o2) {
+                    return (int) ("ASC".equalsIgnoreCase(orderType) ? o1.getDuration() - o2.getDuration()
+                            : o2.getDuration() - o1.getDuration());
+                }
+            };
+        } else if ("total_duration".equalsIgnoreCase(orderByField)) {
+            comparator = new Comparator<ExecutableResponse>() {
+                @Override
+                public int compare(ExecutableResponse o1, ExecutableResponse o2) {
+                    return (int) ("ASC".equalsIgnoreCase(orderType) ? o1.getTotalDuration() - o2.getTotalDuration()
+                            : o2.getTotalDuration() - o1.getTotalDuration());
+                }
+            };
+        } else {
             return;
         }
-        
-        list.sort(new Comparator<ExecutableResponse>() {
-            @Override
-            public int compare(ExecutableResponse o1, ExecutableResponse o2) {
-                return (int) ("ASC".equalsIgnoreCase(jobMapperFilter.getOrderType())
-                        ? o1.getDuration() - o2.getDuration()
-                        : o2.getDuration() - o1.getDuration());
-            }
-        });
+
+        list.sort(comparator);
     }
 
     public long countJobs(final JobFilter jobFilter){
