@@ -106,7 +106,10 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String CLUSTER_MODE = "cluster";
     private static final String K8S_ENV_TZ = "spark.kubernetes.driverEnv.TZ";
-    private static final String K8S_ENV_EXECUTOR_TZ = "spark.executorEnv.TZ ";
+    private static final String K8S_ENV_EXECUTOR_TZ = "spark.executorEnv.TZ";
+
+    private static final String KRB5_CONF_WITH_CLUSTER_ON_K8S = "/etc/krb5.conf";
+    private static final String KEYTAB_FILE_WITH_CLUSTER_ON_K8S = "/mnt/secrets/kerberos-keytab";
 
     protected ISparkJobHandler sparkJobHandler;
 
@@ -717,37 +720,56 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         if (Boolean.FALSE.equals(kapConf.isKerberosEnabled())) {
             return;
         }
-        // Yarn client will upload the related file automatically.
-        // We wouldn't put the file on --files.
-        sparkConf.put("spark.kerberos.principal", kapConf.getKerberosPrincipal());
-        sparkConf.put("spark.kerberos.keytab", kapConf.getKerberosKeytabPath());
 
-        // Workaround when there is no underlying file: /etc/krb5.conf
-        String remoteKrb5 = HADOOP_CONF_PATH + kapConf.getKerberosKrb5Conf();
-        ConfMap confMap = new ConfMap() {
-            @Override
-            public String get(String key) {
-                return sparkConf.get(key);
+        if (CLUSTER_MODE.equals(sparkConf.get(DEPLOY_MODE)) && sparkConf.get(SPARK_MASTER).startsWith("k8s")) {
+            if (!org.apache.kylin.common.util.FileUtils.fileExist(KRB5_CONF_WITH_CLUSTER_ON_K8S)) {
+                throw new RuntimeException(
+                        "spark-on-k8s with deployMode=cluster, krb5conf must be " + KRB5_CONF_WITH_CLUSTER_ON_K8S);
+            }
+            if (!org.apache.kylin.common.util.FileUtils.folderExist(KEYTAB_FILE_WITH_CLUSTER_ON_K8S)
+                    || !org.apache.kylin.common.util.FileUtils
+                            .fileExist(KEYTAB_FILE_WITH_CLUSTER_ON_K8S + "/" + kapConf.getKerberosKeytab())) {
+                throw new RuntimeException(
+                        "spark-on-k8s with deployMode=cluster, keytab must in " + KEYTAB_FILE_WITH_CLUSTER_ON_K8S);
             }
 
-            @Override
-            public void set(String key, String value) {
-                sparkConf.put(key, value);
-            }
-        };
-        // There are conventions here:
-        // a) krb5.conf is underlying ${KYLIN_HOME}/conf/
-        // b) krb5.conf is underlying ${KYLIN_HOME}/hadoop_conf/
-        // Wrap driver ops krb5.conf depends on deploy mode
-        if (isClusterMode(sparkConf)) {
-            // remote for 'yarn cluster'
-            rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+            sparkConf.put("spark.kerberos.principal", kapConf.getKerberosPrincipal());
+            sparkConf.put("spark.kerberos.keytab", KEYTAB_FILE_WITH_CLUSTER_ON_K8S + "/" +kapConf.getKerberosKeytab());
+            sparkConf.put("spark.kubernetes.kerberos.krb5.path", KRB5_CONF_WITH_CLUSTER_ON_K8S);
         } else {
-            // local for 'yarn client' & 'spark local'
-            rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, kapConf.getKerberosKrb5ConfPath(), confMap);
+            // Yarn client will upload the related file automatically.
+            // We wouldn't put the file on --files.
+            sparkConf.put("spark.kerberos.principal", kapConf.getKerberosPrincipal());
+            sparkConf.put("spark.kerberos.keytab", kapConf.getKerberosKeytabPath());
+
+            // Workaround when there is no underlying file: /etc/krb5.conf
+            String remoteKrb5 = HADOOP_CONF_PATH + kapConf.getKerberosKrb5Conf();
+            ConfMap confMap = new ConfMap() {
+                @Override
+                public String get(String key) {
+                    return sparkConf.get(key);
+                }
+
+                @Override
+                public void set(String key, String value) {
+                    sparkConf.put(key, value);
+                }
+            };
+            // There are conventions here:
+            // a) krb5.conf is underlying ${KYLIN_HOME}/conf/
+            // b) krb5.conf is underlying ${KYLIN_HOME}/hadoop_conf/
+            // Wrap driver ops krb5.conf depends on deploy mode
+            if (isClusterMode(sparkConf)) {
+                // remote for 'yarn cluster'
+                rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+            } else {
+                // local for 'yarn client' & 'spark local'
+                rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, kapConf.getKerberosKrb5ConfPath(), confMap);
+            }
+            rewriteSpecifiedKrb5Conf(AM_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+            rewriteSpecifiedKrb5Conf(EXECUTOR_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+
         }
-        rewriteSpecifiedKrb5Conf(AM_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
-        rewriteSpecifiedKrb5Conf(EXECUTOR_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
     }
 
     //no need this parameters: -Dlog4j.configuration,-Dkap.spark.mountDir,-Dorg.xerial.snappy.tempdir
