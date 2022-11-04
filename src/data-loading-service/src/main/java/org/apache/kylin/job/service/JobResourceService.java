@@ -27,10 +27,12 @@ import javax.annotation.Resource;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
@@ -82,7 +84,9 @@ public class JobResourceService {
             }
         }
         if (!jobs.isEmpty()) {
-            jobInfoService.batchUpdateJobStatus(jobs, null, JobActionEnum.RESTART.name(), Lists.newArrayList());
+            log.info("adjustJobResource jobs={}", StringUtil.join(jobs, ","));
+            jobInfoService.batchUpdateJobStatus(jobs, null, JobActionEnum.PAUSE.name(), Lists.newArrayList());
+            jobInfoService.batchUpdateJobStatus(jobs, null, JobActionEnum.RESUME.name(), Lists.newArrayList());
         }
         return new JobResource(resource.getQueue(), cores * -1, memory * -1);
     }
@@ -97,15 +101,17 @@ public class JobResourceService {
             JobMapperFilter jobMapperFilter = new JobMapperFilter();
             jobMapperFilter.setProject(projectInstance.getName());
             jobMapperFilter.setStatuses(statuses);
-            jobMapperFilter.setLimit(1);
+            jobMapperFilter.setLimit(10);
             val jobs = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
             if (CollectionUtils.isNotEmpty(jobs)) {
-                val po = JobInfoUtil.deserializeExecutablePO(jobs.get(0));
-                if (CollectionUtils.isNotEmpty(po.getTasks())) {
-                    val taskQueues = po.getTasks().stream()
-                            .map(p -> p.getOutput().getInfo().get(ExecutableConstants.QUEUE_NAME))
-                            .filter(Objects::nonNull).collect(Collectors.toSet());
-                    queues.addAll(taskQueues);
+                for (JobInfo jobInfo : jobs) {
+                    val po = JobInfoUtil.deserializeExecutablePO(jobInfo);
+                    if (CollectionUtils.isNotEmpty(po.getTasks())) {
+                        val taskQueues = po.getTasks().stream()
+                                .map(p -> p.getOutput().getInfo().get(ExecutableConstants.QUEUE_NAME))
+                                .filter(Objects::nonNull).collect(Collectors.toSet());
+                        queues.addAll(taskQueues);
+                    }
                 }
             }
         });
