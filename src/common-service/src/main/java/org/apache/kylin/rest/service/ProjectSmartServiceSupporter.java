@@ -23,6 +23,4 @@ import java.util.Map;
 public interface ProjectSmartServiceSupporter {
 
     Map<String, Object> getFavoriteRules(String project);
-
-    void cleanupGarbage(String project) throws Exception;
 }

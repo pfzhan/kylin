@@ -1279,6 +1279,7 @@ public class ExecutableManager {
 
     public List<ExecutablePO> getExecutablePOsByStatus(List<String> jobIds, List<ExecutableState> statuses) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
         if (CollectionUtils.isNotEmpty(jobIds)) {
             jobMapperFilter.setJobIds(jobIds);
         }

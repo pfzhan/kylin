@@ -28,8 +28,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.common.ShellExecutable;
@@ -286,5 +289,21 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     private Set<String> normalizeGarbages(Set<StorageCleaner.StorageItem> items) {
         return items.stream().map(i -> i.getPath().replaceAll("file:", "").replaceAll("/keep", ""))
                 .collect(Collectors.toSet());
+    }
+
+    @Test
+    public void testCollectDropTemporaryTransactionTable() throws Exception {
+        KylinConfig config = getTestConfig();
+        String dir = config.getJobTmpTransactionalTableDir("default", "invalid");
+        Path path = new Path(dir);
+        FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
+        if (!fileSystem.exists(path)) {
+            fileSystem.mkdirs(path);
+            fileSystem.setPermission(path, new FsPermission((short) 00777));
+            path = new Path(dir + "/SSB.CUSTOMER_HIVE_TX_INTERMEDIATE5c5851ef8544");
+            fileSystem.createNewFile(path);
+        }
+        new StorageCleaner(true, Collections.singletonList("default")).execute();
+        new StorageCleaner(true, Collections.singletonList("default")).execute();
     }
 }

@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -58,7 +59,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.cube.model.LayoutPartition;
@@ -72,8 +72,6 @@ import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.tool.util.ProjectTemporaryTableCleanerHelper;
 
 import com.google.common.collect.Lists;
@@ -152,15 +150,14 @@ public class StorageCleaner {
                 .filter(projectInstance -> projectNames.isEmpty() || projectNames.contains(projectInstance.getName()))
                 .collect(Collectors.toList());
 
-        for (ProjectInstance project : projects) {
-            val dataflows = NDataflowManager.getInstance(config, project.getName()).listAllDataflows();
-            for (NDataflow dataflow : dataflows) {
-                KapConfig kapConfig = KapConfig.wrap(dataflow.getConfig());
-                String hdfsWorkingDir = kapConfig.getMetadataWorkingDirectory();
-                val fs = HadoopUtil.getWorkingFileSystem();
-                allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(fs), hdfsWorkingDir));
-            }
-        }
+        projects.stream().map(project -> NDataflowManager.getInstance(config, project.getName()).listAllDataflows())
+                .flatMap(Collection::stream)
+                .map(dataflow -> KapConfig.wrap(dataflow.getConfig()))
+                .map(KapConfig::getMetadataWorkingDirectory)
+                .forEach(hdfsWorkingDir -> {
+                    val fs = HadoopUtil.getWorkingFileSystem();
+                    allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(fs), hdfsWorkingDir));
+                });
         allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(HadoopUtil.getWorkingFileSystem()),
                 config.getHdfsWorkingDirectory()));
         log.info("all file systems are {}", allFileSystems);
@@ -231,11 +228,10 @@ public class StorageCleaner {
     }
 
     public void collect(String project) {
-        log.info("collect garbage for {}", project);
-        val projectTemporaryTableCleaner = new ProjectTemporaryTableCleaner(project);
-        projectTemporaryTableCleaner.execute();
-        val projectCleaner = new ProjectStorageCleaner(project);
-        projectCleaner.execute();
+        log.info("collect garbage for project: {}", project);
+        new ProjectStorageCleaner(project).execute();
+        log.info("clean temporary table for project: {}", project);
+        new ProjectTemporaryTableCleaner(project).execute();
     }
 
     public boolean cleanup() throws Exception {
@@ -253,6 +249,9 @@ public class StorageCleaner {
             stats.onAllStart(outdatedItems);
             for (StorageItem item : outdatedItems) {
                 log.debug("try to delete {}", item.getPath());
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException();
+                }
                 try {
                     stats.onItemStart(item);
                     item.getFs().delete(new Path(item.getPath()), true);
@@ -732,16 +731,8 @@ public class StorageCleaner {
         }
 
         public void execute() {
-            val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            List<AbstractExecutable> projectAllJobs = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project)
-                    .stream().map(executablePO -> executableManager.fromPO(executablePO)).collect(Collectors.toList());
-            Set<String> activeJobs = projectAllJobs.stream().map(e -> project + JOB_TMP_ROOT + "/" + e.getId())
-                    .collect(Collectors.toSet());
             List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();
-            Set<String> discardJobs = projectAllJobs.stream()
-                    .filter(e -> e.getStatusInMem() == ExecutableState.DISCARDED)
-                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
-            doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps, activeJobs, discardJobs));
+            doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps));
         }
 
 
@@ -758,22 +749,25 @@ public class StorageCleaner {
             }
         }
 
-        public String collectDropTemporaryTransactionTable(List<FileTreeNode> jobTemps, Set<String> activeJobs,
-                Set<String> discardJobs) {
+        public String collectDropTemporaryTransactionTable(List<FileTreeNode> jobTemps) {
             String result = "";
             try {
-                Set<String> availableJobs = activeJobs.stream().filter(jobPath -> !discardJobs.contains(jobPath))
-                        .collect(Collectors.toSet());
-                jobTemps.removeIf(node -> availableJobs.contains(node.getRelativePath()));
+                KylinConfig config = KylinConfig.getInstanceFromEnv();
+                Set<String> jobTempTables = jobTemps.stream()
+                        .map(node -> tableCleanerHelper.getJobTransactionalTable(project, node.getName()))
+                        .flatMap(Collection::stream).collect(Collectors.toSet());
 
-                if (tableCleanerHelper.isNeedClean(jobTemps.isEmpty(), discardJobs.isEmpty())) {
-                    // The key of the map object is database, and the value is a table name list
-                    ISourceMetadataExplorer explr = SourceFactory
-                            .getSource(
-                                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project))
-                            .getSourceMetadataExplorer();
-                    result = tableCleanerHelper.collectDropDBTemporaryTableCmd(KylinConfig.getInstanceFromEnv(), explr,
-                            jobTemps, discardJobs);
+                List<ExecutablePO> discardedExecutablePOs = JobMetadataBaseInvoker.getInstance().getExecutablePOsByStatus(project,
+                        ExecutableState.DISCARDED);
+                ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
+                Set<String> discardTempTables = discardedExecutablePOs.stream()
+                        .map(executablePO -> executableManager.fromPO(executablePO))
+                        .map(e -> tableCleanerHelper.getJobTransactionalTable(project, e.getId()))
+                        .flatMap(Collection::stream).collect(Collectors.toSet());
+                jobTempTables.addAll(discardTempTables);
+
+                if (CollectionUtils.isNotEmpty(jobTempTables) && config.isReadTransactionalTableEnabled()) {
+                    result = tableCleanerHelper.getDropTmpTableCmd(project, jobTempTables);
                 }
             } catch (Exception exception) {
                 log.error("Failed to delete temporary tables.", exception);

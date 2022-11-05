@@ -24,11 +24,14 @@ import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 
 import java.io.IOException;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.ScheduleService;
 import org.apache.kylin.rest.service.SystemService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.tool.util.ToolUtil;
@@ -55,6 +58,9 @@ public class NSystemController extends NBasicController {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private ScheduleService scheduleService;
 
     @VisibleForTesting
     public void setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -105,6 +111,14 @@ public class NSystemController extends NBasicController {
                 return index;
             }, project);
         }
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "cleanup garbage", tags = { "MID" })
+    @PostMapping(value = "/do_cleanup_garbage")
+    @ResponseBody
+    public EnvelopeResponse<String> doCleanupGarbage(final HttpServletRequest request) throws Exception {
+        scheduleService.routineTask();
         return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
     }
 }

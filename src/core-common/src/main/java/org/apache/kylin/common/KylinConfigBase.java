@@ -3558,4 +3558,9 @@ public abstract class KylinConfigBase implements Serializable {
     public int getContainerMinCore() {
         return Integer.parseInt(this.getOptional("kylin.container.minimum-allocation-vcores", "1"));
     }
+
+    public long getRoutineOpsTaskTimeOut() {
+        return TimeUtil.timeStringAs(getOptional("kylin.metadata.ops-cron-timeout", "4h"),
+                TimeUnit.MILLISECONDS);
+    }
 }

@@ -47,7 +47,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -140,6 +143,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.SneakyThrows;
 import lombok.val;
 
 @Component("projectService")
@@ -339,8 +343,8 @@ public class ProjectService extends BasicService {
         return response;
     }
 
-    public void garbageCleanup() {
-
+    @SneakyThrows
+    public void garbageCleanup(long remainingTime) {
         try (SetThreadName ignored = new SetThreadName("GarbageCleanupWorker")) {
             // clean up acl
             cleanupAcl();
@@ -348,12 +352,14 @@ public class ProjectService extends BasicService {
             val projectManager = NProjectManager.getInstance(config);
             val epochMgr = EpochManager.getInstance();
             for (ProjectInstance project : projectManager.listAllProjects()) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("Thread is interrupted: " + Thread.currentThread().getName());
+                }
                 if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName()))
                     continue;
-                logger.info("Start to cleanup garbage  for project<{}>", project.getName());
+                logger.info("Start to cleanup garbage for project<{}>", project.getName());
                 try {
-                    projectSmartService.cleanupGarbage(project.getName());
-                    updateStatMetaImmediately(project.getName());
+                    updateStatMetaImmediately(project.getName(), remainingTime);
                     GarbageCleaner.cleanMetadata(project.getName());
                     EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
                 } catch (Exception e) {
@@ -392,7 +398,6 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws Exception {
-        projectSmartService.cleanupGarbage(project);
         updateStatMetaImmediately(project);
         GarbageCleaner.cleanMetadata(project);
         asyncTaskService.cleanupStorage();
@@ -825,7 +830,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public String backupProject(String project) throws Exception {
+    public String backupProject(String project) throws IOException {
         return metadataBackupService.backupProject(project);
     }
 
@@ -1070,6 +1075,32 @@ public class ProjectService extends BasicService {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             logger.error("updateStatMeta failed", e);
+        }
+    }
+
+    public void updateStatMetaImmediately(String project, long remainingTime) {
+        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+            waitFuture(future, remainingTime, "updateStatMeta");
+        }
+    }
+
+    public void waitFuture(Future<?> future, long remainingTime, String msg) {
+        try {
+            if (remainingTime == 0) {
+                future.get();
+            } else {
+                future.get(remainingTime, TimeUnit.MILLISECONDS);
+            }
+        } catch (InterruptedException e) {
+            logger.error("{} failed with interruption", msg, e);
+            Thread.currentThread().interrupt();
+        } catch (TimeoutException | ExecutionException e) {
+            logger.error("{} failed with exception", msg, e);
+            future.cancel(true);
+        } catch (Exception e) {
+            logger.error("{} failed", msg, e);
         }
     }
 }
