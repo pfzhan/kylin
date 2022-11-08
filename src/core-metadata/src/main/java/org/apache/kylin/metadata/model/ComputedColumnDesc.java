@@ -216,7 +216,7 @@ public class ComputedColumnDesc implements Serializable {
         setExpression(sqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString());
     }
 
-    public String getUniqueContext() {
+    public String getUniqueContent() {
         return String.format("%s_%s", innerExpression, tableIdentity);
     }
 
