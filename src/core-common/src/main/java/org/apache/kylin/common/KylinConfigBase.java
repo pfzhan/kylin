@@ -3560,7 +3560,14 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getRoutineOpsTaskTimeOut() {
-        return TimeUtil.timeStringAs(getOptional("kylin.metadata.ops-cron-timeout", "4h"),
-                TimeUnit.MILLISECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.metadata.ops-cron-timeout", "4h"), TimeUnit.MILLISECONDS);
+    }
+
+    public String getKubernetesUploadPath() {
+        return getOptional(getKubernetesUploadPathKey());
+    }
+
+    public String getKubernetesUploadPathKey() {
+        return "kylin.engine.spark-conf.spark.kubernetes.file.upload.path";
     }
 }

@@ -66,6 +66,7 @@ import org.apache.kylin.engine.spark.job.SegmentBuildJob;
 import org.apache.kylin.engine.spark.job.SparkJobConstants;
 import org.apache.kylin.engine.spark.job.UdfManager;
 import org.apache.kylin.engine.spark.scheduler.ClusterMonitor;
+import org.apache.kylin.engine.spark.utils.HDFSUtils;
 import org.apache.kylin.engine.spark.utils.JobMetricsUtils;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -114,6 +115,7 @@ public abstract class SparkApplication implements Application {
     protected String project;
     protected int layoutSize = -1;
     protected BuildJobInfos infos;
+
     /**
      * path for spark app args on HDFS
      */
@@ -374,6 +376,14 @@ public abstract class SparkApplication implements Application {
     }
 
     public void extraDestroy() {
+        if (config != null && StringUtils.isNotEmpty(config.getKubernetesUploadPath())) {
+            logger.info("uploadPath={}", config.getKubernetesUploadPath());
+            try {
+                HDFSUtils.deleteMarkFile(config.getKubernetesUploadPath());
+            } catch (Exception e) {
+                logger.warn("Failed to delete " + config.getKubernetesUploadPath(), e);
+            }
+        }
         if (clusterMonitor != null) {
             clusterMonitor.shutdown();
         }

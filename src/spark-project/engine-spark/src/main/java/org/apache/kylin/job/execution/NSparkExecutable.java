@@ -378,6 +378,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                 jobOverrides.put(KylinConfig.getInstanceFromEnv().getQueueKey(), yarnQueue);
             }
         }
+
+        String path = kylinConfigExt.getKubernetesUploadPath();
+        if (StringUtils.isNotEmpty(path)) {
+            jobOverrides.put(kylinConfigExt.getKubernetesUploadPathKey(),
+                    path + "/" + StringUtils.defaultIfBlank(parentId, getId()));
+        }
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
@@ -734,7 +740,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             }
 
             sparkConf.put("spark.kerberos.principal", kapConf.getKerberosPrincipal());
-            sparkConf.put("spark.kerberos.keytab", KEYTAB_FILE_WITH_CLUSTER_ON_K8S + "/" +kapConf.getKerberosKeytab());
+            sparkConf.put("spark.kerberos.keytab", KEYTAB_FILE_WITH_CLUSTER_ON_K8S + "/" + kapConf.getKerberosKeytab());
             sparkConf.put("spark.kubernetes.kerberos.krb5.path", KRB5_CONF_WITH_CLUSTER_ON_K8S);
         } else {
             // Yarn client will upload the related file automatically.

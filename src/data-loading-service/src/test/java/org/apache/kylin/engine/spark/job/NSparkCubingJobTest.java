@@ -624,13 +624,14 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         val project = "default";
         NSparkExecutable executable = new NSparkExecutable();
         executable.setProject(project);
-
         NProjectManager.getInstance(getTestConfig()).updateProject(project, copyForWrite -> {
             LinkedHashMap<String, String> overrideKylinProps = copyForWrite.getOverrideKylinProps();
             overrideKylinProps.put("kylin.engine.spark-conf.spark.locality.wait", "10");
+            overrideKylinProps.put("kylin.engine.spark-conf.spark.kubernetes.file.upload.path", "/tmp");
         });
         // get SparkConfigOverride from project overrideProps
         KylinConfig config = executable.getConfig();
+        Assert.assertEquals("/tmp/" + executable.getId(), config.getKubernetesUploadPath());
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.locality.wait"));
@@ -771,8 +772,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         final String project = getProject();
         final KylinConfig config = getTestConfig();
         final String dfId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        overwriteSystemProp("kylin.engine.spark.build-class-name",
-                "MockResumeBuildJob");
+        overwriteSystemProp("kylin.engine.spark.build-class-name", "MockResumeBuildJob");
         // prepare segment
         final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
         final ExecutableManager execMgr = ExecutableManager.getInstance(config, project);
@@ -953,8 +953,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 throw new RuntimeException(e);
             }
             if (engineInterface == clz) {
-                return (I) ClassUtil
-                        .newInstance("NSparkCubingJobTest$MockParquetStorage");
+                return (I) ClassUtil.newInstance("NSparkCubingJobTest$MockParquetStorage");
             } else {
                 throw new RuntimeException("Cannot adapt to " + engineInterface);
             }

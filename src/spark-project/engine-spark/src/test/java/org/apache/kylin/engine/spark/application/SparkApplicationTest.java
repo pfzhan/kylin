@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.engine.spark.job.KylinBuildEnv;
@@ -45,6 +46,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -131,8 +133,7 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTestBase {
         Mockito.reset(report);
         Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
                 .getTrackingUrl(null, ss);
-        Mockito.doReturn(Boolean.FALSE).when(report).updateSparkJobInfo(params,
-                "/kylin/api/jobs/spark", payloadJson);
+        Mockito.doReturn(Boolean.FALSE).when(report).updateSparkJobInfo(params, "/kylin/api/jobs/spark", payloadJson);
         Assert.assertFalse(report.updateSparkJobExtraInfo(params, "/kylin/api/jobs/spark", "test_job_output",
                 "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
@@ -185,6 +186,24 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTestBase {
         tableRefs.add(tableRef);
         nDataModel2.setAllTableRefs(tableRefs);
         Assert.assertTrue(sparkApplication.checkRangePartitionTableIsExist(nDataModel2));
+    }
+
+    @Test
+    public void testExtraDestroy() throws IOException {
+        KylinConfig config = getTestConfig();
+        String path = tempDir.getPath() + "/upload";
+        SparkApplication application = new SparkApplication() {
+            @Override
+            protected void doExecute() {
+            }
+        };
+        File upload = new File(path);
+        FileUtils.forceMkdir(upload);
+        Assert.assertTrue(upload.exists());
+        config.setProperty(config.getKubernetesUploadPathKey(), path);
+        ReflectionTestUtils.setField(application, "config", config);
+        application.extraDestroy();
+        Assert.assertFalse(upload.exists());
     }
 
 }
