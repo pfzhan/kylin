@@ -940,6 +940,8 @@ class KylinConfigBaseTest {
                 new PropertiesEntity("kylin.metrics.hdfs-periodic-calculation-interval", "5m", 300000L));
         map.put("isSkipResourceCheck",
                 new PropertiesEntity("kylin.build.resource.skip-resource-check", "false", false));
+        map.put("isSkipFlatTableCount",
+                new PropertiesEntity("kylin.build.skip-flattable-count", "false", false));
     }
 
     @Test
@@ -1388,6 +1390,15 @@ class KylinConfigBaseTest {
         val sub1 = config.getSubstitutor();
         val sub2 = config.getSubstitutor();
         Assertions.assertSame(sub1, sub2);
+    }
+
+    @Test
+    void testIsBuildSegmentOverlapEnabled() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.build.segment-overlap-enabled", "false");
+        assertFalse(config.isBuildSegmentOverlapEnabled());
+        config.setProperty("kylin.build.segment-overlap-enabled", "true");
+        assertTrue(config.isBuildSegmentOverlapEnabled());
     }
 }
 

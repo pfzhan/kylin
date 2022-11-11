@@ -17,6 +17,7 @@
  */
 package org.apache.kylin.job.common;
 
+import static org.apache.kylin.job.execution.JobTypeEnum.INC_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SUB_PARTITION_BUILD;
 
@@ -71,12 +72,13 @@ public class SegmentUtil {
         Segments<T> overlapSegs = segments.getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
         if (SegmentStatusEnum.NEW == segment.getStatus()) {
-            if (CollectionUtils.isEmpty(overlapSegs)) {
-                return SegmentStatusEnumToDisplay.LOADING;
+            if (!CollectionUtils.isEmpty(overlapSegs)
+                    && overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
+                return SegmentStatusEnumToDisplay.REFRESHING;
             }
 
-            if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
-                return SegmentStatusEnumToDisplay.REFRESHING;
+            if (CollectionUtils.isEmpty(overlapSegs) || anyIndexJobRunning(segment, executables)) {
+                return SegmentStatusEnumToDisplay.LOADING;
             }
 
             return SegmentStatusEnumToDisplay.MERGING;
@@ -110,7 +112,7 @@ public class SegmentUtil {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
         List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
-                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
+                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD, INC_BUILD);
         return executablePOS.stream().map(execManager::fromPO)
                 .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }
