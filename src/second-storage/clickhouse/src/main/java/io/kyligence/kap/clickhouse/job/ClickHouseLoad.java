@@ -572,7 +572,10 @@ public class ClickHouseLoad extends AbstractExecutable {
                 .filter(segment -> segment.getStatus() == SegmentStatusEnum.NEW)
                 .peek(segment -> segment.setStatus(SegmentStatusEnum.READY)).collect(Collectors.toList());
 
-        if (!toUpdateSegments.isEmpty()){
+        if (!toUpdateSegments.isEmpty()) {
+            val toRemoveSegments = toUpdateSegments.stream()
+                    .flatMap(segment -> dfMgr.getToRemoveSegs(dataflow, segment).stream()).toArray(NDataSegment[]::new);
+            update.setToRemoveSegs(toRemoveSegments);
             update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
             dfMgr.updateDataflowWithoutIndex(update);
         }
