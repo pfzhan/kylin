@@ -109,6 +109,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.event.ModelAddEvent;
 import org.apache.kylin.common.event.ModelDropEvent;
 import org.apache.kylin.common.exception.JobErrorCode;
@@ -317,6 +318,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     public static final String VALID_NAME_FOR_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）.]+$";
 
     private static final List<String> MODEL_CONFIG_BLOCK_LIST = Lists.newArrayList("kylin.index.rule-scheduler-data");
+    private static final Set<String> STRING_TYPE_SET = Sets.newHashSet("STRING", "CHAR", "VARCHAR");
 
     //The front-end supports only the following formats
     private static final List<String> SUPPORTED_FORMATS = ImmutableList.of("ZZ", "DD", "D", "Do", "dddd", "ddd", "dd", //
@@ -1794,8 +1796,9 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
     @VisibleForTesting
     public void checkFlatTableSql(NDataModel dataModel) {
-        if (KylinConfig.getInstanceFromEnv().isUTEnv() || getManager(NProjectManager.class)
-                .getProject(dataModel.getProject()).getConfig().isSkipCheckFlatTable()) {
+        String project = dataModel.getProject();
+        ProjectInstance prjInstance = getManager(NProjectManager.class).getProject(project);
+        if (KylinConfig.getInstanceFromEnv().isUTEnv() || prjInstance.getConfig().isSkipCheckFlatTable()) {
             return;
         }
         if (getModelConfig(dataModel).skipCheckFlatTable()) {
@@ -1809,15 +1812,13 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
 
         try {
-            ProjectInstance projectInstance = getManager(NProjectManager.class).getProject(dataModel.getProject());
-            if (projectInstance.getSourceType() == ISourceAware.ID_SPARK
+            if (prjInstance.getSourceType() == ISourceAware.ID_SPARK
                     && dataModel.getModelType() == NDataModel.ModelType.BATCH) {
                 SparkSession ss = SparderEnv.getSparkSession();
                 String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-                QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
-                queryParams.setKylinConfig(projectInstance.getConfig());
-                queryParams.setAclInfo(
-                        AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
+                QueryParams queryParams = new QueryParams(project, flatTableSql, "default", false);
+                queryParams.setKylinConfig(prjInstance.getConfig());
+                queryParams.setAclInfo(AclPermissionUtil.createAclInfo(project, getCurrentUserGroups()));
                 String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
                 ss.sql(pushdownSql);
             }
@@ -2367,27 +2368,38 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
     }
 
-    @VisibleForTesting
-    public void checkModelMeasures(ModelRequest request) {
-        Set<String> measureNames = new HashSet<>();
-        Set<SimplifiedMeasure> measures = new HashSet<>();
-        KylinConfig kylinConfig = getManager(NProjectManager.class).getProject(request.getProject()).getConfig();
-        int maxModelDimensionMeasureNameLength = kylinConfig.getMaxModelDimensionMeasureNameLength();
-
+    private void checkMeasureNameValid(ModelRequest request) {
+        int maxLen = NProjectManager.getProjectConfig(request.getProject()).getMaxModelDimensionMeasureNameLength();
+        String invalidPattern = MsgPicker.getMsg().getInvalidMeasureName();
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
-            measure.setName(StringUtils.trim(measure.getName()));
-            // check if the measure name is valid
-            if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
-                    || !checkIsValidMeasureName(measure.getName()))
-                throw new KylinException(INVALID_NAME,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMeasureName(), measure.getName(),
-                                maxModelDimensionMeasureNameLength));
+            String name = measure.getName();
+            if (StringUtils.length(name) <= maxLen && checkIsValidMeasureName(name)) {
+                continue;
+            }
+            throw new KylinException(INVALID_NAME, String.format(Locale.ROOT, invalidPattern, name, maxLen));
+        }
+    }
 
-            // check duplicate measure names
-            if (measureNames.contains(measure.getName()))
+    private void checkMeasureNameDuplicate(ModelRequest modelRequest) {
+        Set<String> measureNames = Sets.newHashSet();
+        for (SimplifiedMeasure measure : modelRequest.getSimplifiedMeasures()) {
+            if (measureNames.contains(measure.getName())) {
                 throw new KylinException(DUPLICATE_MEASURE_NAME,
                         String.format(Locale.ROOT, MsgPicker.getMsg().getDuplicateMeasureName(), measure.getName()));
+            } else {
+                measureNames.add(measure.getName());
+            }
+        }
+    }
 
+    @VisibleForTesting
+    public void checkModelMeasures(ModelRequest request) {
+        Set<SimplifiedMeasure> measures = new HashSet<>();
+        request.getSimplifiedMeasures().forEach(measure -> measure.setName(StringUtils.trim(measure.getName())));
+        checkMeasureNameValid(request);
+        checkMeasureNameDuplicate(request);
+
+        for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             // check duplicate measure definitions
             SimplifiedMeasure dupMeasure = null;
             for (SimplifiedMeasure m : measures) {
@@ -2411,7 +2423,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                         MsgPicker.getMsg().getDuplicateMeasureDefinition(), measure.getName()));
             }
 
-            measureNames.add(measure.getName());
             measures.add(measure);
         }
     }
@@ -2863,7 +2874,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         checkCCNameAmbiguity(model);
         ComputedColumnDesc checkedCC = null;
 
-        Set<String> excludedTables = FavoriteRuleManager.getInstance(project).getExcludedTables();
+        QueryContext.AclInfo aclInfo = AclPermissionUtil.createAclInfo(project, getCurrentUserGroups());
+        Set<String> excludedTables = getManager(FavoriteRuleManager.class, project).getExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
@@ -2878,8 +2890,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                             MsgPicker.getMsg().getccOnAntiFlattenLookup(), antiFlattenLookup));
                 }
                 ComputedColumnDesc.simpleParserCheck(cc.getExpression(), model.getAliasMap().keySet());
-                String innerExpression = QueryUtil.massageComputedColumn(model, project, cc,
-                        AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
+                String innerExpression = QueryUtil.massageComputedColumn(model, project, cc, aclInfo);
                 cc.setInnerExpression(innerExpression);
 
                 //check by data source, this could be slow
@@ -2979,9 +2990,9 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         checkCCNameAmbiguity(model);
 
         // Update CC expression from query transformers
+        QueryContext.AclInfo aclInfo = AclPermissionUtil.createAclInfo(project, getCurrentUserGroups());
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
-            String ccExpression = QueryUtil.massageComputedColumn(model, project, ccDesc,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
+            String ccExpression = QueryUtil.massageComputedColumn(model, project, ccDesc, aclInfo);
             ccDesc.setInnerExpression(ccExpression);
             TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
             tblColRef.getColumnDesc().setComputedColumn(ccExpression);
@@ -3871,7 +3882,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
 
         String massagedFilterCond = QueryUtil.massageExpression(model, model.getProject(), model.getFilterCondition(),
-                AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()), false);
+                AclPermissionUtil.createAclInfo(model.getProject(), getCurrentUserGroups()), false);
 
         String filterConditionWithTableName = addTableNameIfNotExist(massagedFilterCond, model);
 
@@ -4125,7 +4136,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     }
 
     public NDataModel updateResponseAcl(NDataModel model, String project) {
-        List<NDataModel> models = updateResponseAcl(Arrays.asList(model), project);
+        List<NDataModel> models = updateResponseAcl(Collections.singletonList(model), project);
         return models.get(0);
     }
 
@@ -4177,8 +4188,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
     }
 
-    private static final Set<String> StringTypes = Sets.newHashSet("STRING", "CHAR", "VARCHAR");
-
     private boolean matchCCDataType(String actual, String expected) {
         if (actual == null) {
             return false;
@@ -4187,8 +4196,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         actual = actual.toUpperCase(Locale.ROOT);
         expected = expected.toUpperCase(Locale.ROOT);
         // char, varchar, string are of the same
-        if (StringTypes.contains(actual)) {
-            return StringTypes.contains(expected);
+        if (STRING_TYPE_SET.contains(actual)) {
+            return STRING_TYPE_SET.contains(expected);
         }
 
         // if actual type is of decimal type with no prec, scala
