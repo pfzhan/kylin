@@ -50,6 +50,7 @@ import org.apache.kylin.metadata.query.StructField;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.engine.data.QueryResult;
+import org.apache.kylin.query.exception.NotSupportedSQLException;
 import org.apache.kylin.query.mask.QueryResultMasks;
 import org.apache.kylin.query.relnode.OLAPContext;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -82,6 +83,7 @@ public class QueryRoutingEngine {
         queryParams.setDefaultSchema(queryExec.getDefaultSchemaName());
 
         if (queryParams.isForcedToPushDown()) {
+            checkContainsSumLC(queryParams, null);
             return pushDownQuery(null, queryParams);
         }
 
@@ -130,6 +132,7 @@ public class QueryRoutingEngine {
             if (cause instanceof SQLException && cause.getCause() instanceof KylinException) {
                 throw (SQLException)cause;
             }
+            checkContainsSumLC(queryParams, e);
             if (shouldPushdown(cause, queryParams)) {
                 return pushDownQuery((SQLException) cause, queryParams);
             } else {
@@ -148,6 +151,7 @@ public class QueryRoutingEngine {
                     }
                 }
             }
+            checkContainsSumLC(queryParams, e);
             if (shouldPushdown(e, queryParams)) {
                 return pushDownQuery(e, queryParams);
             } else {
@@ -167,6 +171,17 @@ public class QueryRoutingEngine {
             return true;
         }
         return false;
+    }
+
+    private void checkContainsSumLC(QueryParams queryParams, Throwable t) {
+        if (queryParams.getSql().contains("sum_lc")) {
+            String message = "There is no aggregate index to answer this query, sum_lc() function now is not supported by other query engine";
+            if (t != null) {
+                throw new NotSupportedSQLException(message, t);
+            } else {
+                throw new NotSupportedSQLException(message);
+            }
+        }
     }
 
     private boolean shouldPushdown(Throwable e, QueryParams queryParams) {

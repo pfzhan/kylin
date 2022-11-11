@@ -20,6 +20,7 @@ package org.apache.kylin.common.asyncprofiler
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.kylin.common.asyncprofiler.Message._
+import org.apache.kylin.common.util.ExecutorServiceUtil
 import org.apache.spark.api.plugin.{ExecutorPlugin, PluginContext}
 import org.apache.spark.internal.Logging
 
@@ -80,4 +81,8 @@ class AsyncProfilerExecutorPlugin extends ExecutorPlugin with Logging {
     ctx.send(msg)
   }
 
+  override def shutdown(): Unit = {
+    ExecutorServiceUtil.shutdownGracefully(scheduledExecutorService, 3)
+    super.shutdown()
+  }
 }
