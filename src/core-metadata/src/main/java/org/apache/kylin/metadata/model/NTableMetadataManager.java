@@ -218,6 +218,10 @@ public class NTableMetadataManager {
         return getOrCreateTableExt(t);
     }
 
+    public boolean isTableExtExist(String tableIdentity) {
+        return getTableExtIfExists(getTableDesc(tableIdentity)) != null;
+    }
+
     public TableExtDesc getOrCreateTableExt(TableDesc t) {
         TableExtDesc result = srcExtCrud.get(t.getIdentity());
 
@@ -266,6 +270,14 @@ public class NTableMetadataManager {
             copyForWrite.setOriginalSize(other.getOriginalSize());
         }
         saveTableExt(copyForWrite);
+    }
+
+    public void saveOrUpdateTableExt(boolean isUpdate, TableExtDesc tableExt) {
+        if (isUpdate) {
+            mergeAndUpdateTableExt(tableExt, tableExt);
+        } else {
+            saveTableExt(tableExt);
+        }
     }
 
     public void removeTableExt(String tableName) {

@@ -37,9 +37,9 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.ModifyTableNameSqlVisitor;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,9 +210,11 @@ public class ComputedColumnDesc implements Serializable {
         return innerExpression;
     }
 
-
     public String getUniqueContent() {
         return String.format("%s_%s", innerExpression, tableIdentity);
     }
 
+    public boolean isAutoCC() {
+        return getColumnName().startsWith(ComputedColumnUtil.CC_NAME_PREFIX);
+    }
 }

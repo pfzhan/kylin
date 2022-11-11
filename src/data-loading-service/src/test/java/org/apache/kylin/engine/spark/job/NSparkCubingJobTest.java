@@ -83,6 +83,7 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.rest.service.merger.AfterBuildResourceMerger;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
+import org.apache.kylin.util.MetadataTestUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -96,14 +97,11 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sparkproject.guava.collect.Sets;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import lombok.val;
 import scala.Option;
 import scala.runtime.AbstractFunction1;
@@ -332,12 +330,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             Assert.assertNull(layout);
         }
 
-        // add ExcludedTables
-        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(df.getProject());
-        List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
-        //        isEnabled = request.isExcludeTablesEnable();
-        conds.add(new FavoriteRule.Condition(null, df.getModel().getRootFactTableName()));
-        ruleManager.updateRule(conds, true, FavoriteRule.EXCLUDED_TABLES_RULE);
+        // add ExcludedTable
+        MetadataTestUtils.mockExcludedTable(getProject(), df.getModel().getRootFactTableName());
 
         // Round1. Build new segment
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",

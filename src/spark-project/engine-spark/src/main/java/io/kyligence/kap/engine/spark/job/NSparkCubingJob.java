@@ -63,7 +63,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
@@ -177,12 +176,6 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
         job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
-        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(df.getProject());
-        Set<String> excludedTables = ruleManager.getExcludedTables();
-        // if excludedTables contains factTable, remove factTable in excludedTables
-        val rootFactTableName = df.getModel().getRootFactTableName();
-        excludedTables.remove(rootFactTableName);
-        job.setParam(NBatchConstants.P_EXCLUDED_TABLES, String.join(",", excludedTables));
         if (CollectionUtils.isNotEmpty(ignoredSnapshotTables)) {
             job.setParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES, String.join(",", ignoredSnapshotTables));
         }

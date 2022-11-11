@@ -42,6 +42,7 @@ import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.delegate.JobMetadataContract;
 import org.apache.kylin.rest.delegate.JobMetadataInvoker;
@@ -71,7 +72,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.clickhouse.MockSecondStorage;
-import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -131,8 +131,8 @@ public class TableReloadServiceWithSecondStorageTest extends NLocalFileMetadataT
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "expandableMeasureUtil",
                 new ExpandableMeasureUtil((model, ccDesc) -> {
-                    String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
-                            AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(),
+                    String ccExpression = QueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
+                            AclPermissionUtil.createAclInfo(model.getProject(),
                                     semanticService.getCurrentUserGroups()));
                     ccDesc.setInnerExpression(ccExpression);
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);

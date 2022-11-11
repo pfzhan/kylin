@@ -173,7 +173,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
         cleanupTestMetadata();
     }
 
-    //    @Ignore("TODO: re-run to check.")
     @Test
     public void testQueryModels() {
         String project = "streaming_test";
@@ -255,7 +254,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
         Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, nDataModelResponse.getStatus());
     }
 
-    //    @Ignore("TODO: re-run to check.")
     @Test
     public void testGetFusionModel() {
         String project = "streaming_test";

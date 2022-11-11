@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.val;
@@ -142,9 +141,6 @@ public class FavoriteRuleManager {
 
     public Set<String> getExcludedTables() {
         FavoriteRule favoriteRule = getOrDefaultByName(FavoriteRule.EXCLUDED_TABLES_RULE);
-        if (!favoriteRule.isEnabled()) {
-            return Sets.newHashSet();
-        }
         FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
         return Arrays.stream(condition.getRightThreshold().split(",")) //
                 .map(table -> table.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
