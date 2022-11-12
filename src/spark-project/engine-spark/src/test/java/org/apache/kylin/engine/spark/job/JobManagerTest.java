@@ -374,7 +374,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         jobContext.setProjectReachQuotaLimit(PROJECT, true);
         JobParam param = new JobParam(Sets.newHashSet(), null, null, "ADMIn", Sets.newHashSet(), null);
         try {
-            jobManager.addJob(param);
+            JobManager.checkStorageQuota(PROJECT);
         } finally {
             JobContextUtil.cleanUp();
             jobContext.setProjectReachQuotaLimit(PROJECT, true);

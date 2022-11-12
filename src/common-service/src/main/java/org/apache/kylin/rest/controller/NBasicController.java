@@ -85,7 +85,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -190,7 +189,7 @@ public class NBasicController {
         if (kylinException != null) {
             cause = kylinException;
         }
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
+        return new ErrorResponse(req.getRequestURL().toString(), cause);
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -198,7 +197,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleForbidden(HttpServletRequest req, Exception ex) {
         getLogger().error("", ex);
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
+        return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -206,7 +205,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleNotFound(HttpServletRequest req, Exception ex) {
         getLogger().error("", ex);
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
+        return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -230,7 +229,7 @@ public class NBasicController {
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
         KylinException e = new KylinException(ACCESS_DENIED, MsgPicker.getMsg().getAccessDeny());
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
+        return new ErrorResponse(req.getRequestURL().toString(), e);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -240,7 +239,7 @@ public class NBasicController {
     ErrorResponse handleInvalidRequestParam(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(INVALID_PARAMETER, ex);
         getLogger().error("", e);
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
+        return new ErrorResponse(req.getRequestURL().toString(), e);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -249,7 +248,7 @@ public class NBasicController {
     ErrorResponse handleErrorCode(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
         KylinException cause = (KylinException) ex;
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
+        return new ErrorResponse(req.getRequestURL().toString(), cause);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -258,7 +257,7 @@ public class NBasicController {
     FeignErrorResponse handleFeignRpcException(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
         FeignRpcException cause = (FeignRpcException) ex;
-        String msg = "Exception happened when using feign rpc: " + Unsafe.getUrlFromHttpServletRequest(req);
+        String msg = "Exception happened when using feign rpc: " + req.getRequestURL().toString();
         return new FeignErrorResponse(msg, cause.getExceptionSerialized());
     }
 
@@ -266,7 +265,7 @@ public class NBasicController {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
     ErrorResponse handleInvalidArgument(HttpServletRequest request, MethodArgumentNotValidException ex) {
-        val response = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(request), ex);
+        val response = new ErrorResponse(request.getRequestURL().toString(), ex);
         val target = ex.getBindingResult().getTarget();
         if (target instanceof Validation) {
             response.setMsg(((Validation) target).getErrorMessage(ex.getBindingResult().getFieldErrors()));
@@ -284,7 +283,7 @@ public class NBasicController {
     ErrorResponse handleUnauthorized(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(USER_UNAUTHORIZED, ex);
         getLogger().error("", e);
-        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
+        return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {

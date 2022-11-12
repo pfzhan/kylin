@@ -29,7 +29,7 @@
 
     <name>Kylin - Engine Build SDK</name>
     <artifactId>kylin-engine-build-sdk</artifactId>
-
+    <name>Kylin - Build Engine Sdk</name>
 
     <dependencies>
         <dependency>
