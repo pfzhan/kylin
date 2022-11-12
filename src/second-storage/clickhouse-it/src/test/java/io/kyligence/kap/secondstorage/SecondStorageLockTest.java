@@ -626,35 +626,6 @@ public class SecondStorageLockTest implements JobWaiter {
     }
 
     @Test
-    public void testBuildSegmentAllReadyContainSubSegment() throws Exception {
-        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
-            wrapWithKylinConfigMode("ANY", "DAG", () -> {
-                final String catalog = "default";
-
-                Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
-                Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
-
-                val clickhouse = new JdbcDatabaseContainer[] { clickhouse1 };
-                int replica = 1;
-                configClickhouseWith(clickhouse, replica, catalog, () -> {
-                    secondStorageService.changeProjectSecondStorageState(getProject(),
-                            SecondStorageNodeHelper.getAllPairs(), true);
-                    Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
-                    secondStorageService.changeModelSecondStorageState(getProject(), modelId, true);
-                    setQuerySession(catalog, clickhouse[0].getJdbcUrl(), clickhouse[0].getDriverClassName());
-
-                    buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
-                    waitAllJobFinish();
-                    buildIncrementalLoadQuery("2012-01-01", "2012-01-04");
-                    waitAllJobFinish();
-                    return null;
-                });
-                return null;
-            });
-        }
-    }
-
-    @Test
     public void testCleanClickhouseDiscardTable() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse()) {
             final String catalog = "default";
