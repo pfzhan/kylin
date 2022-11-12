@@ -24,7 +24,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NA
 import java.io.IOException;
 import java.util.Locale;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -48,6 +47,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import alluxio.shaded.client.org.apache.commons.lang3.StringUtils;
 import io.swagger.annotations.ApiOperation;
 
 @Controller

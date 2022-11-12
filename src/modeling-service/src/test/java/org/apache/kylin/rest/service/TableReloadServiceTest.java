@@ -1645,7 +1645,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("role", roleArn);
     }
 
-    @Test
+    @Test(expected = Exception.class)
     public void testReloadAWSTableCompatibleCrossAccountNeedSample() {
         S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
         prepareTableExt("DEFAULT.TEST_ORDER");

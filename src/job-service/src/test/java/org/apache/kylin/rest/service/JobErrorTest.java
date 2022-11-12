@@ -490,6 +490,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.saveUpdatedJob();
 
         val durationWithoutWaiteTime = executable
                 .getDurationFromStepOrStageDurationSum(ExecutableManager.toPO(executable, getProject()));
@@ -539,6 +540,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
         manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.saveUpdatedJob();
 
         val durationWithoutWaiteTime = executable
                 .getDurationFromStepOrStageDurationSum(ExecutableManager.toPO(executable, getProject()));

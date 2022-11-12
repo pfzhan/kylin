@@ -207,20 +207,11 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                     .addExtParams(NBatchConstants.P_SELECTED_PARTITION_VALUE, value);
             jobIds.add(getManager(SourceUsageManager.class).licenseCheckWrap(project,
                     () -> JobMetadataBaseInvoker.getInstance().addJob(new JobMetadataRequest(jobParam))));
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-                if (tableDesc.isSnapshotHasBroken()
-                        || !StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
-                    TableDesc newTable = tableManager.copyForWrite(tableDesc);
-                    newTable.setSnapshotHasBroken(false);
-                    if (!StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
-                        newTable.setSelectedSnapshotPartitionCol(option.getPartitionCol());
-                    }
-                    tableManager.updateTableDesc(newTable);
-                }
-                return null;
-            }, project);
         }
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            updateTableDesc(project, tables, finalOptions);
+            return null;
+        }, project);
         String jobName = isRefresh ? SNAPSHOT_REFRESH.toString() : SNAPSHOT_BUILD.toString();
         return JobInfoResponse.of(jobIds, jobName);
     }

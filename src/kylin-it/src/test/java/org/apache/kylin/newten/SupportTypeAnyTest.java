@@ -49,4 +49,3 @@ public class SupportTypeAnyTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(0, dataset.collectAsList().size());
     }
 }
-
