@@ -155,6 +155,7 @@ import org.apache.kylin.rest.response.TableNameResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TableRefreshAll;
 import org.apache.kylin.rest.response.TablesAndColumnsResponse;
+import org.apache.kylin.rest.security.ExternalAclProvider;
 import org.apache.kylin.rest.security.KerberosLoginManager;
 import org.apache.kylin.rest.source.DataSourceState;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -214,6 +215,9 @@ public class TableService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private AccessService accessService;
 
     @Autowired
     @Qualifier("kafkaService")
@@ -459,6 +463,8 @@ public class TableService extends BasicService {
         final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         List<NDataModel> healthyModels = projectManager.listHealthyModels(project);
+        Set<String> extPermissionSet = accessService.getUserNormalExtPermissions(project);
+        boolean hasDataQueryPermission = extPermissionSet.contains(ExternalAclProvider.DATA_QUERY);
         for (val originTable : tables) {
             TableDesc table = getAuthorizedTableDesc(project, isAclGreen, originTable, aclTCRS);
             if (Objects.isNull(table)) {
@@ -479,9 +485,11 @@ public class TableService extends BasicService {
             TableExtDesc tableExtDesc = getManager(NTableMetadataManager.class, project).getTableExtIfExists(table);
             if (tableExtDesc != null) {
                 tableDescResponse.setTotalRecords(tableExtDesc.getTotalRows());
-                tableDescResponse.setSamplingRows(tableExtDesc.getSampleRows());
                 tableDescResponse.setJodID(tableExtDesc.getJodID());
-                filterSamplingRows(project, tableDescResponse, isAclGreen, aclTCRS);
+                if (hasDataQueryPermission) {
+                    tableDescResponse.setSamplingRows(tableExtDesc.getSampleRows());
+                    filterSamplingRows(project, tableDescResponse, isAclGreen, aclTCRS);
+                }
             }
 
             if (CollectionUtils.isNotEmpty(modelsUsingRootTable)) {
