@@ -18,15 +18,29 @@
 package org.apache.kylin.tool;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.cluster.ClusterManager;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ServerInfoResponse;
+import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.tool.restclient.RestClient;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 
 import com.google.common.collect.Sets;
 
@@ -36,6 +50,40 @@ public class ConfTool {
     private static final Set<String> KYLIN_BIN_INCLUSION = Sets.newHashSet("kylin.sh");
 
     private ConfTool() {
+    }
+
+    public static void extractK8sConf(HttpHeaders headers, File exportDir) {
+        try {
+            File confFolder = new File(exportDir, "conf");
+            FileUtils.forceMkdir(confFolder);
+            ClusterManager clusterManager = SpringContext.getApplicationContext().getBean(ClusterManager.class);
+            Map<String, List<ServerInfoResponse>> serverGroups = clusterManager.getServiceGroups();
+            for (String mode : serverGroups.keySet()) {
+                List<ServerInfoResponse> servers = serverGroups.get(mode);
+                if (servers.size() > 0) {
+                    Properties properties = fetchConf(headers, servers.get(0).getHost());
+                    File propertiesFile = new File(confFolder, mode + ".kylin.properties");
+                    if (propertiesFile.createNewFile()) {
+                        try (FileOutputStream conf = new FileOutputStream(propertiesFile)) {
+                            properties.store(conf, "");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to copy /conf, ", e);
+        }
+    }
+
+    public static Properties fetchConf(HttpHeaders headers, String host) throws IOException {
+        RestClient client = new RestClient(host);
+        HttpResponse response = client.forwardGet(headers, "/config/all", false);
+        String content = EntityUtils.toString(response.getEntity());
+        Properties properties = new Properties();
+        if (content != null) {
+            properties.putAll((Map<?, ?>) JsonUtil.readValue(content, EnvelopeResponse.class).getData());
+        }
+        return properties;
     }
 
     public static void extractConf(File exportDir) {

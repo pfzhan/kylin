@@ -200,13 +200,4 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         });
         scheduleTimeoutTask(candidateLogTask, CANDIDATE_LOG);
     }
-
-    public long getDefaultStartTime() {
-        return DateTime.now().minusDays(getKapConfig().getExtractionStartTimeDays() - 1).withTimeAtStartOfDay()
-                .getMillis();
-    }
-
-    public long getDefaultEndTime() {
-        return DateTime.now().plusDays(1).minus(1).withTimeAtStartOfDay().getMillis();
-    }
 }

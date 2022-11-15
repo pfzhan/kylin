@@ -17,7 +17,10 @@
  */
 package org.apache.kylin.rest.cluster;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.rest.response.ServerInfoResponse;
 
@@ -32,4 +35,14 @@ public interface ClusterManager {
     List<ServerInfoResponse> getJobServers();
 
     List<ServerInfoResponse> getServers();
+    
+    default Map<String, List<ServerInfoResponse>> getServiceGroups() {
+        Map<String, List<ServerInfoResponse>> serviceGroups = new HashMap<>();
+        getServers().forEach(serverInfoResponse -> {
+            List<ServerInfoResponse> servers = serviceGroups.computeIfAbsent(serverInfoResponse.getMode(),
+                    mode -> new ArrayList<>());
+            servers.add(serverInfoResponse);
+        });
+        return serviceGroups;
+    }
 }

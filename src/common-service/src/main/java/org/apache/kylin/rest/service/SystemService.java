@@ -62,12 +62,14 @@ import org.apache.kylin.rest.request.DiagProgressRequest;
 import org.apache.kylin.rest.response.DiagStatusResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.tool.DiagK8sTool;
 import org.apache.kylin.tool.MetadataTool;
 import org.apache.kylin.tool.constant.DiagTypeEnum;
 import org.apache.kylin.tool.constant.StageEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -138,6 +140,46 @@ public class SystemService extends BasicService {
         return args.toArray(new String[0]);
     }
 
+    public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId,
+            String queryId, String project) {
+        File exportFile = KylinConfigBase.getDiagFileName();
+        String uuid = exportFile.getName();
+        FileUtils.deleteQuietly(exportFile);
+        exportFile.mkdirs();
+
+        DiagTypeEnum diagPackageType;
+        String[] arguments;
+        if (StringUtils.isEmpty(jobId) && StringUtils.isEmpty(queryId)) {
+            if (startTime == null && endTime == null) {
+                startTime = Long.toString(System.currentTimeMillis() - 259200000L);
+                endTime = Long.toString(System.currentTimeMillis());
+            }
+
+            arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
+                    endTime, "-diagId", uuid };
+            diagPackageType = FULL;
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        Future<?> task = executorService.submit(() -> {
+            try {
+                exceptionMap.invalidate(uuid);
+                new DiagK8sTool(headers).execute(arguments);
+
+                DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+                if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {
+                    throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDiagFailed());
+                }
+            } catch (Exception ex) {
+                handleDiagException(uuid, ex);
+            }
+        });
+
+        diagMap.put(uuid, new DiagInfo(exportFile, task, diagPackageType));
+        return uuid;
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String queryId, String project) {
         File exportFile = KylinConfigBase.getDiagFileName();
@@ -200,6 +242,11 @@ public class SystemService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) {
         return dumpLocalDiagPackage(startTime, endTime, jobId, null, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId) {
+        return dumpK8sDiagPackage(headers, startTime, endTime, jobId, null, null);
     }
 
     private void handleDiagException(String uuid, @NotNull Exception ex) {

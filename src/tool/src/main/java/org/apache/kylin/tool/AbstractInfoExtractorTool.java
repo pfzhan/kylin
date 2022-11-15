@@ -84,8 +84,10 @@ import org.apache.kylin.tool.util.DiagnosticFilesChecker;
 import org.apache.kylin.tool.util.HashFunction;
 import org.apache.kylin.tool.util.ServerInfoUtil;
 import org.apache.kylin.tool.util.ToolUtil;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 
 import com.google.common.base.Preconditions;
 
@@ -292,9 +294,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     private boolean isDiag() {
         return this instanceof DiagClientTool || this instanceof JobDiagInfoTool
-                || this instanceof StreamingJobDiagInfoTool || this instanceof QueryDiagInfoTool;
+                || this instanceof StreamingJobDiagInfoTool || this instanceof QueryDiagInfoTool
+                || this instanceof DiagK8sTool;
     }
-
     private boolean isDiagFromWeb(OptionsHelper optionsHelper) {
         return isDiag() && optionsHelper.hasOption(OPTION_DIAGID);
     }
@@ -687,6 +689,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(confTask, SYSTEM_USAGE);
     }
 
+    protected void exportK8sConf(HttpHeaders headers, File exportDir, final File recordTime) {
+        Future confTask = executorService.submit(() -> {
+            recordTaskStartTime(CONF);
+            ConfTool.extractK8sConf(headers, exportDir);
+            recordTaskExecutorTimeToFile(CONF, recordTime);
+        });
+
+        scheduleTimeoutTask(confTask, CONF);
+    }
+
     protected void exportConf(File exportDir, final File recordTime, final boolean includeConf, final boolean includeBin) {
         // export conf
         if (includeConf) {
@@ -784,6 +796,15 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     protected void recordTaskExecutorTimeToFile(DiagSubTaskEnum subTask, File file) {
         long startTime = taskStartTime.get(subTask);
         DiagnosticFilesChecker.writeMsgToFile(subTask.name(), System.currentTimeMillis() - startTime, file);
+    }
+
+    public long getDefaultStartTime() {
+        return DateTime.now().minusDays(getKapConfig().getExtractionStartTimeDays() - 1).withTimeAtStartOfDay()
+                .getMillis();
+    }
+
+    public long getDefaultEndTime() {
+        return DateTime.now().plusDays(1).minus(1).withTimeAtStartOfDay().getMillis();
     }
 }
 
