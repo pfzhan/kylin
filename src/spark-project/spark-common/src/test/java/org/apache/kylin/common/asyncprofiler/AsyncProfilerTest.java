@@ -18,16 +18,21 @@
 
 package org.apache.kylin.common.asyncprofiler;
 
+import java.io.IOException;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.IOException;
 
 public class AsyncProfilerTest {
 
     @Test
-    public void testLoaded() {
-        Assert.assertTrue(AsyncProfiler.getInstance().isLoaded());
+    public void testLocalLoaded() {
+        Assert.assertTrue(AsyncProfiler.getInstance(true).isLoaded());
+    }
+
+    @Test
+    public void testRemoteLoaded() {
+        Assert.assertTrue(AsyncProfiler.getInstance(false).isLoaded());
     }
 
     // This may success in local Mac, but failed in CI
@@ -36,7 +41,7 @@ public class AsyncProfilerTest {
         System.setProperty("os.name", "Mac");
         String errorMsg = "";
         try {
-            AsyncProfiler.getInstance();
+            AsyncProfiler.getInstance(true);
         } catch (Throwable throwable) {
             errorMsg = throwable.getMessage();
         }
@@ -45,7 +50,7 @@ public class AsyncProfilerTest {
 
     @Test
     public void testExecute() throws IOException {
-        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
+        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(true);
         try {
             asyncProfiler.execute("start,event=cpu");
             asyncProfiler.stop();
@@ -59,7 +64,6 @@ public class AsyncProfilerTest {
     @Test
     public void testStop() {
         Assert.assertThrows("Profiler is not active", IllegalStateException.class,
-                AsyncProfiler.getInstance()::stop);
+                AsyncProfiler.getInstance(true)::stop);
     }
-
 }
