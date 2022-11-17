@@ -559,7 +559,8 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         val segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(params.getStart(), params.getEnd());
         List<NDataSegment> overlapSegments = modelService.checkSegmentToBuildOverlapsBuilt(project,
                 modelDescInTransaction, segmentRangeToBuild, params.isNeedBuild(), params.getBatchIndexIds());
-        buildSegmentOverlapExceptionInfo(overlapSegments);        modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
+        buildSegmentOverlapExceptionInfo(overlapSegments);
+        modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
         checkMultiPartitionBuildParam(modelDescInTransaction, params);
         NDataSegment newSegment = modelMetadataInvoker.appendSegment(new AddSegmentRequest(project, modelId,
                 segmentRangeToBuild, params.isNeedBuild() ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY,
