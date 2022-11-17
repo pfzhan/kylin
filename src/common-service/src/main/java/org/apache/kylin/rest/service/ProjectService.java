@@ -604,7 +604,7 @@ public class ProjectService extends BasicService {
 
         response.setPrincipal(projectInstance.getPrincipal());
         // return favorite rules
-        response.setFavoriteRules(projectSmartService != null ? projectSmartService.getFavoriteRules(project) : null);
+        // TODO: adapt
 
         response.setScd2Enabled(config.isQueryNonEquiJoinModelEnabled());
 
