@@ -77,7 +77,7 @@ public class SegmentUtil {
                 return SegmentStatusEnumToDisplay.REFRESHING;
             }
 
-            if (CollectionUtils.isEmpty(overlapSegs) || anyIndexJobRunning(segment, executables)) {
+            if (CollectionUtils.isEmpty(overlapSegs) || anyIncSegmentJobRunning(segment)) {
                 return SegmentStatusEnumToDisplay.LOADING;
             }
 
@@ -112,7 +112,16 @@ public class SegmentUtil {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
         List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
-                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD, INC_BUILD);
+                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
+        return executablePOS.stream().map(execManager::fromPO)
+                .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+    }
+
+    protected static <T extends ISegment> boolean anyIncSegmentJobRunning(T segment) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
+        List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
+                segment.getModel().getProject(), "isRunning", INC_BUILD);
         return executablePOS.stream().map(execManager::fromPO)
                 .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }

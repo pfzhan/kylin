@@ -998,11 +998,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
-        return JobMetadataBaseInvoker.getInstance()
-                .listPartialExec(project, modelId, "isRunning", JobTypeEnum.INDEX_BUILD,
-                        JobTypeEnum.INC_BUILD, JobTypeEnum.SUB_PARTITION_BUILD)
-                .stream()
-                .map(execManager::fromPO)
+        return JobMetadataBaseInvoker.getInstance().listPartialExec(project, modelId, "isRunning",
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO)
                 .collect(Collectors.toList());
     }
 
