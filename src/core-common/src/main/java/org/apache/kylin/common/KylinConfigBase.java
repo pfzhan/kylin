@@ -63,6 +63,7 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.common.util.ByteUnit;
 import org.apache.kylin.common.util.ClassLoaderUtils;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -1476,6 +1477,19 @@ public abstract class KylinConfigBase implements Serializable {
             return "";
         }
         return jar.getAbsolutePath();
+    }
+
+    public String getHdfsCustomJarPath(String project, String jarType) {
+        return getHdfsWorkingDirectory() + "custom/jars/" + project + "/" + jarType + "/";
+    }
+
+    public int getStreamingCustomParserLimit() {
+        int parserLimit = Integer.parseInt(getOptional("kylin.streaming.custom-parser-limit", "50"));
+        return parserLimit < 1 ? 50 : parserLimit;
+    }
+
+    public long getStreamingCustomJarSizeMB() {
+        return SizeConvertUtil.byteStringAs(getOptional("kylin.streaming.custom-jar-size", "20mb"), ByteUnit.BYTE);
     }
 
     public String getKylinExtJarsPath() {
