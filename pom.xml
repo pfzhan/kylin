@@ -315,7 +315,7 @@
         <nacos.spring.booter.version>2021.0.1.0</nacos.spring.booter.version>
         <jersey.version>2.35</jersey.version>
         <validation.api.version>2.0.1.Final</validation.api.version>
-        <jackson-databind.version>2.13.2.2</jackson-databind.version>
+        <jackson-databind.version>2.13.4.2</jackson-databind.version>
         <nimbus-jose-jwt.version>9.23</nimbus-jose-jwt.version>
     </properties>
 
