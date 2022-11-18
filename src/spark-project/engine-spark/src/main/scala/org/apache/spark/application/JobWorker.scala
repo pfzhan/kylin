@@ -18,6 +18,7 @@
 
 package org.apache.spark.application
 
+
 import java.util.concurrent.Executors
 
 import org.apache.kylin.engine.spark.application.SparkApplication
@@ -49,7 +50,6 @@ class JobWorker(application: SparkApplication, args: Array[String], eventLoop: K
     execute()
   }
 
-
   private def execute(): Unit = {
     pool.execute(new Runnable {
       override def run(): Unit = {
@@ -57,6 +57,12 @@ class JobWorker(application: SparkApplication, args: Array[String], eventLoop: K
           application.execute(args)
           eventLoop.post(JobSucceeded())
         } catch {
+          // Compatible with runtime exceptions thrown by the SparkApplication.execute(args: Array[String])
+          case runtimeException: RuntimeException =>
+            runtimeException.getCause match {
+              case noRetryException: NoRetryException => eventLoop.post(UnknownThrowable(noRetryException))
+              case throwable: Throwable => eventLoop.post(ResourceLack(throwable))
+            }
           case exception: NoRetryException => eventLoop.post(UnknownThrowable(exception))
           case exception: IllegalStateException if exception.getMessage.equals(JOB_HAS_STOPPED) =>
             eventLoop.post(JobFailed(exception.getMessage, exception))
