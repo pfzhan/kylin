@@ -507,8 +507,6 @@ public class QueryUtil {
         String sql = queryParams.getSql();
         sql = trimRightSemiColon(sql);
 
-        sql = replaceDoubleQuoteToSingle(sql);
-
         sql = SQL_HINT_ERASER.matcher(sql).replaceAll("");
         initPushDownConvertersIfNeeded(queryParams.getKylinConfig());
         for (IPushDownConverter converter : pushDownConverters) {
@@ -516,6 +514,8 @@ public class QueryUtil {
                     "Current step: Massage push-down sql. ");
             sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
+
+        sql = replaceDoubleQuoteToSingle(sql);
         return sql;
     }
 
