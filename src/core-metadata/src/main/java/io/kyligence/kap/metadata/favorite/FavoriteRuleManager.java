@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.annotation.Clarification;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.val;
@@ -139,9 +141,14 @@ public class FavoriteRuleManager {
         return enabledRules;
     }
 
+    // only used by upgrade tool
     public Set<String> getExcludedTables() {
         FavoriteRule favoriteRule = getOrDefaultByName(FavoriteRule.EXCLUDED_TABLES_RULE);
-        FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
+        List<FavoriteRule.AbstractCondition> conditions = favoriteRule.getConds();
+        if (CollectionUtils.isEmpty(conditions)) {
+            return Sets.newHashSet();
+        }
+        FavoriteRule.Condition condition = (FavoriteRule.Condition) conditions.get(0);
         return Arrays.stream(condition.getRightThreshold().split(",")) //
                 .map(table -> table.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
     }
