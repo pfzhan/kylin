@@ -3913,4 +3913,12 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isBuildSegmentOverlapEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.build.segment-overlap-enabled", FALSE));
     }
+
+    public boolean isProjectMergeWithBloatEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.kap-project-merge-with-bloat-enabled", "true"));
+    }
+
+    public int getKapProjectMergeRuleBloatThreshold() {
+        return Integer.parseInt(getOptional("kylin.query.kap-project-merge-bloat-threshold", "0"));
+    }
 }
