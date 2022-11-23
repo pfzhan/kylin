@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -33,6 +32,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.cluster.ClusterManager;
+import org.apache.kylin.rest.cluster.NacosClusterManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.kylin.rest.util.SpringContext;
@@ -52,17 +52,19 @@ public class ConfTool {
     private ConfTool() {
     }
 
-    public static void extractK8sConf(HttpHeaders headers, File exportDir) {
+    public static void extractK8sConf(HttpHeaders headers, File exportDir, String targetServerId) {
         try {
             File confFolder = new File(exportDir, "conf");
             FileUtils.forceMkdir(confFolder);
             ClusterManager clusterManager = SpringContext.getApplicationContext().getBean(ClusterManager.class);
-            Map<String, List<ServerInfoResponse>> serverGroups = clusterManager.getServiceGroups();
-            for (String mode : serverGroups.keySet()) {
-                List<ServerInfoResponse> servers = serverGroups.get(mode);
-                if (servers.size() > 0) {
-                    Properties properties = fetchConf(headers, servers.get(0).getHost());
-                    File propertiesFile = new File(confFolder, mode + ".kylin.properties");
+            for (String serverId : NacosClusterManager.SERVER_IDS) {
+                if (targetServerId != null && !serverId.equals(targetServerId)) {
+                    continue;
+                }
+                ServerInfoResponse server = clusterManager.getServerById(serverId);
+                if (server != null) {
+                    Properties properties = fetchConf(headers, server.getHost());
+                    File propertiesFile = new File(confFolder, serverId + ".kylin.properties");
                     if (propertiesFile.createNewFile()) {
                         try (FileOutputStream conf = new FileOutputStream(propertiesFile)) {
                             properties.store(conf, "");

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.rest;
+package org.apache.kylin.rest.cluster;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.util.ClusterConstant;
-import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
@@ -48,7 +47,7 @@ public class NacosClusterManager implements ClusterManager {
     public static final String SMART = "yinglong-smart-booter";
     public static final String METADATA = "yinglong-common-booter";
     public static final String OPS = "yinglong-ops-booter";
-    private static final List<String> SERVER_IDS = Arrays.asList(QUERY, DATA_LOADING, SMART, METADATA, OPS);
+    public static final List<String> SERVER_IDS = Arrays.asList(QUERY, DATA_LOADING, SMART, METADATA, OPS);
 
     private final Registration registration;
 
@@ -86,6 +85,15 @@ public class NacosClusterManager implements ClusterManager {
             servers.addAll(getServersByServerId(serverId));
         }
         return servers;
+    }
+    
+    public ServerInfoResponse getServerById(String serverId) {
+        List<ServerInfoResponse> servers = getServersByServerId(serverId);
+        if (servers.isEmpty()) {
+            return null;
+        } else {
+            return servers.get(0);
+        }
     }
 
     public List<ServerInfoResponse> getServersByServerId(String serverId) {

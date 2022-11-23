@@ -1298,6 +1298,12 @@ public class ExecutableManager {
         return getExecutablePOsByStatus(null, statuses);
     }
 
+    public List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter) {
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(filter);
+        return jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO)
+                .collect(Collectors.toList());
+    }
+
     public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
         return getExecutablePOsByStatus(jobIds, statuses).stream().map(this::fromPO).collect(Collectors.toList());
     }

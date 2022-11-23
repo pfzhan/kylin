@@ -174,9 +174,12 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     public String getTargetModelId() {
-        val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
-        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
-                .getDataModelDesc(targetSubject);
+        return getTargetModelId(getProject(), targetSubject);
+    }
+
+    public static String getTargetModelId(String project, String targetSubject) {
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModelDesc = modelManager.getDataModelDesc(targetSubject);
         if (dataModelDesc == null)
             return null;
         return modelManager.isModelBroken(targetSubject)

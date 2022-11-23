@@ -62,6 +62,8 @@ public interface JobMetadataContract {
 
     List<ExecutablePO> getExecutablePOsByStatus(String project, ExecutableState... status);
 
+    List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter);
+
     void deleteJobByIdList(String project, List<String> jobIdList);
 
     void discardJob(String project, String jobId);

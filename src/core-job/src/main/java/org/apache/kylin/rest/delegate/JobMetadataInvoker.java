@@ -175,6 +175,10 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
         return getDelegate().getExecutablePOsByStatus(project, status);
     }
 
+    public List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter) {
+        return getDelegate().getExecutablePOsByFilter(filter);
+    }
+
     public List<JobInfo> fetchJobList(JobMapperFilter filter) {
         return getDelegate().fetchJobList(filter);
     }

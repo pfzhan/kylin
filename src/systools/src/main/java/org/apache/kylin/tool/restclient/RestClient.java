@@ -159,6 +159,11 @@ public class RestClient {
         }
     }
 
+    public RestClient resetBaseUrlWithoutKylin() {
+        this.baseUrl = SCHEME_HTTP + host + ":" + port;
+        return this;
+    }
+
     public HttpResponse query(String sql, String project) throws IOException {
         String url = baseUrl + "/query";
         HttpPost post = newPost(url);

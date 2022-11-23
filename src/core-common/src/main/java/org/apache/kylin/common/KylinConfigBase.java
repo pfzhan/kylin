@@ -3143,6 +3143,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.log.local-working-directory", "");
     }
 
+    public String getLokiServer() {
+        return getOptional("kylin.engine.log.loki-api-server", "");
+    }
+
     public String[] getJobResourceLackIgnoreExceptionClasses() {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
                 new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });

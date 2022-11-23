@@ -147,6 +147,11 @@ public class JobMetadataBaseDelegate {
                 .getExecutablePOsByStatus(Lists.newArrayList(status));
     }
 
+    public List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter) {
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), filter.getProject())
+                .getExecutablePOsByFilter(filter);
+    }
+
     public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .fetchNotFinalJobsByTypes(project, jobNames, subjects);

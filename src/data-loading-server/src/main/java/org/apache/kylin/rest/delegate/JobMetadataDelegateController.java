@@ -175,6 +175,12 @@ public class JobMetadataDelegateController extends NBasicController {
         return jobMetadataDelegate.getExecutablePOsByStatus(project, status);
     }
 
+    @PostMapping(value = "/feign/get_exec_by_filter")
+    @ResponseBody
+    public List<ExecutablePO> getExecutablePOsByFilter(@RequestBody JobMapperFilter filter) {
+        return jobMetadataDelegate.getExecutablePOsByFilter(filter);
+    }
+
     @PostMapping(value = "/feign/discard_job")
     @ResponseBody
     public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId) {

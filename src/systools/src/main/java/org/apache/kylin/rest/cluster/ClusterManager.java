@@ -17,12 +17,11 @@
  */
 package org.apache.kylin.rest.cluster;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.rest.response.ServerInfoResponse;
+import org.apache.kylin.rest.util.SpringContext;
 
 public interface ClusterManager {
 
@@ -35,14 +34,13 @@ public interface ClusterManager {
     List<ServerInfoResponse> getJobServers();
 
     List<ServerInfoResponse> getServers();
-    
-    default Map<String, List<ServerInfoResponse>> getServiceGroups() {
-        Map<String, List<ServerInfoResponse>> serviceGroups = new HashMap<>();
-        getServers().forEach(serverInfoResponse -> {
-            List<ServerInfoResponse> servers = serviceGroups.computeIfAbsent(serverInfoResponse.getMode(),
-                    mode -> new ArrayList<>());
-            servers.add(serverInfoResponse);
-        });
-        return serviceGroups;
+
+    default ServerInfoResponse getServerById(String serverId) {
+        throw new KylinRuntimeException(
+                String.format("Method `getServerById` is not supported in class <%s>", this.getClass()));
+    }
+
+    static ClusterManager getInstance() {
+        return SpringContext.getApplicationContext().getBean(ClusterManager.class);
     }
 }

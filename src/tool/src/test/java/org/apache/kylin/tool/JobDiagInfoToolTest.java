@@ -25,8 +25,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.tool.constant.SensitiveConfigKeysConstant;
 import org.apache.kylin.tool.obf.KylinConfObfuscatorTest;
@@ -82,7 +82,7 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         val job = new JobDiagInfoTool().getJobByJobId("dd5a6451-0743-4b32-b84d-2ddc8052429f");
         Assert.assertEquals("newten", job.getProject());
         Assert.assertEquals(1574130051721L, job.getCreateTime());
-        Assert.assertEquals(1574818631319L, job.getEndTime());
+        Assert.assertEquals(1574818631319L, job.getOutput().getEndTime());
     }
 
     @Test

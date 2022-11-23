@@ -25,6 +25,7 @@ import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.YARN;
 
 import java.io.File;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -33,13 +34,17 @@ import java.util.stream.Collectors;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.tool.util.DiagnosticFilesChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +124,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         }
         String project = job.getProject();
         long startTime = job.getCreateTime();
-        long endTime = job.getEndTime() != 0 ? job.getEndTime() : System.currentTimeMillis();
+        long endTime = job.getOutput().getEndTime() != 0 ? job.getOutput().getEndTime() : System.currentTimeMillis();
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
         if (includeMeta) {
@@ -194,7 +199,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     }
 
     private void exportSparkLog(File exportDir, final File recordTime, String project, String jobId,
-            AbstractExecutable job) {
+            ExecutablePO job) {
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
             recordTaskStartTime(SPARK_LOGS);
@@ -206,12 +211,17 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         // extract job step eventLogs
         Future eventLogTask = executorService.submit(() -> {
-            if (job instanceof DefaultChainedExecutable) {
-                recordTaskStartTime(JOB_EVENTLOGS);
-                val appIds = ExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
-                Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
-                KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
-                recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
+            try {
+                if (ClassUtil.forName(job.getType(), AbstractExecutable.class).getSuperclass()
+                        .equals(DefaultChainedExecutable.class)) {
+                    recordTaskStartTime(JOB_EVENTLOGS);
+                    val appIds = ExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
+                    Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
+                    KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
+                    recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
+                }
+            } catch (ClassNotFoundException e) {
+                logger.error("Class <{}> not found", job.getType(), e);
             }
         });
 
@@ -228,13 +238,14 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     }
 
     @VisibleForTesting
-    public AbstractExecutable getJobByJobId(String jobId) {
+    public ExecutablePO getJobByJobId(String jobId) {
         val projects = NProjectManager.getInstance(getKylinConfig()).listAllProjects().stream()
                 .map(ProjectInstance::getName).collect(Collectors.toList());
         for (String project : projects) {
-            AbstractExecutable job = ExecutableManager.getInstance(getKylinConfig(), project).getJob(jobId);
-            if (job != null) {
-                return job;
+            JobMapperFilter filter = JobMapperFilter.builder().project(project).jobId(jobId).build();
+            List<ExecutablePO> jobs = JobMetadataInvoker.getInstance().getExecutablePOsByFilter(filter);
+            if (!jobs.isEmpty()) {
+                return jobs.get(0);
             }
         }
         return null;

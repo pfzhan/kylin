@@ -689,10 +689,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(confTask, SYSTEM_USAGE);
     }
 
-    protected void exportK8sConf(HttpHeaders headers, File exportDir, final File recordTime) {
+    protected void exportK8sConf(HttpHeaders headers, File exportDir, final File recordTime, String serverId) {
         Future confTask = executorService.submit(() -> {
             recordTaskStartTime(CONF);
-            ConfTool.extractK8sConf(headers, exportDir);
+            ConfTool.extractK8sConf(headers, exportDir, serverId);
             recordTaskExecutorTimeToFile(CONF, recordTime);
         });
 

@@ -51,6 +51,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -171,6 +172,10 @@ public class ExecutablePO extends RootPersistentEntity {
         }
         return (jobOutput.getEndTime() == 0 ? System.currentTimeMillis() - jobOutput.getStartTime()
                 : jobOutput.getEndTime() - jobOutput.getStartTime());
+    }
+
+    public String getTargetModelId() {
+        return AbstractExecutable.getTargetModelId(getProject(), getTargetModel());
     }
 
     public long getDurationByPO() {

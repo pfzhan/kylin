@@ -149,7 +149,21 @@ public class SystemService extends BasicService {
 
         DiagTypeEnum diagPackageType;
         String[] arguments;
-        if (StringUtils.isEmpty(jobId) && StringUtils.isEmpty(queryId)) {
+        
+        if (StringUtils.isNotEmpty(jobId) && StringUtils.isNotEmpty(queryId)) {
+            throw new IllegalArgumentException();
+        } else if (StringUtils.isNotEmpty(jobId)) {
+            String jobOpt = "-job";
+            if (StringUtils.endsWithAny(jobId, new String[] { "_build", "_merge" })) {
+                jobOpt = "-streamingJob";
+            }
+            arguments = new String[] { jobOpt, jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
+            diagPackageType = JOB;
+        } else if (StringUtils.isNotEmpty(queryId)) {
+            arguments = new String[] { "-project", project, "-query", queryId, "-destDir", exportFile.getAbsolutePath(),
+                    "-diagId", uuid };
+            diagPackageType = QUERY;
+        } else {
             if (startTime == null && endTime == null) {
                 startTime = Long.toString(System.currentTimeMillis() - 259200000L);
                 endTime = Long.toString(System.currentTimeMillis());
@@ -158,8 +172,6 @@ public class SystemService extends BasicService {
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
                     endTime, "-diagId", uuid };
             diagPackageType = FULL;
-        } else {
-            throw new IllegalArgumentException();
         }
 
         Future<?> task = executorService.submit(() -> {
@@ -247,6 +259,11 @@ public class SystemService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId) {
         return dumpK8sDiagPackage(headers, startTime, endTime, jobId, null, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public String dumpK8sDiagPackage(HttpHeaders headers, String queryId, String project) {
+        return dumpK8sDiagPackage(headers, null, null, null, queryId, project);
     }
 
     private void handleDiagException(String uuid, @NotNull Exception ex) {
