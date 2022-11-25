@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.tool.constant.SensitiveConfigKeysConstant;
 import org.apache.kylin.tool.obf.KylinConfObfuscatorTest;
 import org.apache.kylin.tool.util.JobMetadataWriter;
@@ -64,6 +65,7 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public void createTestMetadata(String... overlay) {
         super.createTestMetadata(overlay);
         JobMetadataWriter.writeJobMetaData(getTestConfig());
+        JobMetadataInvoker.setDelegate(new AbstractInfoExtractorToolTest.JobDelegate());
     }
 
     @After
@@ -81,7 +83,7 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public void testGetJobByJobId() {
         val job = new JobDiagInfoTool().getJobByJobId("dd5a6451-0743-4b32-b84d-2ddc8052429f");
         Assert.assertEquals("newten", job.getProject());
-        Assert.assertEquals(1574130051721L, job.getCreateTime());
+        Assert.assertEquals(1574130051721L, job.getOutput().getCreateTime());
         Assert.assertEquals(1574818631319L, job.getOutput().getEndTime());
     }
 

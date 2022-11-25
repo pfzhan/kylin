@@ -28,6 +28,7 @@ import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -122,6 +123,10 @@ public class JobMetadataBaseInvoker {
 
     public List<JobInfo> fetchJobList(JobMapperFilter filter) {
         return jobMetadataBaseDelegate.fetchJobList(filter);
+    }
+
+    public List<JobLock> fetchAllJobLock() {
+        return jobMetadataBaseDelegate.fetchAllJobLock();
     }
 
     public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {

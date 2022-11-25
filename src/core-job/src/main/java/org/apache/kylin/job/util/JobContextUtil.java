@@ -91,6 +91,7 @@ public class JobContextUtil {
         if (null == jobInfoDao) {
             jobInfoDao = new JobInfoDao();
             jobInfoDao.setJobInfoMapper(jobInfoMapper);
+            jobInfoDao.setJobLockMapper(jobLockMapper);
             jobInfoDao.setModelMetadataInvoker(ModelMetadataBaseInvoker.getInstance());
         }
         return jobInfoDao;

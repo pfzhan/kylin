@@ -29,6 +29,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -105,6 +106,12 @@ public class JobMetadataDelegateController extends NBasicController {
     @ResponseBody
     public List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter) {
         return jobMetadataDelegate.fetchJobList(jobMapperFilter);
+    }
+
+    @PostMapping(value = "/feign/fetch_all_job_lock")
+    @ResponseBody
+    public List<JobLock> fetchAllJobLock() {
+        return jobMetadataDelegate.fetchAllJobLock();
     }
 
     @PostMapping(value = "/feign/fetch_not_final_jobs_by_types")

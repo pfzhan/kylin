@@ -67,4 +67,6 @@ public class JobMapperFilter {
 
     // placeholder for mybatis ${}
     private String jobInfoTable;
+
+    private List<Date> timeRange;
 }

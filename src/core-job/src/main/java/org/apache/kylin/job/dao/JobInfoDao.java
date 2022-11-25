@@ -26,16 +26,19 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.mapper.JobInfoMapper;
+import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -46,7 +49,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import lombok.val;
@@ -57,22 +59,16 @@ public class JobInfoDao {
     private static final Logger logger = LoggerFactory.getLogger(JobInfoDao.class);
 
     @Autowired(required = false)
+    @Setter
     private JobInfoMapper jobInfoMapper;
 
     @Autowired(required = false)
+    @Setter
+    private JobLockMapper jobLockMapper;
+
+    @Autowired(required = false)
+    @Setter
     private ModelMetadataBaseInvoker modelMetadataInvoker;
-
-    // for ut only
-    @VisibleForTesting
-    public void setJobInfoMapper(JobInfoMapper jobInfoMapper) {
-        this.jobInfoMapper = jobInfoMapper;
-    }
-
-    // for ut only
-    @VisibleForTesting
-    public void setModelMetadataInvoker(ModelMetadataBaseInvoker modelMetadataInvoker) {
-        this.modelMetadataInvoker = modelMetadataInvoker;
-    }
 
     public List<JobInfo> getJobInfoListByFilter(final JobMapperFilter jobMapperFilter) {
         List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);
@@ -212,5 +208,9 @@ public class JobInfoDao {
     public void deleteJobsByProject(String project) {
         int count = jobInfoMapper.deleteByProject(project);
         logger.info("delete {} jobs for project {}", count, project);
+    }
+    
+    public List<JobLock> fetchAllJobLock() {
+        return jobLockMapper.fetchAll();
     }
 }

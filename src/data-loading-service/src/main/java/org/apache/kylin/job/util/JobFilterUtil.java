@@ -74,7 +74,7 @@ public class JobFilterUtil {
 
         return new JobMapperFilter(jobFilter.getStatuses(), jobFilter.getJobNames(), queryStartTime, subjects, null,
                 jobId, null, jobFilter.getProject(), orderByField, orderType, offset, limit,
-                JobMybatisConfig.JOB_INFO_TABLE);
+                JobMybatisConfig.JOB_INFO_TABLE, null);
     }
 
     private static Date getQueryStartTime(int timeFilter) {

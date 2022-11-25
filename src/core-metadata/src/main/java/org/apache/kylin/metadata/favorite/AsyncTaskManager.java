@@ -30,10 +30,15 @@ import com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 @Slf4j
 public class AsyncTaskManager {
 
     public static final String ASYNC_ACCELERATION_TASK = "async_acceleration_task";
+    public static final List<String> ALL_TASK_TYPES = Collections.singletonList(ASYNC_ACCELERATION_TASK);
 
     private final AsyncTaskStore asyncTaskStore;
     private final String project;

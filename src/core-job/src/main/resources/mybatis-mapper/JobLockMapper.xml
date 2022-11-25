@@ -161,4 +161,9 @@
     </if>
   </select>
 
+  <select id="fetchAll" resultMap="BaseResultMap">
+    SELECT *
+    FROM ${jobLockTable}
+  </select>
+
 </mapper>

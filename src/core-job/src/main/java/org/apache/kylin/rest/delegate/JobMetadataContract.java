@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -45,6 +46,8 @@ public interface JobMetadataContract {
     String mergeSegmentJob(JobMetadataRequest jobMetadataRequest);
 
     List<JobInfo> fetchJobList(JobMapperFilter filter);
+
+    List<JobLock> fetchAllJobLock();
 
     List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobTypes, List<String> subjects);
 

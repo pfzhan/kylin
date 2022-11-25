@@ -51,4 +51,6 @@ public interface JobLockMapper {
     int removeLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode);
 
     List<String> findNonLockIdList(@Param("batchSize") int batchSize);
+
+    List<JobLock> fetchAll();
 }

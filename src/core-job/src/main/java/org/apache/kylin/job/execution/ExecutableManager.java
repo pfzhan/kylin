@@ -81,6 +81,7 @@ import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
@@ -1298,12 +1299,6 @@ public class ExecutableManager {
         return getExecutablePOsByStatus(null, statuses);
     }
 
-    public List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter) {
-        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(filter);
-        return jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO)
-                .collect(Collectors.toList());
-    }
-
     public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
         return getExecutablePOsByStatus(jobIds, statuses).stream().map(this::fromPO).collect(Collectors.toList());
     }
@@ -1885,6 +1880,10 @@ public class ExecutableManager {
 
     public List<JobInfo> fetchJobsByFilter(JobMapperFilter filter) {
         return jobInfoDao.getJobInfoListByFilter(filter);
+    }
+
+    public List<JobLock> fetchAllJobLock() {
+        return jobInfoDao.fetchAllJobLock();
     }
 
 }

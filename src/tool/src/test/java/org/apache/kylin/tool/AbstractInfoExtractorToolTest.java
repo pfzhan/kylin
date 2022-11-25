@@ -21,14 +21,29 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.delegate.JobMetadataBaseDelegate;
+import org.apache.kylin.rest.delegate.JobMetadataContract;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -37,8 +52,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import lombok.val;
+import lombok.experimental.Delegate;
 
 public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
+    private JdbcTemplate jdbcTemplate;
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -48,10 +68,14 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
     }
 
     @After
     public void teardown() {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
     }
 
@@ -164,11 +188,95 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    class MockInfoExtractorTool extends AbstractInfoExtractorTool {
+    @Test
+    public void testExportOtherMetadata() throws IOException, InterruptedException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        MockInfoExtractorTool mock = new MockInfoExtractorTool();
+        ExecutablePO po = createJob();
+
+        mock.init(mainDir);
+        doExport(mock, mainDir, null, null);
+        mock.waitAndClose();
+        doCheck(mainDir);
+
+        FileUtils.cleanDirectory(mainDir);
+        Assert.assertEquals(0, mainDir.listFiles().length);
+
+        mock.init(mainDir);
+        doExport(mock, mainDir, po.getProject(), po.getId());
+        mock.waitAndClose();
+        doCheck(mainDir);
+    }
+
+    private void doExport(MockInfoExtractorTool tool, File mainDir, String project, String jobId) {
+        File recordTime = new File(mainDir, "recordTime");
+        if (project == null) {
+            tool.exportJobInfo(0, System.currentTimeMillis(), recordTime);
+        } else {
+            tool.exportJobInfo(project, jobId, recordTime);
+        }
+        tool.exportFavoriteRule(project, recordTime);
+        tool.exportAsyncTask(project, recordTime);
+        tool.exportQueryHistoryOffset(project, recordTime);
+    }
+
+    private void doCheck(File mainDir) {
+        File jobInfoDir = new File(mainDir, "job_info");
+        Assert.assertTrue(jobInfoDir.listFiles().length >= 2);
+        File favoriteRuleDir = new File(mainDir, "favorite_rule");
+        Assert.assertTrue(favoriteRuleDir.listFiles().length >= 1);
+        File asyncTaskDir = new File(mainDir, "async_task");
+        Assert.assertTrue(asyncTaskDir.listFiles().length >= 1);
+        File queryHistoryOffsetDir = new File(mainDir, "query_history_offset");
+        Assert.assertTrue(queryHistoryOffsetDir.listFiles().length >= 1);
+    }
+    
+    public ExecutablePO createJob() {
+        JobMetadataInvoker.setDelegate(new JobDelegate());
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309gg");
+        job.setProject("default");
+        job.setPriority(1);
+        val po = ExecutableManager.toPO(job, "default");
+        return JobContextUtil.getJobInfoDao(getTestConfig()).addJob(po);
+    }
+    
+    public static class JobDelegate implements JobMetadataContract {
+        @Delegate
+        private JobMetadataBaseDelegate jobMetadataBaseDelegate = new JobMetadataBaseDelegate();
+
+        @Override
+        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
+            return null;
+        }
+
+        @Override
+        public void stopBatchJob(String project, TableDesc tableDesc) {
+
+        }
+    }
+
+    static class MockInfoExtractorTool extends AbstractInfoExtractorTool {
 
         @Override
         protected void executeExtract(OptionsHelper optionsHelper, File exportDir) throws Exception {
             // Do nothing.
+        }
+
+        public void init(File dir) {
+            executorService = Executors.newScheduledThreadPool(2);
+            timerExecutorService = Executors.newScheduledThreadPool(2);
+            taskQueue = new LinkedBlockingQueue<>();
+            taskStartTime = new ConcurrentHashMap<>();
+            exportDir = dir;
+        }
+
+        public void waitAndClose() throws InterruptedException {
+            executorService.shutdown();
+            awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
         }
     }
 

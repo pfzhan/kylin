@@ -18,6 +18,7 @@
 
 package org.apache.kylin.rest.delegate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -26,10 +27,12 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -39,6 +42,8 @@ import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -148,8 +153,8 @@ public class JobMetadataBaseDelegate {
     }
 
     public List<ExecutablePO> getExecutablePOsByFilter(JobMapperFilter filter) {
-        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), filter.getProject())
-                .getExecutablePOsByFilter(filter);
+        List<JobInfo> jobInfoList = fetchJobList(filter);
+        return jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO).collect(Collectors.toList());
     }
 
     public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {
@@ -158,7 +163,26 @@ public class JobMetadataBaseDelegate {
     }
 
     public List<JobInfo> fetchJobList(JobMapperFilter filter) {
-        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), filter.getProject()).fetchJobsByFilter(filter);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (StringUtils.isNotEmpty(filter.getProject())) {
+            return ExecutableManager.getInstance(config, filter.getProject()).fetchJobsByFilter(filter);
+        } else {
+            List<JobInfo> jobs = new ArrayList<>();
+            for (ProjectInstance project : NProjectManager.getInstance(config).listAllProjects()) {
+                jobs.addAll(ExecutableManager.getInstance(config, project.getName()).fetchJobsByFilter(filter));
+            }
+            return jobs;
+        }
+    }
+
+    public List<JobLock> fetchAllJobLock() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<ProjectInstance> projects = NProjectManager.getInstance(config).listAllProjects();
+        if (projects.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            return ExecutableManager.getInstance(config, projects.get(0).getName()).fetchAllJobLock();
+        }
     }
 
     public void deleteJobByIdList(String project, List<String> jobIdList) {

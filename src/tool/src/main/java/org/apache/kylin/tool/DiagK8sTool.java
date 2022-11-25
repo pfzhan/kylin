@@ -23,6 +23,7 @@ import java.util.Locale;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -83,7 +84,6 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
                 "-excludeTableExd" };
         dumpMetadata(metaToolArgs, recordTime);
-        //TODO dump other metadata which has isolate table
     }
 
     private void exportAuditLog(File exportDir, File recordTime, long startTime, long endTime) throws IOException {
@@ -96,9 +96,14 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
 
     private void extractSysDiag(File exportDir, File recordTime, long startTime, long endTime) throws IOException {
         dumpMetadata(exportDir, recordTime);
-        exportK8sConf(headers, exportDir, recordTime, null);
-        KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, null);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
+        exportRecCandidate(null, null, exportDir, true, recordTime);
+        exportJobInfo(startTime, endTime, recordTime);
+        exportFavoriteRule(null, recordTime);
+        exportAsyncTask(null, recordTime);
+        exportQueryHistoryOffset(null, recordTime);
+        exportK8sConf(headers, exportDir, recordTime, null);
+        exportK8sLog(exportDir, startTime, endTime, null, recordTime);
         // TODO Spark logs
     }
 
@@ -111,11 +116,13 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         long startTime = query.getQueryTime();
         long endTime = query.getDuration() + startTime;
         logger.info("query project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
+
         dumpMetadata(exportDir, recordTime);
+        exportAuditLog(exportDir, recordTime, startTime, endTime);
+        exportQueryHistoryOffset(project, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.QUERY);
         // TODO this will extract logs from all query pods.
-        KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, NacosClusterManager.QUERY);
-        exportAuditLog(exportDir, recordTime, startTime, endTime);
+        exportK8sLog(exportDir, startTime, endTime, NacosClusterManager.QUERY, recordTime);
         //TODO extract SparkLogs
 
     }
@@ -127,14 +134,20 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
             throw new RuntimeException(String.format(Locale.ROOT, "Can not find the jobId: %s", jobId));
         }
         String project = job.getProject();
+        String modelId = job.getTargetModelId();
         long startTime = job.getCreateTime();
         long endTime = job.getOutput().getEndTime() != 0 ? job.getOutput().getEndTime() : System.currentTimeMillis();
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
+        
         dumpMetadata(exportDir, recordTime);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
+        if (StringUtils.isNotEmpty(modelId)) {
+            exportRecCandidate(project, modelId, exportDir, false, recordTime);
+        }
+        exportJobInfo(project, jobId, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.DATA_LOADING);
         // TODO this will extract logs from all data_loading pods.
-        KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, NacosClusterManager.DATA_LOADING);
+        exportK8sLog(exportDir, startTime, endTime, NacosClusterManager.DATA_LOADING, recordTime);
         //TODO extract SparkLogs
 
     }

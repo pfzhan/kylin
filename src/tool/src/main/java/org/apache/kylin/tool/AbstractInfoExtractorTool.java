@@ -17,17 +17,22 @@
  */
 package org.apache.kylin.tool;
 
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.ASYNC_TASK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.AUDIT_LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.BIN;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CATALOG_INFO;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CLIENT;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CONF;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.FAVORITE_RULE;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.HADOOP_CONF;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.HADOOP_ENV;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_INFO;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JSTACK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.KG_LOGS;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.METADATA;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.QUERY_HISTORY_OFFSET;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.REC_CANDIDATE;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SPARDER_HISTORY;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
@@ -157,7 +162,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     @Setter
     private String packageType;
     @Getter
-    private File exportDir;
+    protected File exportDir;
     @Getter
     private KylinConfig kylinConfig;
     @Getter
@@ -602,6 +607,99 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
         scheduleTimeoutTask(recTask, REC_CANDIDATE);
     }
+    
+    protected void exportJobInfo(String project, String jobId, File recordTime) {
+        exportJobInfo(project, jobId, -1, -1, recordTime);
+    }
+
+    protected void exportJobInfo(long startTime, long endTime, File recordTime) {
+        exportJobInfo(null, null, startTime, endTime, recordTime);
+    }
+
+    private void exportJobInfo(String project, String jobId, long startTime, long endTime, File recordTime) {
+        val jobTask = executorService.submit(() -> {
+            recordTaskStartTime(JOB_INFO);
+            try {
+                File jobDir = new File(exportDir, "job_info");
+                FileUtils.forceMkdir(jobDir);
+                JobInfoTool tool = new JobInfoTool();
+                if (jobId != null) {
+                    tool.extractJob(jobDir, project, jobId);
+                } else {
+                    tool.extractFull(jobDir, startTime, endTime);
+                }
+                tool.extractJobLock(jobDir);
+            } catch (Exception e) {
+                logger.error("Failed to extract job info.", e);
+            }
+            recordTaskExecutorTimeToFile(JOB_INFO, recordTime);
+        });
+
+        scheduleTimeoutTask(jobTask, JOB_INFO);
+    }
+    
+    protected void exportFavoriteRule(String project, File recordTime) {
+        val favoriteRuleTask = executorService.submit(() -> {
+            recordTaskStartTime(FAVORITE_RULE);
+            try {
+                File favoriteRuleDir = new File(exportDir, "favorite_rule");
+                FileUtils.forceMkdir(favoriteRuleDir);
+                FavoriteRuleTool tool = new FavoriteRuleTool();
+                if (project != null) {
+                    tool.extractProject(favoriteRuleDir, project);
+                } else {
+                    tool.extractFull(favoriteRuleDir);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to extract favorite rules.", e);
+            }
+            recordTaskExecutorTimeToFile(FAVORITE_RULE, recordTime);
+        });
+
+        scheduleTimeoutTask(favoriteRuleTask, FAVORITE_RULE);
+    }
+
+    protected void exportAsyncTask(String project, File recordTime) {
+        val asyncTaskTask = executorService.submit(() -> {
+            recordTaskStartTime(ASYNC_TASK);
+            try {
+                File asyncTaskDir = new File(exportDir, "async_task");
+                FileUtils.forceMkdir(asyncTaskDir);
+                AsyncTaskTool tool = new AsyncTaskTool();
+                if (project != null) {
+                    tool.extractProject(asyncTaskDir, project);
+                } else {
+                    tool.extractFull(asyncTaskDir);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to extract async task.", e);
+            }
+            recordTaskExecutorTimeToFile(ASYNC_TASK, recordTime);
+        });
+
+        scheduleTimeoutTask(asyncTaskTask, ASYNC_TASK);
+    }
+
+    public void exportQueryHistoryOffset(String project, File recordTime) {
+        val queryHistoryOffsetTask = executorService.submit(() -> {
+            recordTaskStartTime(QUERY_HISTORY_OFFSET);
+            try {
+                File queryHistoryOffsetDir = new File(exportDir, "query_history_offset");
+                FileUtils.forceMkdir(queryHistoryOffsetDir);
+                QueryHistoryOffsetTool tool = new QueryHistoryOffsetTool();
+                if (project != null) {
+                    tool.extractProject(queryHistoryOffsetDir, project);
+                } else {
+                    tool.extractFull(queryHistoryOffsetDir);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to extract query history offset.", e);
+            }
+            recordTaskExecutorTimeToFile(QUERY_HISTORY_OFFSET, recordTime);
+        });
+
+        scheduleTimeoutTask(queryHistoryOffsetTask, QUERY_HISTORY_OFFSET);
+    }
 
     protected void exportTieredStorage(String project, File exportDir, long startTime, long endTime, File recordTime) {
         Future kgLogTask = executorService.submit(() -> {
@@ -665,7 +763,6 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(clientTask, CLIENT);
-
     }
 
     protected void exportJstack(File recordTime) {
@@ -687,6 +784,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(confTask, SYSTEM_USAGE);
+    }
+    
+    protected void exportK8sLog(File exportDir, Long startTime, Long endTime, String targetServerId, File recordTime) {
+        Future<?> logTask = executorService.submit(() -> {
+            recordTaskStartTime(LOG);
+            KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, targetServerId);
+            recordTaskExecutorTimeToFile(LOG, recordTime);
+        });
+
+        scheduleTimeoutTask(logTask, LOG);
     }
 
     protected void exportK8sConf(HttpHeaders headers, File exportDir, final File recordTime, String serverId) {

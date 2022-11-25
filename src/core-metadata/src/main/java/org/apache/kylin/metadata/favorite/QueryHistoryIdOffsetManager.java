@@ -18,8 +18,12 @@
 
 package org.apache.kylin.metadata.favorite;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.metadata.favorite.QueryHistoryIdOffset.OffsetType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -27,6 +31,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 public class QueryHistoryIdOffsetManager {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryIdOffsetManager.class);
+    public static List<OffsetType> ALL_OFFSET_TYPE = Arrays.asList(OffsetType.META, OffsetType.META);
 
     private final QueryHistoryIdOffsetStore jdbcIdOffsetStore;
     private final String project;

@@ -212,16 +212,16 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         // extract job step eventLogs
         Future eventLogTask = executorService.submit(() -> {
             try {
-                if (ClassUtil.forName(job.getType(), AbstractExecutable.class).getSuperclass()
-                        .equals(DefaultChainedExecutable.class)) {
+                if (ClassUtil.forName(job.getType(), AbstractExecutable.class)
+                        .newInstance() instanceof DefaultChainedExecutable) {
                     recordTaskStartTime(JOB_EVENTLOGS);
                     val appIds = ExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
                     Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
                     KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
                     recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
                 }
-            } catch (ClassNotFoundException e) {
-                logger.error("Class <{}> not found", job.getType(), e);
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                logger.error("Class <{}> not found or cannot be created.", job.getType(), e);
             }
         });
 

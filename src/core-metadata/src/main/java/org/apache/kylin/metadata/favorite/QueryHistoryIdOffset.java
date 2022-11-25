@@ -43,7 +43,7 @@ public class QueryHistoryIdOffset {
     }
 
     public enum OffsetType {
-        META("meta"), ACCELERATE("accelerate"), DEFAULT("default");
+        META("meta"), ACCELERATE("accelerate");
         private final String name;
 
         OffsetType(String name) {

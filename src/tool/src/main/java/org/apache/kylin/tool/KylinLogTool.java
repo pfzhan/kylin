@@ -569,7 +569,6 @@ public class KylinLogTool {
         long startTimeInSec = startTime / 1000;
         long endTImeInSec = endTime / 1000;
 
-
         try {
             FileUtils.forceMkdir(destLogDir);
             String lokiApiServer = KylinConfig.getInstanceFromEnv().getLokiServer();
@@ -579,6 +578,7 @@ public class KylinLogTool {
             tags.put("app", "yinglong");
 
             for (String serverId : NacosClusterManager.SERVER_IDS) {
+                logger.info("Extract logs for {}", serverId);
                 if (targetServerId != null && !serverId.equals(targetServerId)) {
                     continue;
                 }

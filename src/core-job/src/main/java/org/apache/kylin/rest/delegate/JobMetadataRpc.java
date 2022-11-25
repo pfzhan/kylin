@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -58,6 +59,9 @@ public interface JobMetadataRpc extends JobMetadataContract {
 
     @PostMapping(value = "/fetch_job_list")
     List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter);
+
+    @PostMapping(value = "/fetch_all_job_lock")
+    List<JobLock> fetchAllJobLock();
 
     @PostMapping(value = "/fetch_not_final_jobs_by_types")
     public List<JobInfo> fetchNotFinalJobsByTypes(@RequestParam("project") String project,

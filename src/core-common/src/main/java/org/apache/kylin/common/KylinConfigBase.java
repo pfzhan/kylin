@@ -2176,6 +2176,10 @@ public abstract class KylinConfigBase implements Serializable {
         return ClusterConstant.SMART.equals(getMicroServerMode());
     }
 
+    public boolean isOpsNode() {
+        return ClusterConstant.OPS.equals(getMicroServerMode());
+    }
+
     public boolean isDataLoadingNode() {
         return ClusterConstant.DATA_LOADING.equals(getMicroServerMode());
     }

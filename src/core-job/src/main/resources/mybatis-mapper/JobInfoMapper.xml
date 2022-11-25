@@ -219,6 +219,9 @@
           #{item}
         </foreach>
       </if>
+      <if test="timeRange != null">
+        AND create_time &gt;= #{timeRange[0]} AND create_time &lt;= #{timeRange[1]}
+      </if>
     </where>
     <if test="orderByFiled != null">
       order by ${orderByFiled}  ${orderType}
