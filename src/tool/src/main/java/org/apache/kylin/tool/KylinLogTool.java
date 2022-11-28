@@ -564,7 +564,7 @@ public class KylinLogTool {
         }
     }
 
-    public static void extractK8sKylinLog(File exportDir, Long startTime, Long endTime, String targetServerId) {
+    public static void extractK8sKylinLog(File exportDir, Long startTime, Long endTime, List<String> instances) {
         File destLogDir = new File(exportDir, "logs");
         long startTimeInSec = startTime / 1000;
         long endTImeInSec = endTime / 1000;
@@ -577,19 +577,37 @@ public class KylinLogTool {
             tags.put("namespace", System.getenv("NAME_SPACE"));
             tags.put("app", "yinglong");
 
-            for (String serverId : NacosClusterManager.SERVER_IDS) {
-                logger.info("Extract logs for {}", serverId);
-                if (targetServerId != null && !serverId.equals(targetServerId)) {
-                    continue;
-                }
-                tags.put("component", serverId.replace("yinglong", "yl"));
-                String logUrl = String.format("/log/download?query=%s&start=%d&end=%d", mapsToUrlStr(tags),
-                        startTimeInSec, endTImeInSec);
-                HttpResponse response = restClient.forwardGet(new HttpHeaders(), logUrl, false);
-                saveResponseToFile(response, new File(destLogDir, serverId + ".kylin.log.zip"));
+            if (instances.isEmpty()) {
+                extractK8sKylinLogByServerIds(tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
+            } else {
+                extractK8sKylinLogByInstance(instances, tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
+        }
+    }
+    
+    public static void extractK8sKylinLogByServerIds(Map<String, String> tags, RestClient restClient,
+            long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
+        for (String serverId : NacosClusterManager.SERVER_IDS) {
+            logger.info("Extract logs for {}", serverId);
+            tags.put("component", serverId.replace("yinglong", "yl"));
+            String logUrl = String.format("/log/download?query=%s&start=%d&end=%d", mapsToUrlStr(tags), startTimeInSec,
+                    endTImeInSec);
+            HttpResponse response = restClient.forwardGet(new HttpHeaders(), logUrl, false);
+            saveResponseToFile(response, new File(destLogDir, serverId + ".kylin.log.zip"));
+        }
+    }
+
+    public static void extractK8sKylinLogByInstance(List<String> instances, Map<String, String> tags,
+            RestClient restClient, long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
+        for (String instance : instances) {
+            logger.info("Extract logs for {}", instance);
+            tags.put("instance", instance);
+            String logUrl = String.format("/log/download?query=%s&start=%d&end=%d", mapsToUrlStr(tags), startTimeInSec,
+                    endTImeInSec);
+            HttpResponse response = restClient.forwardGet(new HttpHeaders(), logUrl, false);
+            saveResponseToFile(response, new File(destLogDir, instance + ".kylin.log.zip"));
         }
     }
 

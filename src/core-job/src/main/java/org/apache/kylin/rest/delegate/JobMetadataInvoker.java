@@ -22,13 +22,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.FeignErrorResponse;
 import org.apache.kylin.common.exception.FeignRpcException;
-import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
-import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
@@ -64,11 +59,6 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     }
 
     public static JobMetadataInvoker getInstance() {
-        MetadataStore metadataStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                .getMetadataStore();
-        if (metadataStore instanceof HDFSMetadataStore) {
-            throw new KylinRuntimeException("This request cannot be route to metadata server");
-        }
         if (SpringContext.getApplicationContext() == null) {
             // for UT
             return new JobMetadataInvoker();

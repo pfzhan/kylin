@@ -285,6 +285,7 @@ public class ExecutableManager {
                         taskOrJob.getName(), oldNodeInfo, newNodeInfo);
             }
             info.put("node_info", newNodeInfo);
+            info.put("host_name", AddressUtil.getHostName());
             jobOutput.setInfo(info);
             String appId = info.get(ExecutableConstants.YARN_APP_ID);
             if (StringUtils.isNotEmpty(appId)) {

@@ -57,6 +57,8 @@ public class QueryHistoryInfo implements Serializable {
     private String cacheType;
     @JsonProperty("query_msg")
     private String queryMsg;
+    @JsonProperty("host_name")
+    private String hostName;
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;

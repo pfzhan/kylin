@@ -3148,7 +3148,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getLokiServer() {
-        return getOptional("kylin.engine.log.loki-api-server", "");
+        return getOptional("kylin.diag.loki-api-server", "");
     }
 
     public String[] getJobResourceLackIgnoreExceptionClasses() {

@@ -786,10 +786,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(confTask, SYSTEM_USAGE);
     }
     
-    protected void exportK8sLog(File exportDir, Long startTime, Long endTime, String targetServerId, File recordTime) {
+    protected void exportK8sLog(File exportDir, Long startTime, Long endTime, List<String> instances, File recordTime) {
         Future<?> logTask = executorService.submit(() -> {
             recordTaskStartTime(LOG);
-            KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, targetServerId);
+            KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, instances);
             recordTaskExecutorTimeToFile(LOG, recordTime);
         });
 

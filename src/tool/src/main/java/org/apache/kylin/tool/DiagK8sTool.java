@@ -19,6 +19,9 @@ package org.apache.kylin.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.cli.Option;
@@ -103,7 +106,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportAsyncTask(null, recordTime);
         exportQueryHistoryOffset(null, recordTime);
         exportK8sConf(headers, exportDir, recordTime, null);
-        exportK8sLog(exportDir, startTime, endTime, null, recordTime);
+        exportK8sLog(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
         // TODO Spark logs
     }
 
@@ -115,6 +118,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         }
         long startTime = query.getQueryTime();
         long endTime = query.getDuration() + startTime;
+        List<String> instances = Collections.singletonList(query.getQueryHistoryInfo().getHostName());
         logger.info("query project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
         dumpMetadata(exportDir, recordTime);
@@ -122,7 +126,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportQueryHistoryOffset(project, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.QUERY);
         // TODO this will extract logs from all query pods.
-        exportK8sLog(exportDir, startTime, endTime, NacosClusterManager.QUERY, recordTime);
+        exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
         //TODO extract SparkLogs
 
     }
@@ -137,6 +141,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         String modelId = job.getTargetModelId();
         long startTime = job.getCreateTime();
         long endTime = job.getOutput().getEndTime() != 0 ? job.getOutput().getEndTime() : System.currentTimeMillis();
+        List<String> instances = extractInstances(job);
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
         
         dumpMetadata(exportDir, recordTime);
@@ -147,8 +152,19 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportJobInfo(project, jobId, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.DATA_LOADING);
         // TODO this will extract logs from all data_loading pods.
-        exportK8sLog(exportDir, startTime, endTime, NacosClusterManager.DATA_LOADING, recordTime);
+        exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
         //TODO extract SparkLogs
 
+    }
+
+    private List<String> extractInstances(ExecutablePO po) {
+        List<String> instances = new ArrayList<>();
+        po.getTasks().forEach(task -> {
+            String instance = task.getOutput().getInfo().get("host_name");
+            if (instance != null && !instances.contains(instance)) {
+                instances.add(instance);
+            }
+        });
+        return instances;
     }
 }

@@ -67,13 +67,18 @@ public class AddressUtil {
         return getLocalInstance().split(":")[0] + ":" + MAINTAIN_MODE_MOCK_PORT;
     }
 
-    public static String getLocalServerInfo() {
+    public static String getHostName() {
         String hostName = "localhost";
         try {
             hostName = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             log.warn("use the InetAddress get host name failed!", e);
         }
+        return hostName;
+    }
+
+    public static String getLocalServerInfo() {
+        String hostName = getHostName();
         String host = hostName + "_" + KylinConfig.getInstanceFromEnv().getServerPort();
         return host.replaceAll("[^(_a-zA-Z0-9)]", "");
     }
