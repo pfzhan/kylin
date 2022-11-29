@@ -41,7 +41,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.parquet.Strings;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -212,8 +211,8 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     }
 
     private void setPartitions(NSparkSnapshotJob job, Set<String> partitions) {
-        job.setParam("partitions", Strings.join(partitions, ","));
-        job.getSnapshotBuildingStep().setParam("partitions", Strings.join(partitions, ","));
+        job.setParam("partitions", String.join(",", partitions));
+        job.getSnapshotBuildingStep().setParam("partitions", String.join(",", partitions));
     }
 
     @Test

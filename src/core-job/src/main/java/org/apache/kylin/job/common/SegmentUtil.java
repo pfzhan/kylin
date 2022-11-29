@@ -46,9 +46,9 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

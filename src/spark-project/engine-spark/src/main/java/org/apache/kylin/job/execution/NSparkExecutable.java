@@ -36,7 +36,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
@@ -62,7 +62,6 @@ import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.feign.MetadataInvoker;
-import org.apache.parquet.Strings;
 import org.apache.spark.sql.KylinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -380,7 +379,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         if (getParent() != null) {
             String yarnQueue = getParent().getSparkYarnQueue();
             // TODO double check if valid yarn queue
-            if (!Strings.isNullOrEmpty(yarnQueue)) {
+            if (!StringUtils.isEmpty(yarnQueue)) {
                 jobOverrides.put(KylinConfig.getInstanceFromEnv().getQueueKey(), yarnQueue);
             }
         }
