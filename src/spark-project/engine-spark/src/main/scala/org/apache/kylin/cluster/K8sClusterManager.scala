@@ -21,10 +21,15 @@ import java.util
 import java.util.concurrent.TimeUnit
 
 import com.google.common.collect.Lists
+import io.fabric8.kubernetes.api.model.{Quantity, ResourceQuota}
 import io.fabric8.kubernetes.client.Config.autoConfigure
 import io.fabric8.kubernetes.client.{ConfigBuilder, DefaultKubernetesClient, KubernetesClient}
+import io.fabric8.volcano.client.DefaultVolcanoClient
+import io.fabric8.volcano.scheduling.v1beta1.Queue
 import okhttp3.Dispatcher
+import org.apache.commons.collections.CollectionUtils
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.{ByteUnit, SizeConvertUtil}
 import org.apache.kylin.engine.spark.utils.ThreadUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
@@ -32,12 +37,14 @@ import org.apache.spark.sql.SparkSession
 import scala.collection.JavaConverters._
 
 class K8sClusterManager extends IClusterManager with Logging {
+
   import org.apache.kylin.cluster.K8sClusterManager._
+
   private val JOB_STEP_PREFIX = "job-step-"
   private val SPARK_ROLE = "spark-role"
   private val DRIVER = "driver"
   private val DEFAULT_NAMESPACE = "default"
-  private var config : KylinConfig = null
+  private var config: KylinConfig = null
 
   override def withConfig(config: KylinConfig): Unit = {
     this.config = config
@@ -48,7 +55,53 @@ class K8sClusterManager extends IClusterManager with Logging {
   }
 
   override def fetchQueueAvailableResource(queueName: String): AvailableResource = {
+    withKubernetesClient(config, kubernetesClient => {
+      val volcanoClient = new DefaultVolcanoClient(kubernetesClient)
+      val queue = volcanoClient.queues().list().getItems.stream().filter(_.getMetadata.getName.equals(queueName)).findFirst()
+      if (queue.isPresent && queue.get().getSpec.getCapability != null) {
+        return getAvailableResourceByVolcano(queue.get())
+      } else {
+        val quotas = kubernetesClient.resourceQuotas().list().getItems
+        if (CollectionUtils.isNotEmpty(quotas)) {
+          return getAvailableResourceByQuota(quotas)
+        }
+      }
+    })
     AvailableResource(ResourceInfo(Int.MaxValue, 1000), ResourceInfo(Int.MaxValue, 1000))
+  }
+
+  def getAvailableResourceByVolcano(queue: Queue): AvailableResource = {
+    val capability = queue.getSpec.getCapability
+    val memoryBytes = Quantity.getAmountInBytes(capability.getOrDefault("memory", Quantity.parse(Int.MaxValue + "Gi")))
+    val memory = SizeConvertUtil.byteStringAs(memoryBytes + "b", ByteUnit.GiB).toInt
+    val cpu = getCpuByQuantity(capability.getOrDefault("cpu", Quantity.parse("1000")))
+    AvailableResource(ResourceInfo(memory, cpu), ResourceInfo(memory, cpu))
+  }
+
+  def getAvailableResourceByQuota(quotas: util.List[ResourceQuota]): AvailableResource = {
+    val hardMemoryBytes = quotas.stream().mapToLong(quota => Quantity.getAmountInBytes(
+      quota.getStatus.getHard.getOrDefault("limits.memory", Quantity.parse(Int.MaxValue + "Gi"))).longValue()) //
+      .min().getAsLong
+
+    val hardCpu = quotas.stream().mapToInt(quota => getCpuByQuantity(
+      quota.getStatus.getHard.getOrDefault("limits.cpu", Quantity.parse("1000"))))
+      .min().getAsInt
+
+    val used = quotas.get(0).getStatus.getUsed
+    val hardMemory = SizeConvertUtil.byteStringAs(hardMemoryBytes + "b", ByteUnit.GiB).toInt
+    val usedMemoryBytes = Quantity.getAmountInBytes(used.getOrDefault("limits.memory", Quantity.parse("0Gi")))
+    val usedMemory = SizeConvertUtil.byteStringAs(usedMemoryBytes + "b", ByteUnit.GiB).toInt
+
+    val usedCpu = used.getOrDefault("limits.cpu", Quantity.parse("0")).getAmount.toInt
+    AvailableResource(ResourceInfo(hardMemory - usedMemory, hardCpu - usedCpu), ResourceInfo(hardMemory, hardCpu))
+  }
+
+  def getCpuByQuantity(quantity: Quantity): Int = {
+    val format = quantity.getFormat
+    if (format != null && format.equalsIgnoreCase("m")) {
+      return quantity.getAmount.toInt / 1000
+    }
+    quantity.getAmount.toInt
   }
 
   override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
