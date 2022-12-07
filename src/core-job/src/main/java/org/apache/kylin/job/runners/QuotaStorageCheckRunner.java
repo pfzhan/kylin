@@ -51,7 +51,7 @@ public class QuotaStorageCheckRunner implements Runnable {
 
     @Override
     public void run() {
-        if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isStorageQuotaEnabled()) {
             return;
         }
         logger.info("Start check all project storage quota.");
