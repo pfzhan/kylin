@@ -49,7 +49,7 @@ public class JobCheckUtil {
     }
 
     public static void startQuotaStorageCheckRunner(QuotaStorageCheckRunner quotaStorageCheckRunner) {
-        if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isStorageQuotaEnabled()) {
             return;
         }
         int pollSecond = KylinConfig.getInstanceFromEnv().getSchedulerPollIntervalSecond();
@@ -71,7 +71,7 @@ public class JobCheckUtil {
 
     public static boolean stopJobIfStorageQuotaLimitReached(JobContext jobContext, ExecutablePO executablePO,
             AbstractJobExecutable jobExecutable) {
-        if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isStorageQuotaEnabled()) {
             return false;
         }
         String jobId = executablePO.getId();

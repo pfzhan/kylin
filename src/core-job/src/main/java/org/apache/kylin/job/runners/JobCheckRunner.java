@@ -101,7 +101,7 @@ public class JobCheckRunner implements Runnable {
     }
 
     private boolean stopJobIfStorageQuotaLimitReached(JobContext jobContext, String jobId, String project) {
-        if (!KylinConfig.getInstanceFromEnv().isCheckQuotaStorageEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isStorageQuotaEnabled()) {
             return false;
         }
         val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

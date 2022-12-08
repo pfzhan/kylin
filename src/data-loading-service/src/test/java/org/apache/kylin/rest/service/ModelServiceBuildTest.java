@@ -97,7 +97,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
@@ -576,7 +575,7 @@ public class ModelServiceBuildTest extends SourceTestCase {
         modelRequest.setManagementType(ManagementType.MODEL_BASED);
         modelRequest.setLastModified(0L);
         modelRequest.setProject("match");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(RuntimeException.class);
         thrown.expectMessage("Can not build segments, please define table index or aggregate index first!");
         modelService.createModel(modelRequest.getProject(), modelRequest);
         modelBuildService.buildSegmentsManually("match", "new_model", "0", "100");
