@@ -61,4 +61,10 @@ public class UnitOfWorkParams<T> {
     @Builder.Default
     private boolean transparent = false;
 
+    /**
+     * only for debug or test
+     */
+    @Builder.Default
+    private long sleepMills = -1;
+
 }

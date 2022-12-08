@@ -26,15 +26,15 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.controller.NBasicController;
+import org.apache.kylin.rest.controller.NUserController;
+import org.apache.kylin.rest.request.CachedUserUpdateRequest;
+import org.apache.kylin.rest.request.PasswordChangeRequest;
+import org.apache.kylin.rest.request.UserRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.UserInfoResponse;
 import org.apache.kylin.rest.service.UserService;
-import org.apache.kylin.metadata.user.ManagedUser;
-import org.apache.kylin.rest.controller.NBasicController;
-import org.apache.kylin.rest.controller.NUserController;
-import org.apache.kylin.rest.request.PasswordChangeRequest;
-import org.apache.kylin.rest.request.UserRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -48,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -85,7 +86,7 @@ public class OpenUserController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> createUser(@RequestBody ManagedUser user) throws IOException {
+    public EnvelopeResponse<String> createUser(@RequestBody UserRequest user) throws IOException {
         return userController.createUser(user);
     }
 
@@ -133,7 +134,15 @@ public class OpenUserController extends NBasicController {
     @PostMapping(value = "/batch")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> batchCreate(@RequestBody List<ManagedUser> users) throws IOException {
+    public EnvelopeResponse<String> batchCreate(@RequestBody List<UserRequest> users) throws IOException {
         return userController.batchCreate(users);
+    }
+
+    @ApiOperation(value = "refreshUser", tags = { "MID" })
+    @PutMapping(value = "/refresh")
+    @ResponseBody
+    public EnvelopeResponse<String> refreshUser(@RequestBody CachedUserUpdateRequest request) {
+        userService.refresh(request);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

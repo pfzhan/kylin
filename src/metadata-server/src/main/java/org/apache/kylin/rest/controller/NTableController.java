@@ -38,6 +38,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -221,6 +222,7 @@ public class NTableController extends NBasicController {
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
+            StringUtil.toUpperCaseArray(tableLoadRequest.getTables(), tableLoadRequest.getTables());
             LoadTableResponse loadByTable = tableExtService.loadDbTables(tableLoadRequest.getTables(),
                     tableLoadRequest.getProject(), false);
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
@@ -228,6 +230,7 @@ public class NTableController extends NBasicController {
         }
 
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
+            StringUtil.toUpperCaseArray(tableLoadRequest.getDatabases(), tableLoadRequest.getDatabases());
             LoadTableResponse loadByDb = tableExtService.loadDbTables(tableLoadRequest.getDatabases(),
                     tableLoadRequest.getProject(), true);
             loadTableResponse.getFailed().addAll(loadByDb.getFailed());
@@ -243,7 +246,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @ApiOperation(value = "loadAWSTablesCompatibleCrossAccount", tags = {"KC" },
+    @ApiOperation(value = "loadAWSTablesCompatibleCrossAccount", tags = {"KC"},
             notes = "Update Body: data_source_type, need_sampling, sampling_rows, data_source_properties")
     @PostMapping(value = "/compatibility/aws")
     @ResponseBody

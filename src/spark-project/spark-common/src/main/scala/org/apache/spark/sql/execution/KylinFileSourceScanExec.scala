@@ -44,7 +44,7 @@ class KylinFileSourceScanExec(
      tableIdentifier: Option[TableIdentifier],
      disableBucketedScan: Boolean = false,
      sourceScanRows: Long) extends LayoutFileSourceScanExec(
-  relation, output, requiredSchema, partitionFilters, None, optionalNumCoalescedBuckets, dataFilters, tableIdentifier, disableBucketedScan) {
+  relation, output, requiredSchema, partitionFilters, None, optionalNumCoalescedBuckets, dataFilters, tableIdentifier, disableBucketedScan, sourceScanRows) {
 
   def getSourceScanRows: Long = {
     sourceScanRows
@@ -137,7 +137,7 @@ class KylinFileSourceScanExec(
    * @param fsRelation         [[HadoopFsRelation]] associated with the read.
    */
   private def createShardingReadRDD(shardSpec: ShardSpec,
-                                    readFile: (PartitionedFile) => Iterator[InternalRow],
+                                    readFile: PartitionedFile => Iterator[InternalRow],
                                     selectedPartitions: Seq[PartitionDirectory],
                                     fsRelation: HadoopFsRelation): RDD[InternalRow] = {
     logInfo(s"Planning with ${shardSpec.numShards} shards")
@@ -178,7 +178,7 @@ class KylinFileSourceScanExec(
    * @param selectedPartitions Hive-style partition that are part of the read.
    * @param fsRelation         [[HadoopFsRelation]] associated with the read.
    */
-  private def createNonShardingReadRDD(readFile: (PartitionedFile) => Iterator[InternalRow],
+  private def createNonShardingReadRDD(readFile: PartitionedFile => Iterator[InternalRow],
                                        selectedPartitions: Seq[PartitionDirectory],
                                        fsRelation: HadoopFsRelation): RDD[InternalRow] = {
 
@@ -261,7 +261,7 @@ class KylinFileSourceScanExec(
 
   private def getBlockLocations(file: FileStatus): Array[BlockLocation] = file match {
     case f: LocatedFileStatus => f.getBlockLocations
-    case f => Array.empty[BlockLocation]
+    case _ => Array.empty[BlockLocation]
   }
 
   // Given locations of all blocks of a single file, `blockLocations`, and an `(offset, length)`

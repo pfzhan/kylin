@@ -23,14 +23,23 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.ScheduleService;
 import org.apache.kylin.rest.service.SystemService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -42,14 +51,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
 
 import io.swagger.annotations.ApiOperation;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Controller
 @RequestMapping(value = "/api/system", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+@Slf4j
 public class NSystemController extends NBasicController {
 
     @Autowired
@@ -61,6 +74,10 @@ public class NSystemController extends NBasicController {
 
     @Autowired
     private ScheduleService scheduleService;
+
+    @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     @VisibleForTesting
     public void setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -119,6 +136,36 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> doCleanupGarbage(final HttpServletRequest request) throws Exception {
         scheduleService.routineTask();
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/transaction/simulation/insert_meta")
+    @ResponseBody
+    public EnvelopeResponse<String> simulateInsertMeta(
+            @RequestParam(value = "count", required = false, defaultValue = "5") int count,
+            @RequestParam(value = "sleepSec", required = false, defaultValue = "20") long sleepSec) {
+        if (KylinConfig.getInstanceFromEnv().isUnitOfWorkSimulationEnabled()) {
+
+            val projectList = IntStream.range(0, 5).mapToObj(i -> "simulation" + i).collect(Collectors.toList());
+
+            projectList.forEach(p -> {
+                if (CollectionUtils.isNotEmpty(projectService.getReadableProjects(p, true))) {
+                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                        projectService.dropProject(p);
+                        return null;
+                    }, p);
+                }
+
+            });
+
+            log.debug("insert_meta begin to create project");
+
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(UnitOfWorkParams.<Map>builder()
+                    .unitName(UnitOfWork.GLOBAL_UNIT).sleepMills(TimeUnit.SECONDS.toMillis(sleepSec)).processor(() -> {
+                        projectList.forEach(p -> projectService.createProject(p, new ProjectInstance()));
+                        return null;
+                    }).build());
+        }
         return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
     }
 }

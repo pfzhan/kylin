@@ -35,6 +35,8 @@ import org.mybatis.dynamic.sql.SqlTable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+
 public class AsyncTaskTable extends SqlTable {
 
     public final SqlColumn<Integer> id = column("id", JDBCType.INTEGER);

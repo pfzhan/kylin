@@ -26,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -72,13 +74,10 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.execution.NSparkExecutable;
-import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
-import org.apache.kylin.job.execution.stage.NStageForBuild;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -112,6 +111,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import lombok.val;
 import lombok.var;
 
@@ -152,10 +154,10 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListJobs() throws Exception {
 
-        val modelManager = Mockito.mock(NDataModelManager.class);
+        val modelManager = mock(NDataModelManager.class);
 
         Mockito.when(modelService.getManager(NDataModelManager.class, "default")).thenReturn(modelManager);
-        NDataModel nDataModel = Mockito.mock(NDataModel.class);
+        NDataModel nDataModel = mock(NDataModel.class);
         Mockito.when(modelManager.getDataModelDesc(Mockito.anyString())).thenReturn(nDataModel);
 
         ExecutableManager executableManager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), "default"));
@@ -211,10 +213,10 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs6 = jobInfoService.listJobs(jobFilter);
         Assert.assertTrue(jobs6.size() == 3 && jobs6.get(0).getJobName().equals("sparkjob1"));
 
-        //        jobFilter.setSortBy("duration");
-        //        jobFilter.setReverse(true);
-        //        List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
-        //        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
+        jobFilter.setSortBy("duration");
+        jobFilter.setReverse(true);
+        List<ExecutableResponse> jobs7 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob1"));
 
         jobFilter.setSortBy("create_time");
         jobFilter.setReverse(true);
@@ -235,9 +237,50 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs12 = jobInfoService.listJobs(jobFilter);
         Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
 
+        jobFilter.setSortBy("total_duration");
+        List<ExecutableResponse> sortJobs1 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(sortJobs1.size() == 3 && sortJobs1.get(0).getDuration() == 0);
+
+        jobFilter.setSortBy("target_subject");
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.INDEX_BUILD);
+        }
+        List<ExecutableResponse> sortJobs2 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(sortJobs2.size() == 3 && sortJobs2.get(0).getJobName().equals("sparkjob1"));
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.TABLE_SAMPLING);
+        }
+        List<ExecutableResponse> sortJobs3 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(sortJobs3.size() == 3 && sortJobs3.get(0).getJobName().equals("sparkjob1"));
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.SNAPSHOT_BUILD);
+            if (job.getName().equals("sparkjob2")) {
+                job.getOutput().setStatus("PAUSED");
+            } else {
+                job.getOutput().setStatus("DISCARDED");
+            }
+        }
+        List<ExecutableResponse> sortJobs4 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(sortJobs4.size() == 3 && sortJobs4.get(0).getJobName().equals("sparkjob2"));
+        for (ExecutablePO job : mockJobs) {
+            job.setJobType(JobTypeEnum.SNAPSHOT_REFRESH);
+            if (job.getName().equals("sparkjob1")) {
+                job.getOutput().setStatus("PAUSED");
+            } else {
+                job.getOutput().setStatus("SUCCEED");
+            }
+        }
+        List<ExecutableResponse> sortJobs5 = jobInfoService.listJobs(jobFilter);
+        Assert.assertTrue(sortJobs5.size() == 3 && sortJobs5.get(0).getJobName().equals("sparkjob1"));
+
+        jobFilter.setSortBy("total_time");
+        assertKylinExeption(() -> {
+            jobInfoService.listJobs(jobFilter);
+        }, "The selected sort filter \"total_time\" is invalid. Please select again.");
+
+        jobFilter.setSortBy("create_time");
         List<ExecutableResponse> jobs13 = jobInfoService.listJobs(jobFilter, 0, 10);
         Assert.assertEquals(3, jobs13.size());
-
         String jobId = jobs13.get(0).getId();
         for (ExecutablePO job : mockJobs) {
             job.setJobType(JobTypeEnum.TABLE_SAMPLING);
@@ -245,15 +288,12 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setKey(jobId);
         List<ExecutableResponse> jobs14 = jobInfoService.listJobs(jobFilter, 0, 10);
         Assert.assertTrue(jobs14.size() == 1 && jobs14.get(0).getId().equals(jobId));
-
         jobFilter.setStatuses(Lists.newArrayList());
         List<ExecutableResponse> jobs15 = jobInfoService.listJobs(jobFilter, 0, 10);
         assertEquals(1, jobs15.size());
-
         jobFilter.setStatuses(Lists.newArrayList("NEW"));
         List<ExecutableResponse> jobs16 = jobInfoService.listJobs(jobFilter, 0, 10);
         assertEquals(0, jobs16.size());
-
     }
 
     private List<ExecutablePO> mockDetailJobs(boolean random) throws Exception {
@@ -608,6 +648,30 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetJobInstance_ManageJob_RESTART() throws IOException {
+        String jobId = "job1";
+        ExecutableResponse executableResponse = new ExecutableResponse();
+        executableResponse.setId(jobId);
+
+        AbstractExecutable job = new NSparkCubingJob();
+
+        Mockito.doReturn(mockProjects()).when(jobInfoService).getReadableProjects();
+        ExecutableManager manager = mock(ExecutableManager.class);
+        Mockito.when(manager.getJob(jobId)).thenReturn(job);
+        Mockito.doReturn(manager).when(jobInfoService).getManager(ExecutableManager.class, "default");
+        Assert.assertEquals("default", jobInfoService.getProjectByJobId(jobId));
+
+        Mockito.doReturn("default").when(jobInfoService).getProjectByJobId(jobId);
+        Mockito.doReturn(executableResponse).when(jobInfoService).convert(job, ExecutableManager.toPO(job, "default"));
+        Assert.assertEquals(jobId, jobInfoService.getJobInstance(jobId).getId());
+
+        Mockito.doNothing().when(jobInfoService).updateJobStatus(jobId, ExecutableManager.toPO(job, "default"),
+                "default", "RESTART");
+
+        Assert.assertEquals(executableResponse, jobInfoService.manageJob("default", executableResponse, "RESTART"));
+    }
+
+    @Test
     public void testUpdateStageOutput() {
         String segmentId = RandomUtil.randomUUIDStr();
         String segmentId2 = RandomUtil.randomUUIDStr();
@@ -852,8 +916,9 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testParseToExecutableState() {
+        JobInfoService service = new JobInfoService();
         Assert.assertThrows(KylinException.class,
-                () -> ReflectionTestUtils.invokeMethod(new JobInfoService(), "parseToExecutableState", SKIP));
+                () -> ReflectionTestUtils.invokeMethod(service, "parseToExecutableState", SKIP));
     }
 
     public void testFusionModelStopBatchJob() {
@@ -991,4 +1056,42 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage(JOB_STATUS_ILLEGAL.getMsg());
         jobInfoService.checkJobStatus("UNKNOWN");
     }
+
+    @Test
+    public void testExecutableResponse() throws Exception {
+        val modelManager = mock(NDataModelManager.class);
+
+        Mockito.when(modelService.getManager(NDataModelManager.class, "default")).thenReturn(modelManager);
+        NDataModel nDataModel = mock(NDataModel.class);
+        Mockito.when(modelManager.getDataModelDesc(Mockito.anyString())).thenReturn(nDataModel);
+
+        ExecutableManager executableManager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), "default"));
+        Mockito.when(jobInfoService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
+        val mockJobs = mockDetailJobs(false);
+        Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+        for (ExecutablePO po : mockJobs) {
+            AbstractExecutable exe = executableManager.fromPO(po);
+            Mockito.when(executableManager.getJob(po.getId())).thenReturn(exe);
+        }
+        getTestConfig().setProperty("kylin.streaming.enabled", "false");
+        // test size
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "default", "", true);
+        List<ExecutableResponse> jobs = jobInfoService.listJobs(jobFilter);
+        List<ExecutableResponse> executableResponses = jobInfoService.addOldParams(jobs);
+        ExecutableResponse executable = executableResponses.get(0);
+        Assert.assertEquals("", executable.getRelatedSegment());
+        Assert.assertEquals(0, executable.getProgress(), 0);
+        executable.getSteps().get(0).setStatus(JobStatusEnum.FINISHED);
+        Assert.assertEquals(33, executable.getProgress(), 1);
+        executable.setSteps(null);
+        String uuid = UUID.randomUUID().toString();
+        executable.setTargetSegments(Lists.newArrayList(uuid));
+        Assert.assertEquals(0.0, executable.getProgress(), 0);
+        Assert.assertEquals(uuid, executable.getRelatedSegment());
+        executable.setTargetSegments(Collections.emptyList());
+        Assert.assertEquals(0.0, executable.getProgress(), 0);
+        Assert.assertEquals("", executable.getRelatedSegment());
+    }
+
 }

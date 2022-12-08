@@ -18,9 +18,12 @@
 
 package org.apache.kylin.rest.service.task;
 
-import static org.apache.kylin.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
+import static io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
@@ -30,8 +33,8 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.junit.TimeZoneTestRunner;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.favorite.AccelerateRuleUtil;
-import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
+import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryMetrics;
@@ -57,7 +60,14 @@ import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
+import lombok.val;
+import lombok.var;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockRunnerDelegate(TimeZoneTestRunner.class)
@@ -68,6 +78,8 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
     private static final String DATAFLOW = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
     private static final String LAYOUT1 = "20000000001";
     private static final String LAYOUT2 = "1000001";
+    private static final String LAYOUT3 = "30001";
+    private static final String LAYOUT4 = "40001";
     private static final Long QUERY_TIME = 1586760398338L;
 
     private QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler;
@@ -75,6 +87,8 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
 
     @Mock
     private final IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+    int startOffset = 0;
 
     @Before
     public void setUp() throws Exception {
@@ -135,10 +149,43 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
                 .get(TimeUtil.getDayStart(QUERY_TIME)).intValue());
         Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
 
+        // update snapshot usage
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                PROJECT);
+        Assert.assertEquals(1, tableMetadataManager.getOrCreateTableExt("DEFAULT.TEST_ACCOUNT").getSnapshotHitCount());
+        Assert.assertEquals(1, tableMetadataManager.getOrCreateTableExt("DEFAULT.TEST_ORDER").getSnapshotHitCount());
+
         // after update id offset
         Assert.assertEquals(8, idOffsetManager.get(META).getOffset());
     }
 
+    @Test
+    public void testUpdateLastQueryTime()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+
+        // before update dataflow usage, layout usage and last query time
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(DATAFLOW);
+        Assert.assertEquals(3, dataflow.getQueryHitCount());
+        Assert.assertNull(dataflow.getLayoutHitCount().get(20000000001L));
+        Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
+        Assert.assertEquals(0L, dataflow.getLastQueryTime());
+
+        val queryHistoryAccelerateRunner = qhMetaUpdateScheduler.new QueryHistoryMetaUpdateRunner();
+        Class<? extends QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner> clazz = queryHistoryAccelerateRunner
+                .getClass();
+        Method method = clazz.getDeclaredMethod("updateLastQueryTime", Map.class, String.class);
+        method.setAccessible(true);
+        method.invoke(queryHistoryAccelerateRunner, ImmutableMap.of("aaa", 100L), PROJECT);
+        method.invoke(queryHistoryAccelerateRunner, ImmutableMap.of(DATAFLOW, 100L), PROJECT);
+        method.setAccessible(false);
+
+        NDataflow dataflow1 = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(DATAFLOW);
+        long lastQueryTime = dataflow1.getLastQueryTime();
+        Assert.assertEquals(100L, lastQueryTime);
+    }
+    
     @Test
     public void testUpdateMetadataWithStringRealization() {
         qhMetaUpdateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
@@ -178,6 +225,17 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
     }
 
     @Test
+    public void testQueryHitSnapshotCount() {
+        QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = qhMetaUpdateScheduler.new QueryHistoryMetaUpdateRunner();
+        TableExtDesc tableExtDesc = new TableExtDesc();
+        tableExtDesc.setSnapshotHitCount(10);
+        tableExtDesc.setIdentity("123");
+        Map<TableExtDesc, Integer> map = Maps.newHashMap();
+        map.put(tableExtDesc, 1);
+        ReflectionTestUtils.invokeMethod(queryHistoryAccelerateRunner, "incQueryHitSnapshotCount", map, PROJECT);
+    }
+
+    @Test
     public void testBatchUpdate() {
         qhMetaUpdateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhMetaUpdateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
@@ -194,6 +252,46 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
 
         queryHistoryAccelerateRunner.run();
         Assert.assertEquals(16, idOffsetManager.get(META).getOffset());
+    }
+
+    @Test
+    public void testUpdateStatMeta() {
+        QueryHistoryMetaUpdateScheduler taskScheduler = new QueryHistoryMetaUpdateScheduler("streaming_test");
+        QueryHistoryMetaUpdateScheduler.QueryHistoryMetaUpdateRunner metaUpdateRunner = taskScheduler.new QueryHistoryMetaUpdateRunner();
+        NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        {
+            var dataflow = manager.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+            Assert.assertTrue(dataflow.getLayoutHitCount().isEmpty());
+            ReflectionTestUtils.invokeMethod(metaUpdateRunner, "updateStatMeta", batchModelQueryHistory());
+            dataflow = manager.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+            Assert.assertEquals(1, countDateFrequency(dataflow, LAYOUT3));
+        }
+        {
+            var batchDataflow = manager.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+            var streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+
+            Assert.assertFalse(batchDataflow.getLayoutHitCount().containsKey(Long.parseLong(LAYOUT4)));
+            Assert.assertFalse(streamingDataflow.getLayoutHitCount().containsKey(Long.parseLong(LAYOUT3)));
+
+            ReflectionTestUtils.invokeMethod(metaUpdateRunner, "updateStatMeta", fusionModelQueryHistory());
+            batchDataflow = manager.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+            streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+
+            Assert.assertEquals(1, countDateFrequency(batchDataflow, LAYOUT4));
+            Assert.assertEquals(1, countDateFrequency(streamingDataflow, LAYOUT3));
+        }
+        {
+            var streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+            Assert.assertEquals(1, countDateFrequency(streamingDataflow, LAYOUT3));
+            ReflectionTestUtils.invokeMethod(metaUpdateRunner, "updateStatMeta", streamingModelQueryHistory());
+            streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+            Assert.assertEquals(2, countDateFrequency(streamingDataflow, LAYOUT3));
+        }
+    }
+
+    private int countDateFrequency(NDataflow dataflow, String layout) {
+        return dataflow.getLayoutHitCount().get(Long.parseLong(layout)).getDateFrequency().values().stream()
+                .mapToInt(Integer::intValue).sum();
     }
 
     private List<QueryHistory> queryHistories() {
@@ -260,6 +358,8 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory7.setQueryTime(QUERY_TIME);
         queryHistory7.setEngineType("NATIVE");
         QueryHistoryInfo queryHistoryInfo7 = new QueryHistoryInfo();
+        queryHistoryInfo7.setQuerySnapshots(Lists.newArrayList(Lists.newArrayList("DEFAULT.TEST_ACCOUNT"),
+                Lists.newArrayList("DEFAULT.TEST_ORDER")));
         queryHistoryInfo7.setRealizationMetrics(Lists.newArrayList(
                 new QueryMetrics.RealizationMetrics(LAYOUT2, "Table Index", DATAFLOW, Lists.newArrayList())));
         queryHistory7.setQueryHistoryInfo(queryHistoryInfo7);
@@ -368,6 +468,82 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
         return histories;
     }
 
-    int startOffset = 0;
+    /**
+     * sql match batch model of fusion model
+     * @return
+     */
+    private List<QueryHistory> batchModelQueryHistory() {
+        String fusionModelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("SELECT MAX(LO_ORDERKEY) FROM SSB.KAFKA_FUSION");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo1 = new QueryHistoryInfo();
+        queryHistoryInfo1.setRealizationMetrics(Lists.newArrayList(
+                new QueryMetrics.RealizationMetrics(LAYOUT3, "Agg Index", fusionModelId, Lists.newArrayList())));
+        queryHistory1.setQueryHistoryInfo(queryHistoryInfo1);
+        queryHistory1.setId(10);
+        return Lists.newArrayList(queryHistory1);
+    }
 
+    /**
+     * sql match both batch model and streaming model in fusion model
+     * @return
+     */
+    private List<QueryHistory> fusionModelQueryHistory() {
+        String fusionModelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        String batchModelId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("SELECT MAX(LO_ORDERKEY) FROM SSB.KAFKA_FUSION");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo1 = new QueryHistoryInfo();
+        QueryMetrics.RealizationMetrics streamingRealizationMetric = new QueryMetrics.RealizationMetrics(LAYOUT3,
+                "Agg Index", fusionModelId, Lists.newArrayList());
+        streamingRealizationMetric.setStreamingLayout(true);
+        queryHistoryInfo1.setRealizationMetrics(Lists.newArrayList(streamingRealizationMetric,
+                new QueryMetrics.RealizationMetrics(LAYOUT4, "Agg Index", batchModelId, Lists.newArrayList())));
+        queryHistory1.setQueryHistoryInfo(queryHistoryInfo1);
+        queryHistory1.setId(11);
+        return Lists.newArrayList(queryHistory1);
+    }
+
+    /**
+     * sql match streaming model in fusion model
+     * @return
+     */
+    private List<QueryHistory> streamingModelQueryHistory() {
+        String fusionModelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("SELECT MAX(LO_ORDERKEY) FROM SSB.KAFKA_FUSION");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo1 = new QueryHistoryInfo();
+        QueryMetrics.RealizationMetrics streamingRealizationMetric = new QueryMetrics.RealizationMetrics(LAYOUT3,
+                "Agg Index", fusionModelId, Lists.newArrayList());
+        streamingRealizationMetric.setStreamingLayout(true);
+        queryHistoryInfo1.setRealizationMetrics(Lists.newArrayList(streamingRealizationMetric));
+        queryHistory1.setQueryHistoryInfo(queryHistoryInfo1);
+        queryHistory1.setId(10);
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSqlPattern("SELECT MAX(LO_ORDERKEY) FROM SSB.KAFKA_FUSION");
+        queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory2.setDuration(1000L);
+        queryHistory2.setQueryTime(QUERY_TIME);
+        queryHistory2.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo2 = new QueryHistoryInfo();
+        QueryMetrics.RealizationMetrics realizationMetric = new QueryMetrics.RealizationMetrics(LAYOUT3,
+                "Agg Index", "error", Lists.newArrayList());
+        queryHistoryInfo2.setRealizationMetrics(Lists.newArrayList(realizationMetric));
+        queryHistory2.setQueryHistoryInfo(queryHistoryInfo2);
+        queryHistory2.setId(11);
+        return Lists.newArrayList(queryHistory1, queryHistory2);
+    }
 }

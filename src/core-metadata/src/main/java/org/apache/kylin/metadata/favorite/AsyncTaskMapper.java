@@ -36,6 +36,8 @@ import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
+import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+
 @Mapper
 public interface AsyncTaskMapper {
 

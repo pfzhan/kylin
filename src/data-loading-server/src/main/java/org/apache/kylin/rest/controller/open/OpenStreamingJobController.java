@@ -70,6 +70,10 @@ public class OpenStreamingJobController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse,
             @RequestParam(value = "job_ids", required = false, defaultValue = "") List<String> jobIds) {
         checkStreamingEnabled();
+        checkStreamingJobsStatus(statuses);
+        checkStreamingJobTypeStatus(jobTypes);
+        project = getInsensitiveProject(project);
+        modelName = getInsensitiveProjectModelName(project, modelName);
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse, jobIds);
         val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);

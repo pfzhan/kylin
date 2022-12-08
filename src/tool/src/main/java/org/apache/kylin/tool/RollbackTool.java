@@ -65,8 +65,6 @@ import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.user.ManagedUser;
-import org.apache.kylin.metadata.user.NKylinUserManager;
 import org.apache.kylin.tool.general.RollbackStatusEnum;
 import org.joda.time.format.DateTimeFormat;
 
@@ -74,6 +72,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;

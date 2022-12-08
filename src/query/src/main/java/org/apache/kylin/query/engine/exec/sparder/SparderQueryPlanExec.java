@@ -32,6 +32,7 @@ import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.query.engine.exec.calcite.CalciteQueryPlanExec;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
@@ -70,14 +71,20 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         // select realizations
         selectRealization(rel);
 
+        val contexts = ContextUtil.listContexts();
+        for (OLAPContext context : contexts) {
+            if (hasEmptyRealization(context)) {
+                return new CalciteQueryPlanExec().executeToIterable(rel, dataContext);
+            }
+        }
+
         // skip if no segment is selected
         // check contentQuery and runConstantQueryLocally for UT cases to make sure SparderEnv.getDF is not null
         // TODO refactor IT tests and remove this runConstantQueryLocally checking
         if (!(dataContext instanceof SimpleDataContext) || !(((SimpleDataContext) dataContext)).isContentQuery()
                 || KapConfig.wrap(((SimpleDataContext) dataContext).getKylinConfig()).runConstantQueryLocally()) {
-            val contexts = ContextUtil.listContexts();
             for (OLAPContext context : contexts) {
-                if (context.olapSchema != null && context.storageContext.isEmptyLayout()) {
+                if (context.olapSchema != null && context.storageContext.isEmptyLayout() && !context.isHasAgg()) {
                     QueryContext.fillEmptyResultSetMetrics();
                     return new ExecuteResult(Lists.newArrayList(), 0);
                 }
@@ -110,6 +117,10 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
     }
 
+    private static boolean hasEmptyRealization(OLAPContext context) {
+        return context.realization == null && context.isConstantQueryWithAggregations();
+    }
+
     protected ExecuteResult internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
         try {
             return queryEngine.computeToIterable(dataContext, rel);
@@ -124,6 +135,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                     }
                     QueryContext.current().setLastFailed(true);
                     cause = retryException;
+                    checkOnlyTsAnswer();
                 }
             }
             if (forceTableIndexAtException(e)) {
@@ -205,6 +217,13 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_INVALID_PARAMETER,
                         MsgPicker.getMsg().getForcedToTieredstorageInvalidParameter());
             }
+        }
+    }
+
+    private void checkOnlyTsAnswer() {
+        if (QueryContext.current().getForcedToTieredStorage() == ForceToTieredStorage.CH_FAIL_TO_RETURN) {
+            throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
+                    MsgPicker.getMsg().getForcedToTieredstorageReturnError());
         }
     }
 }

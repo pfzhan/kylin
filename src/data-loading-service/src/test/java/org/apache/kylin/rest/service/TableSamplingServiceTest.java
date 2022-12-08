@@ -31,8 +31,6 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NTableSamplingJob;
-import org.apache.kylin.job.execution.step.NResourceDetectStep;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -55,6 +53,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.job.NResourceDetectStep;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import lombok.val;
 
 public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {

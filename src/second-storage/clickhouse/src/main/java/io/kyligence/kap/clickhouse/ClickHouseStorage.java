@@ -21,6 +21,7 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_INDEX_CLEA
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_REFRESH_SECONDARY_INDEXES_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_SEGMENT_CLEAN_FACTORY;
 
 import java.util.HashMap;
@@ -38,7 +39,9 @@ import org.apache.spark.sql.jdbc.JdbcDialects;
 import io.kyligence.kap.clickhouse.factory.ClickHouseMetadataFactory;
 import io.kyligence.kap.clickhouse.factory.ClickHouseOperatorFactory;
 import io.kyligence.kap.clickhouse.factory.ClickHouseQueryFactory;
+import io.kyligence.kap.clickhouse.factory.ClickhouseIndexFactory;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
+import io.kyligence.kap.clickhouse.job.ClickHouseIndexClean;
 import io.kyligence.kap.clickhouse.job.ClickHouseIndexCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
@@ -46,6 +49,7 @@ import io.kyligence.kap.clickhouse.job.ClickHouseMerge;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseProjectCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseRefresh;
+import io.kyligence.kap.clickhouse.job.ClickHouseRefreshSecondaryIndexJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.clickhouse.metadata.ClickHouseFlowManager;
@@ -59,6 +63,7 @@ import io.kyligence.kap.secondstorage.config.ClusterInfo;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.factory.SecondStorageDatabaseOperatorFactory;
 import io.kyligence.kap.secondstorage.factory.SecondStorageFactoryUtils;
+import io.kyligence.kap.secondstorage.factory.SecondStorageIndexFactory;
 import io.kyligence.kap.secondstorage.factory.SecondStorageMetadataFactory;
 import io.kyligence.kap.secondstorage.factory.SecondStorageQueryOperatorFactory;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -149,14 +154,18 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         JobFactory.register(STORAGE_NODE_CLEAN_FACTORY, new ClickHouseProjectCleanJob.ProjectCleanJobFactory());
         JobFactory.register(STORAGE_SEGMENT_CLEAN_FACTORY, new ClickHouseSegmentCleanJob.SegmentCleanJobFactory());
         JobFactory.register(STORAGE_INDEX_CLEAN_FACTORY, new ClickHouseIndexCleanJob.IndexCleanJobFactory());
+        JobFactory.register(STORAGE_REFRESH_SECONDARY_INDEXES_FACTORY,
+                new ClickHouseRefreshSecondaryIndexJob.RefreshSecondaryIndexJobFactory());
 
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageLoadStep.class, ClickHouseLoad::new);
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageRefreshStep.class, ClickHouseRefresh::new);
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageMergeStep.class, ClickHouseMerge::new);
+        SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageIndexClean.class, ClickHouseIndexClean::new);
 
         SecondStorageFactoryUtils.register(SecondStorageMetadataFactory.class, new ClickHouseMetadataFactory());
         SecondStorageFactoryUtils.register(SecondStorageDatabaseOperatorFactory.class, new ClickHouseOperatorFactory());
         SecondStorageFactoryUtils.register(SecondStorageQueryOperatorFactory.class, new ClickHouseQueryFactory());
+        SecondStorageFactoryUtils.register(SecondStorageIndexFactory.class, new ClickhouseIndexFactory());
     }
 
     public static Map<String, String> getJdbcUrlProperties(ClusterInfo cluster, Node node) {

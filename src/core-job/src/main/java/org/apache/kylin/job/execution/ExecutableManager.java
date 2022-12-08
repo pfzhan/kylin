@@ -151,6 +151,9 @@ public class ExecutableManager {
         result.getOutput().setResumable(executable.isResumable());
         result.setPriority(executable.getPriority());
         result.setTag(executable.getTag());
+        result.setJobSchedulerMode(executable.getJobSchedulerMode());
+        result.setPreviousStep(executable.getPreviousStep());
+        result.setNextSteps(executable.getNextSteps());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
             Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
@@ -164,8 +167,8 @@ public class ExecutableManager {
                 tasks.add(toPO(task, project));
             }
             result.setTasks(tasks);
-            if (executable instanceof DefaultChainedExecutableOnModel) {
-                val handler = ((DefaultChainedExecutableOnModel) executable).getHandler();
+            if (executable instanceof DefaultExecutableOnModel) {
+                val handler = ((DefaultExecutableOnModel) executable).getHandler();
                 if (handler != null) {
                     result.setHandlerType(handler.getClass().getName());
                 }
@@ -305,6 +308,8 @@ public class ExecutableManager {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
                 // kill spark-submit process
                 shouldDestroyProcessSignalMap.put(SHOULD_DESTROY_PROCESS_SIGNAL, true);
+                //TODO KE-37319
+                // cancelJob(job, taskOrJobId);
             }
             return true;
         });
@@ -465,6 +470,9 @@ public class ExecutableManager {
             result.setPriority(executablePO.getPriority());
             result.setTag(executablePO.getTag());
             result.setPo(executablePO);
+            result.setJobSchedulerMode(executablePO.getJobSchedulerMode());
+            result.setPreviousStep(executablePO.getPreviousStep());
+            result.setNextSteps(executablePO.getNextSteps());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
@@ -483,7 +491,7 @@ public class ExecutableManager {
                     }
                     ((ChainedExecutable) result).addTask(abstractExecutable);
                 }
-                if (result instanceof DefaultChainedExecutableOnModel) {
+                if (result instanceof DefaultExecutableOnModel) {
                     val handlerType = executablePO.getHandlerType();
                     if (handlerType != null) {
                         Class<? extends ExecutableHandler> hClazz = ClassUtil.forName(handlerType,
@@ -495,7 +503,7 @@ public class ExecutableManager {
                                 : null;
                         ExecutableHandler executableHandler = hConstructor.newInstance(project,
                                 result.getTargetSubject(), result.getSubmitter(), segmentId, result.getId());
-                        ((DefaultChainedExecutableOnModel) result).setHandler(executableHandler);
+                        ((DefaultExecutableOnModel) result).setHandler(executableHandler);
                     }
                 }
             }
@@ -588,6 +596,7 @@ public class ExecutableManager {
         result.setEndTime(jobOutput.getEndTime());
         result.setWaitTime(jobOutput.getWaitTime());
         result.setDuration(jobOutput.getDuration());
+        result.setLastRunningStartTime(jobOutput.getLastRunningStartTime());
         result.setCreateTime(jobOutput.getCreateTime());
         result.setByteSize(jobOutput.getByteSize());
         result.setShortErrMsg(jobOutput.getFailedMsg());
@@ -644,6 +653,14 @@ public class ExecutableManager {
         resumeJob(jobId, job, false);
     }
 
+    public void cancelRemoteJob(ExecutablePO executablePO) {
+        if (executablePO.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
+            // when start or restart KE, will resumeAllRunningJobs, don't need to interrupt job thread, so job id is null
+            //TODO KE-37319
+            // cancelJob(executablePO, null);
+        }
+    }
+
     private void resumeJob(String jobId, AbstractExecutable job, boolean force) {
         updateJobError(jobId, null, null, null, null);
         if (Objects.isNull(job)) {
@@ -653,8 +670,8 @@ public class ExecutableManager {
             throw new KylinException(JOB_UPDATE_STATUS_FAILED, "RESUME", jobId, job.getStatusInMem());
         }
 
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.stream()
                     .filter(task -> task.getStatusInMem().isNotProgressing()
                             || task.getStatusInMem() == ExecutableState.RUNNING)
@@ -686,8 +703,8 @@ public class ExecutableManager {
             return;
         }
         JobContextUtil.withTxAndRetry(() -> {
-            if (job instanceof DefaultChainedExecutable) {
-                List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            if (job instanceof DefaultExecutable) {
+                List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
                 tasks.stream().filter(task -> task.getStatusInMem() == ExecutableState.READY)
                         .forEach(task -> updateJobOutput(task.getId(), ExecutableState.PENDING));
                 tasks.forEach(task -> {
@@ -844,8 +861,8 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatusInMem() != ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
             tasks.forEach(task -> {
@@ -879,8 +896,8 @@ public class ExecutableManager {
             job.cancelJob();
             return null;
         }, project);
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
@@ -938,8 +955,8 @@ public class ExecutableManager {
             return;
         }
 
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.ERROR)
                     .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.ERROR));
@@ -964,8 +981,8 @@ public class ExecutableManager {
     }
 
     public void updateStagePaused(AbstractExecutable job) {
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
@@ -988,11 +1005,11 @@ public class ExecutableManager {
         try {
             val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
             Map<String, String> info = Maps.newHashMap(oldInfo);
-            if (job instanceof DefaultChainedExecutable) {
+            if (job instanceof DefaultExecutable) {
                 Map<String, String> waiteTime = JsonUtil
                         .readValueAsMap(info.getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
 
-                final List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+                final List<AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
                 for (AbstractExecutable task : tasks) {
                     val waitTime = task.getWaitTime();
                     val oldWaitTime = Long.parseLong(waiteTime.getOrDefault(task.getId(), "0"));
@@ -1097,8 +1114,8 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
@@ -1129,8 +1146,8 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.forEach(task -> {
                 if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
@@ -1615,8 +1632,8 @@ public class ExecutableManager {
         }
         job.cancelJob();
 
-        if (job instanceof DefaultChainedExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+        if (job instanceof DefaultExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.SUICIDAL)
                     .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.SUICIDAL));
@@ -1672,6 +1689,39 @@ public class ExecutableManager {
         }
         return result;
     }
+
+    //TODO KE-37319
+//    public void cancelJob(ExecutablePO executablePO, String taskOrJobId) {
+//        if (!config.isUTEnv()) {
+//            cancelJobSubTasks(executablePO);
+//            if (StringUtils.equals(executablePO.getId(), taskOrJobId)) {
+//                interruptJob(fromPO(executablePO));
+//            }
+//        }
+//    }
+//
+//    public void cancelJobSubTasks(ExecutablePO executablePO) {
+//        if (CollectionUtils.isNotEmpty(executablePO.getTasks())) {
+//            executablePO.getTasks().stream().map(this::fromPO).forEach(task -> {
+//                logger.info("Cancel subtask [{}]", task.getDisplayName());
+//                task.cancelJob();
+//            });
+//        }
+//    }
+//
+//    private void interruptJob(AbstractExecutable executable) {
+//        val scheduler = NDefaultScheduler.getInstance(project);
+//        if (scheduler.getContext() == null) {
+//            logger.info("ExecutableContext is null when Interrupt Job [{}] thread", executable.getDisplayName());
+//            return;
+//        }
+//        val thread = scheduler.getContext().getRunningJobThread(executable);
+//        if (thread != null) {
+//            logger.info("Interrupt Job [{}] thread and remove in ExecutableContext", executable.getDisplayName());
+//            thread.interrupt();
+//            scheduler.getContext().removeRunningJob(executable);
+//        }
+//    }
 
     public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusSet) {
         Preconditions.checkNotNull(statusSet);
@@ -1881,6 +1931,11 @@ public class ExecutableManager {
 
     public List<JobInfo> fetchJobsByFilter(JobMapperFilter filter) {
         return jobInfoDao.getJobInfoListByFilter(filter);
+    }
+
+    public List<AbstractExecutable> jobInfoToExecutable(List<JobInfo> jobInfoList) {
+        return jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO).map(executablePO -> fromPO(executablePO))
+                .collect(Collectors.toList());
     }
 
     public List<JobLock> fetchAllJobLock() {

@@ -30,7 +30,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -114,7 +114,7 @@ public class RenameProjectResourceToolTest extends NLocalFileMetadataTestCase {
             // table
             val tableMetadataManager = NTableMetadataManager.getInstance(config, "default1");
             val tableDescs = tableMetadataManager.listAllTables();
-            Assert.assertEquals(20, tableDescs.size());
+            Assert.assertEquals(21, tableDescs.size());
 
         } finally {
             System.setIn(stdin);

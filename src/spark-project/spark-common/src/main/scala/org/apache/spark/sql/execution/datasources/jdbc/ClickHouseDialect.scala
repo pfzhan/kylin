@@ -48,7 +48,7 @@ object ClickHouseDialect extends JdbcDialect with Logging {
       "POWER", "SQRT", "FLOOR", "CEIL", "ROUND", "SIN", "SINH", "COS", "COSH", "TAN",
       "TANH", "COT", "ASIN", "ACOS", "ATAN", "ATAN2", "DEGREES", "RADIANS", "SIGN",
       "PI", "CBRT", "SUBSTRING", "UPPER", "LOWER", "TRANSLATE", "TRIM", "DATE_ADD", "DATE_DIFF",
-      "TRUNC")
+      "TRUNC", "CHAR_LENGTH", "CONCAT")
 
   override def isSupportedFunction(funcName: String): Boolean =
     supportedFunctions.contains(funcName)

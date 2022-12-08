@@ -25,7 +25,6 @@ import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NSparkCubingJob;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -40,6 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sparkproject.guava.collect.Sets;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.RDSegmentBuildJob;
 import lombok.val;
 
 public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTest {

@@ -28,16 +28,15 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{ContainerInitializeListener, SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
 import org.apache.spark.sql.internal.{SQLConf, SessionState, SharedState, StaticSQLConf}
-import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinSharedState}
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{KylinReflectUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.expression.common.TemplateParserContext
 import org.springframework.expression.spel.standard.SpelExpressionParser
+
 import java.io._
 import java.net.URI
 import java.nio.file.Paths
-
 import scala.collection.JavaConverters._
 
 
@@ -47,6 +46,10 @@ class KylinSession(
                     @transient private val parentSessionState: Option[SessionState],
                     @transient override private[sql] val extensions: SparkSessionExtensions)
   extends SparkSession(sc) {
+
+  @transient
+  private var externalTuple = (true, false)
+
   def this(sc: SparkContext) {
     this(sc,
       existingSharedState = None,
@@ -55,13 +58,21 @@ class KylinSession(
   }
 
   @transient
+  private lazy val loadExternal: Boolean = {
+    if (externalTuple._1) {
+      val className = KylinConfig.getInstanceFromEnv.getExternalCatalogClass
+      externalTuple = (false, KylinSession.checkExternalClass(className))
+    }
+    externalTuple._2
+  }
+
+  @transient
   override lazy val sharedState: SharedState = {
-
-    val className = KylinConfig.getInstanceFromEnv.getExternalCatalogClass
-    val loadExternal = KylinSharedState.checkExternalClass(className)
-
     if (loadExternal) {
-      existingSharedState.getOrElse(new KylinSharedState(sc, className))
+      val className = KylinConfig.getInstanceFromEnv.getExternalCatalogClass
+      val sharedStateClass = KylinConfig.getInstanceFromEnv.getExternalSharedStateClass
+      val tuple = KylinReflectUtils.createObject(sharedStateClass, sc, className)
+      existingSharedState.getOrElse(tuple._1.asInstanceOf[SharedState])
     } else {
       // see https://stackoverflow.com/questions/45935672/scala-why-cant-we-do-super-val
       // we can't call  super.sharedState, copy SparkSession#sharedState
@@ -71,9 +82,11 @@ class KylinSession(
 
   @transient
   override lazy val sessionState: SessionState = {
-    val loadExteral = sharedState.isInstanceOf[KylinSharedState]
-    if (loadExteral) {
-      new KylinSessionStateBuilder(this, parentSessionState).build()
+    if (loadExternal) {
+      val sessionStateBuilderClass = KylinConfig.getInstanceFromEnv.getExternalSessionStateBuilderClass
+      val tuple = KylinReflectUtils.createObject(sessionStateBuilderClass, this, parentSessionState)
+      val method = tuple._2.getMethod("build")
+      method.invoke(tuple._1).asInstanceOf[SessionState]
     } else {
       KylinReflectUtils.getSessionState(sc, this, parentSessionState).asInstanceOf[SessionState]
     }
@@ -81,7 +94,6 @@ class KylinSession(
 
   override def newSession(): KylinSession = {
     val session = new KylinSession(sparkContext, Some(sharedState), parentSessionState = None, extensions)
-    SQLConf.setSQLConfGetter(() => session.sessionState.conf)
     session
   }
 
@@ -91,15 +103,14 @@ class KylinSession(
       Some(sharedState),
       Some(sessionState),
       extensions)
-    SQLConf.setSQLConfGetter(() => result.sessionState.conf)
     result.sessionState // force copy of SessionState
     result
   }
 }
 
 object KylinSession extends Logging {
-  def NORMAL_FAIR_SCHEDULER_FILE_NAME: String = "/fairscheduler.xml"
-  def QUERY_LIMIT_FAIR_SCHEDULER_FILE_NAME: String = "/query-limit-fair-scheduler.xml"
+  val NORMAL_FAIR_SCHEDULER_FILE_NAME: String = "/fairscheduler.xml"
+  val QUERY_LIMIT_FAIR_SCHEDULER_FILE_NAME: String = "/query-limit-fair-scheduler.xml"
 
   implicit class KylinBuilder(builder: Builder) {
     var queryCluster: Boolean = true
@@ -331,9 +342,9 @@ object KylinSession extends Logging {
       if (kapConfig.getKylinConfig.asyncProfilingEnabled()) {
         val plugins = sparkConf.get("spark.plugins", "")
         if (plugins.isEmpty) {
-          sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.AsyncProfilerSparkPlugin")
+          sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.QueryAsyncProfilerSparkPlugin")
         } else {
-          sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.AsyncProfilerSparkPlugin," + plugins)
+          sparkConf.set("spark.plugins", "org.apache.kylin.query.asyncprofiler.QueryAsyncProfilerSparkPlugin," + plugins)
         }
       }
 
@@ -358,17 +369,19 @@ object KylinSession extends Logging {
   }
 
   /**
-    * Copied from SparkSession.applyExtensions. So that KylinSession can load extensions through SparkConf.
-    * <p/>
-    * Initialize extensions for given extension classnames. The classes will be applied to the
-    * extensions passed into this function.
-    */
+   * Copied from SparkSession.applyExtensions. So that KylinSession can load extensions through SparkConf.
+   * <p/>
+   * Initialize extensions for given extension classnames. The classes will be applied to the
+   * extensions passed into this function.
+   */
   private def applyExtensions(
                                extensionConfClassNames: Seq[String],
                                extensions: SparkSessionExtensions): SparkSessionExtensions = {
     extensionConfClassNames.foreach { extensionConfClassName =>
       try {
-        val extensionConfClass = Utils.classForName(extensionConfClassName)
+        // scalastyle:off classforname
+        val extensionConfClass = Class.forName(extensionConfClassName, true, Utils.getContextOrSparkClassLoader)
+        // scalastyle:on classforname
         val extensionConf = extensionConfClass.getConstructor().newInstance()
           .asInstanceOf[SparkSessionExtensions => Unit]
         extensionConf(extensions)
@@ -429,4 +442,20 @@ object KylinSession extends Logging {
     fileWriter.close()
   }
 
+  def checkExternalClass(className: String): Boolean = {
+    try {
+      className match {
+        case "" => false
+        case _ =>
+          // scalastyle:off classforname
+          Class.forName(className, true, Utils.getContextOrSparkClassLoader)
+          // scalastyle:on classforname
+          true
+      }
+    } catch {
+      case _: ClassNotFoundException | _: NoClassDefFoundError =>
+        logWarning(s"Can't load Kylin external $className, use Spark default instead")
+        false
+    }
+  }
 }

@@ -31,7 +31,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.controller.NBasicController;
+import org.apache.kylin.rest.controller.BaseController;
 import org.apache.kylin.rest.controller.SegmentController;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
@@ -70,7 +70,7 @@ import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class OpenSegmentController extends NBasicController {
+public class OpenSegmentController extends BaseController {
 
     @Autowired
     private SegmentController segmentController;
@@ -96,11 +96,15 @@ public class OpenSegmentController extends NBasicController {
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean reverse) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean reverse,
+            @RequestParam(value = "statuses", required = false, defaultValue = "") List<String> statuses,
+            @RequestParam(value = "statuses_second_storage", required = false, defaultValue = "") List<String> statusesSecondStorage) {
+        checkNonNegativeIntegerArg("page_offset", offset);
+        checkNonNegativeIntegerArg("page_size", limit);
         String projectName = checkProjectName(project);
         String modelId = modelService.getModel(modelAlias, projectName).getUuid();
         return segmentController.getSegments(modelId, projectName, status, offset, limit, start, end, null, null, false,
-                sortBy, reverse);
+                sortBy, reverse, statuses, statusesSecondStorage);
     }
 
     @ApiOperation(value = "getMultiPartitions", tags = { "DW" })
@@ -115,6 +119,8 @@ public class OpenSegmentController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        checkNonNegativeIntegerArg("page_offset", pageOffset);
+        checkNonNegativeIntegerArg("page_size", pageSize);
         String projectName = checkProjectName(project);
         String modelId = modelService.getModel(modelAlias, project).getId();
         return segmentController.getMultiPartition(modelId, projectName, segId, status, pageOffset, pageSize, sortBy,

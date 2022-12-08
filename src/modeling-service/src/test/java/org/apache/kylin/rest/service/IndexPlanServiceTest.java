@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.is;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,8 +42,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.job.execution.NSparkCubingJob;
-import org.apache.kylin.job.execution.handler.ExecutableAddCuboidHandler;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
@@ -86,6 +85,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1265,7 +1266,7 @@ public class IndexPlanServiceTest extends SourceTestCase {
 
         // mark a layout tobedelete
         indexManager.updateIndexPlan(modelId,
-                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId), Collections.emptyMap()));
 
         //remove tobedelete layout from seg1
         val newDf = dfManager.getDataflow(modelId);

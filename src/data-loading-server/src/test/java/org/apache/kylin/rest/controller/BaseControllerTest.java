@@ -39,15 +39,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
+import org.apache.kylin.rest.controller.fake.HandleErrorController;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.service.ProjectService;
-import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
-import org.apache.kylin.rest.controller.fake.HandleErrorController;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -240,7 +240,7 @@ public class BaseControllerTest extends NLocalFileMetadataTestCase {
         List param = new ArrayList();
         param.add(1);
         param.add(6);
-        param.add(String.join("", Collections.nCopies(1000, "l")));
+        param.add(String.join("", Collections.nCopies(1000 * 1024, "l")));
         baseController.checkParamLength("tag", param, 1000);
     }
 

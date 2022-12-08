@@ -42,9 +42,9 @@ import org.apache.kylin.common.metrics.MetricsTag;
 import org.apache.kylin.common.metrics.prometheus.PrometheusMetrics;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.scheduler.EventBusFactory;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -59,11 +59,10 @@ import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.user.ManagedUser;
-import org.apache.kylin.metadata.user.NKylinUserManager;
 import org.apache.kylin.query.util.LoadCounter;
 import org.apache.kylin.query.util.LoadDesc;
 import org.apache.kylin.rest.service.ProjectService;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +72,8 @@ import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -82,9 +83,17 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MetricsRegistry {
+    private MetricsRegistry() {
+        //do nothing
+    }
+
     private static final String GLOBAL = "global";
 
-    private static Map<String, Long> totalStorageSizeMap = Maps.newHashMap();
+    private static final Map<String, Long> totalStorageSizeMap = Maps.newHashMap();
+    private static volatile Map<String, Map<Integer, Long>> projectPendingJobMap = Maps.newHashMap();
+    private static volatile Map<String, Map<Double, Long>> projectRunningJobMap = Maps.newHashMap();
+    private static final int[] PENDING_JOB_TIMEOUT_MINUTE = new int[] { 5, 10, 15, 30 };
+    private static final double[] RUNNING_JOB_TIMEOUT_HOUR = new double[] { 0.5d, 1d, 1.5d, 2d, 3d };
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsRegistry.class);
 
@@ -94,6 +103,42 @@ public class MetricsRegistry {
             val storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(project);
             totalStorageSizeMap.put(project, storageVolumeInfoResponse.getTotalStorageSize());
         });
+    }
+
+    public static void refreshProjectLongRunningJobs(KylinConfig kylinConfig, Set<String> projects) {
+        Map<String, Map<Integer, Long>> tempProjectPendingJobMap = Maps.newHashMap();
+        Map<String, Map<Double, Long>> tempProjectRunningJobMap = Maps.newHashMap();
+        for (String project : projects) {
+            final ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
+            tempProjectPendingJobMap.put(project, collectTimeoutToPendingJobsMap(executableManager));
+            tempProjectRunningJobMap.put(project, collectTimeoutToRunningJobsMap(executableManager));
+        }
+        projectPendingJobMap = tempProjectPendingJobMap;
+        projectRunningJobMap = tempProjectRunningJobMap;
+    }
+    
+    private static Map<Integer, Long> collectTimeoutToPendingJobsMap(ExecutableManager executableManager) {
+        Map<Integer, Long> timeoutToPendingJobsMap = Maps.newHashMap();
+        List<AbstractExecutable> pendingJobs = executableManager.getAllJobs().stream()
+                .filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus()))
+                .map(executableManager::fromPO).collect(Collectors.toList());
+        for (int pendingJobMin : PENDING_JOB_TIMEOUT_MINUTE) {
+            timeoutToPendingJobsMap.put(pendingJobMin,
+                    pendingJobs.stream().filter(e -> e.getWaitTime() / 1000.0 > pendingJobMin * 60).count());
+        }
+        return timeoutToPendingJobsMap;
+    }
+
+    private static Map<Double, Long> collectTimeoutToRunningJobsMap(ExecutableManager executableManager) {
+        Map<Double, Long> timeoutToRunningJobsMap = Maps.newHashMap();
+        List<AbstractExecutable> runningJobs = executableManager.getAllJobs().stream()
+                .filter(e -> ExecutableState.RUNNING.name().equals(e.getOutput().getStatus()))
+                .map(executableManager::fromPO).collect(Collectors.toList());
+        for (double runningJobHour : RUNNING_JOB_TIMEOUT_HOUR) {
+            timeoutToRunningJobsMap.put(runningJobHour,
+                    runningJobs.stream().filter(e -> e.getDuration() / 1000.0 > runningJobHour * 3600).count());
+        }
+        return timeoutToRunningJobsMap;
     }
 
     public static void removeProjectFromStorageSizeMap(String project) {
@@ -180,14 +225,30 @@ public class MetricsRegistry {
         }
         MeterRegistry meterRegistry = SpringContext.getBean(MeterRegistry.class);
         Tags projectTag = Tags.of(MetricsTag.PROJECT.getVal(), project);
-
         if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode()) {
             Gauge.builder(PrometheusMetrics.JOB_COUNTS.getValue(), () -> {
                 JobContext jobContext = JobContextUtil.getJobContext(kylinConfig);
                 return Objects.isNull(jobContext) ? 0
                         : jobContext.getJobScheduler().getRunningJob().values().stream().map(pair -> pair.getFirst())
-                                .filter(jobExecutable -> project.equals(jobExecutable.getProject())).count();
+                        .filter(jobExecutable -> project.equals(jobExecutable.getProject())).count();
             }).tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal()).register(meterRegistry);
+        }
+        for (double runningTimeoutHour : RUNNING_JOB_TIMEOUT_HOUR) {
+            Gauge.builder(PrometheusMetrics.JOB_LONG_RUNNING.getValue(),
+                    () -> MetricsRegistry.projectRunningJobMap.getOrDefault(project, Maps.newHashMap())
+                            .getOrDefault(runningTimeoutHour, 0L))
+                    .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.RUNNING.getVal(),
+                            MetricsTag.TIMEOUT.getVal(), runningTimeoutHour + "h")
+                    .register(meterRegistry);
+        }
+
+        for (int waitTimeoutMin : PENDING_JOB_TIMEOUT_MINUTE) {
+            Gauge.builder(PrometheusMetrics.JOB_LONG_RUNNING.getValue(),
+                    () -> MetricsRegistry.projectPendingJobMap.getOrDefault(project, Maps.newHashMap())
+                            .getOrDefault(waitTimeoutMin, 0L))
+                    .tags(projectTag).tags(MetricsTag.STATE.getVal(), MetricsTag.WAITING.getVal(),
+                            MetricsTag.TIMEOUT.getVal(), waitTimeoutMin + "m")
+                    .register(meterRegistry);
         }
     }
 
@@ -272,11 +333,12 @@ public class MetricsRegistry {
             return list == null ? 0 : list.size();
         });
 
+        boolean streamingEnabled = config.streamingEnabled();
         final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.HEALTHY_MODEL_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataflowManager.listUnderliningDataModels().stream()
-                    .filter(NDataModelManager::isModelAccessible).collect(Collectors.toList());
-            return list == null ? 0 : list.size();
+                    .filter(model -> model.isAccessible(streamingEnabled)).collect(Collectors.toList());
+            return list.size();
         });
 
         registerStorageMetrics(project);
@@ -285,13 +347,13 @@ public class MetricsRegistry {
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.TABLE_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables().stream()
-                    .filter(NTableMetadataManager::isTableAccessible).collect(Collectors.toList());
-            return list == null ? 0 : list.size();
+                    .filter(table -> table.isAccessible(streamingEnabled)).collect(Collectors.toList());
+            return list.size();
         });
         MetricsGroup.newGauge(MetricsName.DB_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
             return list == null ? 0
-                    : list.stream().filter(NTableMetadataManager::isTableAccessible)
+                    : list.stream().filter(table -> table.isAccessible(streamingEnabled))
                             .map(TableDesc::getCaseSensitiveDatabase).collect(toSet()).size();
         });
 
@@ -301,7 +363,8 @@ public class MetricsRegistry {
 
     static void registerModelMetrics(KylinConfig config, String project) {
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
-        modelManager.listAllModels().stream().filter(NDataModelManager::isModelAccessible)
+        boolean streamingEnabled = config.streamingEnabled();
+        modelManager.listAllModels().stream().filter(model -> model.isAccessible(streamingEnabled))
                 .forEach(model -> registerModelMetrics(project, model.getId(), model.getAlias()));
     }
 

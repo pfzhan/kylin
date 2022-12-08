@@ -17,6 +17,7 @@
  */
 package org.apache.kylin.rest.service;
 
+
 import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 import static org.apache.kylin.common.exception.KylinException.CODE_UNDEFINED;
 
@@ -38,15 +39,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
-import org.apache.kylin.metadata.epoch.EpochManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.tool.garbage.SourceUsageCleaner;
 import org.apache.kylin.tool.routine.FastRoutineTool;
 import org.apache.kylin.tool.routine.RoutineTool;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +52,7 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -100,35 +98,33 @@ public class ScheduleService extends BasicService {
     public void doRoutineTask() throws Exception {
         opsCronTimeout = KylinConfig.getInstanceFromEnv().getRoutineOpsTaskTimeOut();
         CURRENT_FUTURE.remove();
-        long startTime = System.currentTimeMillis();
         EpochManager epochManager = EpochManager.getInstance();
         try {
+            log.info("Start to work");
+            long startTime = System.currentTimeMillis();
             MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
             try (SetThreadName ignored = new SetThreadName("RoutineOpsWorker")) {
-                log.info("Start to work");
                 if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                     executeTask(() -> backupService.backupAll(), "MetadataBackup", startTime);
                     executeTask(RoutineTool::cleanQueryHistories, "QueryHistoriesCleanup", startTime);
                     executeTask(RoutineTool::cleanStreamingStats, "StreamingStatsCleanup", startTime);
                     executeTask(RoutineTool::deleteRawRecItems, "RawRecItemsDeletion", startTime);
-                    executeTask(() -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                        new SourceUsageCleaner().cleanup();
-                        return null;
-                    }, UnitOfWork.GLOBAL_UNIT), "SourceUsageCleanup", startTime);
+                    executeTask(RoutineTool::cleanGlobalSourceUsage, "SourceUsageCleanup", startTime);
+                    executeTask(() -> projectService.cleanupAcl(), "AclCleanup", startTime);
                 }
-                executeTask(() -> projectService.garbageCleanup(getRemainingTime(startTime)), "GarbageCleanup",
+                executeTask(() -> projectService.garbageCleanup(getRemainingTime(startTime)), "ProjectGarbageCleanup",
                         startTime);
                 // clean storage
                 if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                     executeTask(() -> newFastRoutineTool().execute(new String[] { "-c" }), "HdfsCleanup", startTime);
-                    log.info("Finish to work");
                 }
+                log.info("Finish to work, cost {}ms", System.currentTimeMillis() - startTime);
             }
         } catch (InterruptedException e) {
-            log.error("Routine task execution interrupted", e);
+            log.warn("Routine task execution interrupted", e);
             Thread.currentThread().interrupt();
         } catch (TimeoutException e) {
-            log.error("Routine task execution timeout", e);
+            log.warn("Routine task execution timeout", e);
             if (CURRENT_FUTURE.get() != null) {
                 CURRENT_FUTURE.get().cancel(true);
             }
@@ -137,12 +133,16 @@ public class ScheduleService extends BasicService {
     }
 
     public void executeTask(Runnable task, String taskName, long startTime)
-            throws InterruptedException, ExecutionException, TimeoutException {
+            throws InterruptedException, TimeoutException {
         val future = executors.submit(task);
         val remainingTime = getRemainingTime(startTime);
         log.info("execute task {} with remaining time: {} ms", taskName, remainingTime);
         CURRENT_FUTURE.set(future);
-        future.get(remainingTime, TimeUnit.MILLISECONDS);
+        try {
+            future.get(remainingTime, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            log.warn("Routine task {} execution failed, reason:", taskName, e);
+        }
     }
 
     private long getRemainingTime(long startTime) {

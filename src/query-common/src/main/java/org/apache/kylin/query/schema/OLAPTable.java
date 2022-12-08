@@ -16,24 +16,6 @@
  * limitations under the License.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.kylin.query.schema;
 
 import java.util.ArrayList;
@@ -72,30 +54,33 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.CollectionUtil;
 import org.apache.kylin.measure.topn.TopNMeasureType;
+import org.apache.kylin.metadata.cube.model.NDataflow;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.QueryExtension;
 import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.util.CollectionUtil;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
-import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
-import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.query.QueryExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import lombok.val;
+
 
 /**
  */
@@ -270,10 +255,33 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     }
 
     private List<ColumnDesc> listTableColumnsIncludingCC() {
-        val allColumns = Lists.newArrayList(sourceTable.getColumns());
+        List<ColumnDesc> allColumns = Lists.newArrayList(sourceTable.getColumns());
 
-        if (!modelsMap.containsKey(sourceTable.getIdentity()))
+        if (!modelsMap.containsKey(sourceTable.getIdentity())) {
             return allColumns;
+        }
+
+        ProjectInstance projectInstance = NProjectManager.getInstance(olapSchema.getConfig())
+                .getProject(sourceTable.getProject());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(olapSchema.getConfig(), sourceTable.getProject());
+        if (projectInstance.getConfig().useTableIndexAnswerSelectStarEnabled()) {
+            Set<ColumnDesc> exposeColumnDescSet = new HashSet<>();
+            String tableName = sourceTable.getIdentity();
+            List<NDataModel> modelList = modelsMap.get(tableName);
+            for (NDataModel dataModel : modelList) {
+                NDataflow dataflow = dataflowManager.getDataflow(dataModel.getId());
+                if (dataflow.getStatus() == RealizationStatusEnum.ONLINE) {
+                    dataflow.getAllColumns().forEach(tblColRef -> {
+                        if (tblColRef.getTable().equalsIgnoreCase(tableName)) {
+                            exposeColumnDescSet.add(tblColRef.getColumnDesc());
+                        }
+                    });
+                }
+            }
+            if (!exposeColumnDescSet.isEmpty()) {
+                allColumns = Lists.newArrayList(exposeColumnDescSet);
+            }
+        }
 
         val authorizedCC = getAuthorizedCC();
         if (CollectionUtils.isNotEmpty(authorizedCC)) {
@@ -299,43 +307,10 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
                     .map(NDataModel::getComputedColumnDescs).flatMap(List::stream).collect(Collectors.toList()));
         }
 
-        val authorizedCC = Lists.<ComputedColumnDesc> newArrayList();
-        val checkedCC = Sets.<ComputedColumnDesc> newHashSet();
-        for (NDataModel model : modelsMap.get(sourceTable.getIdentity())) {
-            val ccUsedColsMap = Maps.<String, Set<String>> newHashMap();
-            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
-                if (checkedCC.contains(cc))
-                    continue;
-                ccUsedColsMap.put(cc.getColumnName(), ComputedColumnUtil.getCCUsedColsWithModel(model, cc));
-            }
-
-            // parse inner expression might cause error, for example timestampdiff
-            // so have to do parsing cc expression recursively
-            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
-                if (checkedCC.contains(cc))
-                    continue;
-                val ccUsedSourceCols = Sets.<String> newHashSet();
-                collectCCUsedSourceCols(cc.getColumnName(), ccUsedColsMap, ccUsedSourceCols);
-                if (isColumnAuthorized(ccUsedSourceCols)) {
-                    authorizedCC.add(cc);
-                }
-                checkedCC.add(cc);
-            }
-        }
+        val authorizedCC = ComputedColumnUtil.getAuthorizedCC(modelsMap.get(sourceTable.getIdentity()),
+                this::isColumnAuthorized);
 
         return removeDuplicatedNamedComputedCols(authorizedCC);
-    }
-
-    private void collectCCUsedSourceCols(String ccColName, Map<String, Set<String>> ccUsedColsMap,
-            Set<String> ccUsedSourceCols) {
-        if (!ccUsedColsMap.containsKey(ccColName)) {
-            ccUsedSourceCols.add(ccColName);
-            return;
-        }
-
-        for (String usedColumn : ccUsedColsMap.get(ccColName)) {
-            collectCCUsedSourceCols(usedColumn, ccUsedColsMap, ccUsedSourceCols);
-        }
     }
 
     private boolean isACLDisabledOrAdmin() {

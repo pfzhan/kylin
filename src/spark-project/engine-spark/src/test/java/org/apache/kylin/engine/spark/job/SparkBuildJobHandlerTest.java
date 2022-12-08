@@ -32,8 +32,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.job.ISparkJobHandler;
-
 public class SparkBuildJobHandlerTest extends NLocalWithSparkSessionTestBase {
 
     @Test
@@ -43,7 +41,7 @@ public class SparkBuildJobHandlerTest extends NLocalWithSparkSessionTestBase {
         Assert.assertTrue(handler instanceof DefaultSparkBuildJobHandler);
         Map<String, String> sparkConf = Maps.newHashMap();
         String jobStepId = "testId";
-        handler.killOrphanApplicationIfExists(getProject(), jobStepId, config, sparkConf);
+        handler.killOrphanApplicationIfExists(getProject(), jobStepId, config, false, sparkConf);
         config.setProperty("kylin.engine.cluster-manager-timeout-threshold", "3s");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();

@@ -30,7 +30,7 @@ import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 
 /**
  */
-public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
+public class SucceedChainedTestExecutable extends DefaultExecutable {
 
     public SucceedChainedTestExecutable() {
         super();
@@ -41,7 +41,8 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(JobContext context) throws ExecuteException {
+    public ExecuteResult doWork(JobContext context) throws ExecuteException {
+
         try {
             Object o = new Object();
             synchronized (o) {

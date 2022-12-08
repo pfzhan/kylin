@@ -26,9 +26,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.step.SparkCleanupTransactionalTableStep;
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.kyligence.kap.engine.spark.job.SparkCleanupTransactionalTableStep;
 
 public class SparkCleanupTransactionalTableStepTest extends NLocalWithSparkSessionTestBase {
 

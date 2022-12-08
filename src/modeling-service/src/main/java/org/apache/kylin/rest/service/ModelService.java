@@ -47,14 +47,15 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
 import static org.apache.kylin.common.exception.ServerErrorCode.VIEW_PARTITION_DATE_FORMAT_DETECTION_FORBIDDEN;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.COMPUTED_COLUMN_CONFLICT;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.COMPUTED_COLUMN_NAME_OR_EXPR_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_EMPTY;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_DUPLICATE;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_EMPTY;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_BUILD_RANGE_OVERLAP;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
@@ -65,10 +66,16 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REF
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_IN_BUILDING;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_REFRESH_SELECT_RANGE_EMPTY;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS;
+import static org.apache.kylin.job.execution.JobTypeEnum.INC_BUILD;
+import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
+import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_MERGE;
+import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_REFRESH;
+import static org.apache.kylin.metadata.model.FunctionDesc.PARAMETER_TYPE_COLUMN;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -97,9 +104,11 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.event.ModelAddEvent;
 import org.apache.kylin.common.event.ModelDropEvent;
@@ -121,10 +130,10 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
+import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.ExecutableHandler.HandlerType;
@@ -134,7 +143,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.acl.AclTCRDigest;
+import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.acl.NDataModelAclParams;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
@@ -151,7 +160,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.cube.model.RuleBasedIndex;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.AutoMergeTimeEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
@@ -174,6 +182,7 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.RetentionRange;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentSecondStorageStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
@@ -184,6 +193,7 @@ import org.apache.kylin.metadata.model.UpdateImpact;
 import org.apache.kylin.metadata.model.VolatileRange;
 import org.apache.kylin.metadata.model.schema.AffectedModelContext;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.metadata.model.util.MultiPartitionUtil;
 import org.apache.kylin.metadata.model.util.scd2.SCD2CondChecker;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
@@ -191,7 +201,6 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.streaming.KafkaConfig;
-import org.apache.kylin.query.util.KapQueryUtil;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.rest.aspect.Transaction;
@@ -216,6 +225,7 @@ import org.apache.kylin.rest.response.AggGroupResponse;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.CheckSegmentResponse;
 import org.apache.kylin.rest.response.ComputedColumnCheckResponse;
+import org.apache.kylin.rest.response.ComputedColumnConflictResponse;
 import org.apache.kylin.rest.response.ComputedColumnUsageResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.ExistedDataRangeResponse;
@@ -239,13 +249,11 @@ import org.apache.kylin.rest.response.SegmentCheckResponse;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.response.SegmentRangeResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
-import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.merger.MetadataMerger;
 import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
 import org.apache.kylin.rest.service.params.MergeSegmentParams;
 import org.apache.kylin.rest.service.params.ModelQueryParams;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.ModelTriple;
 import org.apache.kylin.rest.util.ModelUtils;
@@ -256,10 +264,6 @@ import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.kylin.streaming.event.StreamingJobDropEvent;
 import org.apache.kylin.streaming.event.StreamingJobKillEvent;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
-import org.apache.kylin.tool.bisync.BISyncModel;
-import org.apache.kylin.tool.bisync.BISyncTool;
-import org.apache.kylin.tool.bisync.SyncContext;
-import org.apache.kylin.tool.bisync.model.MeasureDef;
 import org.apache.kylin.tool.util.MetadataUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -277,11 +281,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.base.Supplier;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
@@ -299,14 +306,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("modelService")
-public class ModelService extends BasicService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract, MetadataContract {
+public class ModelService extends AbstractModelService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract, MetadataContract {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     private static final String LAST_MODIFY = "last_modify";
     public static final String REC_COUNT = "recommendations_count";
-
-    public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
     public static final String VALID_NAME_FOR_DIMENSION = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
 
@@ -314,18 +319,18 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     private static final List<String> MODEL_CONFIG_BLOCK_LIST = Lists.newArrayList("kylin.index.rule-scheduler-data");
 
+    //The front-end supports only the following formats
+    private static final List<String> SUPPORTED_FORMATS = ImmutableList.of("ZZ", "DD", "D", "Do", "dddd", "ddd", "dd", //
+            "d", "MMM", "MM", "M", "yyyy", "yy", "hh", "hh", "h", "HH", "H", "m", "mm", "ss", "s", "SSS", "SS", "S", //
+            "A", "a");
+    private static final Pattern QUOTE_PATTERN = Pattern.compile("\'(.*?)\'");
+
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
 
     @Autowired
-    public AclEvaluate aclEvaluate;
-
-    @Autowired
     private ProjectService projectService;
-
-    @Autowired
-    private AccessService accessService;
 
     @Setter
     @Autowired(required = false)
@@ -423,6 +428,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             if (model instanceof NDataModelResponse) {
                 oldParams.setProjectName(model.getProject());
                 oldParams.setSizeKB(((NDataModelResponse) model).getStorage() / 1024);
+                oldParams.setDimensions(((NDataModelResponse) model).getNamedColumns());
                 ((NDataModelResponse) model).setOldParams(oldParams);
             } else if (model instanceof RelatedModelResponse) {
                 ((RelatedModelResponse) model).setOldParams(oldParams);
@@ -479,7 +485,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return projectService.getReadableProjects().stream().map(ProjectInstance::getName).collect(Collectors.toSet());
     }
 
-    @VisibleForTesting
     public boolean isProjectNotExist(String project) {
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(project, true);
         return CollectionUtils.isEmpty(projectInstances);
@@ -723,7 +728,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             ModelUtils.addSecondStorageInfo(project, models);
             filterModels = new DataResult<>(models, pair.getSecond(), offset, limit);
             filterModels.setValue(addOldParams(project, filterModels.getValue()));
-            filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
+            filterModels.setValue(updateResponseAcl(filterModels.getValue(), project));
             return filterModels;
         }
         models.addAll(getRelateModels(project, table, modelAlias));
@@ -738,7 +743,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         filterModels = DataResult.get(models, offset, limit);
 
         filterModels.setValue(addOldParams(project, filterModels.getValue()));
-        filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
+        filterModels.setValue(updateResponseAcl(filterModels.getValue(), project));
         return filterModels;
     }
 
@@ -902,10 +907,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return modelResponseStatus;
     }
 
-    private long getEmptyIndexesCount(String project, String id) {
+    private long getEmptyIndexesCount(String project, String modelId) {
         val indexPlanManager = getManager(NIndexPlanManager.class, project);
-        val indexPlan = indexPlanManager.getIndexPlan(id);
-        return indexPlan.getAllLayoutsReadOnly().size() - indexPlanManager.getAvailableIndexesCount(project, id);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        return indexPlan.getAllLayoutsReadOnly().size() - indexPlanManager.getAvailableIndexesCount(project, modelId);
     }
 
     private List<NDataModelResponse> sortExpansionRate(boolean reverse, List<NDataModelResponse> filterModels) {
@@ -961,7 +966,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 && isSCD2;
     }
 
-    protected RealizationStatusEnum getModelStatus(String modelId, String projectName) {
+    public RealizationStatusEnum getModelStatus(String modelId, String projectName) {
         val indexPlan = getIndexPlan(modelId, projectName);
         if (indexPlan != null) {
             return getManager(NDataflowManager.class, projectName).getDataflow(indexPlan.getUuid()).getStatus();
@@ -972,13 +977,14 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, String sortBy, boolean reverse) {
-        return getSegmentsResponse(modelId, project, start, end, status, null, null, false, sortBy, reverse);
+        return getSegmentsResponse(modelId, project, start, end, status, null, null, false, sortBy, reverse, null,
+                null);
     }
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, List<AbstractExecutable> executables, String sortBy, boolean reverse) {
         return getSegmentsResponse(modelId, project, start, end, status, null, null, executables, false, sortBy,
-                reverse);
+                reverse, null, null);
     }
 
     private List<AbstractExecutable> getAllRunningExecutable(String project) {
@@ -1002,23 +1008,51 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
-            String sortBy, boolean reverse) {
+            String sortBy, boolean reverse, List<String> statuses, List<String> secondStorageStatuses) {
         val executables = getPartialRunningExecutable(project, modelId);
         return getSegmentsResponse(modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, executables,
-                allToComplement, sortBy, reverse);
+                allToComplement, sortBy, reverse, statuses, secondStorageStatuses);
     }
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
-            List<AbstractExecutable> executables, boolean allToComplement, String sortBy, boolean reverse) {
+            List<AbstractExecutable> executables, boolean allToComplement, String sortBy, boolean reverse,
+            List<String> statuses, List<String> secondStorageStatuses) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         List<NDataSegmentResponse> segmentResponseList = getSegmentsResponseCore(modelId, project, start, end, status,
                 withAllIndexes, withoutAnyIndexes, executables, allToComplement, dataflow);
         addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
+        addSecondStorageDisplayStatus(modelId, project, segmentResponseList);
+        changeSegmentDisplayStatus(modelId, project, segmentResponseList);
+        segmentResponseList = segmentResponseFilter(statuses, secondStorageStatuses, segmentResponseList, modelId,
+                project);
         segmentsResponseListSort(sortBy, reverse, segmentResponseList);
         return segmentResponseList;
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponseByJob(String modelId, String project, AbstractExecutable job) {
+        aclEvaluate.checkProjectReadPermission(project);
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        List<NDataSegmentResponse> segmentResponseList = getSegmentsResponseCoreByJob(job, dataflow);
+        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
+        addSecondStorageDisplayStatus(modelId, project, segmentResponseList);
+        changeSegmentDisplayStatus(modelId, project, segmentResponseList);
+        return segmentResponseList;
+    }
+
+    private List<NDataSegmentResponse> getSegmentsResponseCoreByJob(AbstractExecutable job, NDataflow dataflow) {
+        if (CollectionUtils.isEmpty(job.getSegmentIds())) {
+            return Lists.newArrayList();
+        }
+        val segmentIds = Sets.newHashSet(job.getSegmentIds());
+        val segs = dataflow == null ? Segments.empty() : dataflow.getSegments(segmentIds);
+        List<AbstractExecutable> runningJob = job.getStatus().equals(ExecutableState.RUNNING) ? Lists.newArrayList(job)
+                : Lists.newArrayList();
+        return segs.stream().map(segment -> new NDataSegmentResponse(dataflow, segment, runningJob))
+                .collect(Collectors.toList());
     }
 
     public void segmentsResponseListSort(String sortBy, boolean reverse,
@@ -1099,6 +1133,124 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                     segment.setSecondStorageSize(0L);
                 }
             });
+        }
+    }
+
+    public void addSecondStorageDisplayStatus(String modelId, String project,
+            List<NDataSegmentResponse> segmentResponseList) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return;
+        }
+        val jobRunning = getJobRunning(project);
+        segmentResponseList.forEach(segmentResponse -> segmentResponse.setStatusSecondStorageToDisplay(
+                getSecondStorageSegmentStatus(modelId, project, segmentResponse, jobRunning)));
+    }
+
+    public SegmentSecondStorageStatusEnum getSecondStorageSegmentStatus(String modelId, String project,
+            NDataSegmentResponse segmentResponse, List<AbstractExecutable> jobRunning) {
+
+        ExecutableManager manager = getManager(ExecutableManager.class, project);
+        boolean hasSecondStorageJobRunning = jobRunning.stream()
+                .filter(job -> job.getSegmentIds().contains(segmentResponse.getId()))
+                .anyMatch(job -> ExecutableManager.toPO(job, project).getTasks().stream()
+                        .filter(task -> SecondStorageUtil.EXPORT_STEPS.contains(task.getName()))
+                        .anyMatch(task -> manager.getOutput(task.getId()).getState().isRunning()));
+
+        Set<Long> chSegmentEnableLayouts = SecondStorageUtil.listEnableLayoutBySegment(project, modelId,
+                segmentResponse.getId());
+        SegmentSecondStorageStatusEnum segmentSecondStorageStatusEnum = null;
+
+        if (CollectionUtils.isNotEmpty(chSegmentEnableLayouts)) {
+            // segment CH part ready
+            segmentSecondStorageStatusEnum = SegmentStatusEnumToDisplay.LOCKED == segmentResponse.getStatusToDisplay()
+                    ? SegmentSecondStorageStatusEnum.LOCKED
+                    : SegmentSecondStorageStatusEnum.LOADED;
+        }
+        if (hasSecondStorageJobRunning) {
+            // segment CH part has job running
+            segmentSecondStorageStatusEnum = SegmentSecondStorageStatusEnum.LOADING;
+        }
+        return segmentSecondStorageStatusEnum;
+    }
+
+    public List<AbstractExecutable> getJobRunning(String project) {
+        ExecutableManager execManager = getManager(ExecutableManager.class, project);
+        List<String> jobTypes = Lists.newArrayList(INDEX_REFRESH.name(), INDEX_MERGE.name(), INDEX_BUILD.name(),
+                INC_BUILD.name());
+        List<JobInfo> jobInfoList = JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, jobTypes,
+                null);
+        return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
+                .map(executablePO -> execManager.fromPO(executablePO)).collect(Collectors.toList());
+    }
+
+    public void changeSegmentDisplayStatus(String modelId, String project,
+            List<NDataSegmentResponse> segmentResponseList) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return;
+        }
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
+        NDataflow df = dataflowManager.getDataflow(modelId);
+        segmentResponseList.forEach(segmentResponse -> {
+            if (SegmentStatusEnumToDisplay.ONLINE == segmentResponse.getStatusToDisplay()) {
+                SegmentSecondStorageStatusEnum statusSecondStorageToDisplay = segmentResponse
+                        .getStatusSecondStorageToDisplay();
+                if (MapUtils.isNotEmpty(df.getSegment(segmentResponse.getId()).getLayoutsMap())
+                        && (SegmentSecondStorageStatusEnum.LOADING == statusSecondStorageToDisplay
+                                || Objects.isNull(statusSecondStorageToDisplay))) {
+                    SegmentStatusEnumToDisplay segmentStatusEnumToDisplay = KapConfig.getInstanceFromEnv().isCloud()
+                            ? SegmentStatusEnumToDisplay.ONLINE_OBJECT_STORAGE
+                            : SegmentStatusEnumToDisplay.ONLINE_HDFS;
+                    segmentResponse.setStatusToDisplay(segmentStatusEnumToDisplay);
+                } else if (MapUtils.isEmpty(df.getSegment(segmentResponse.getId()).getLayoutsMap())
+                        && SegmentSecondStorageStatusEnum.LOADED == statusSecondStorageToDisplay) {
+                    segmentResponse.setStatusToDisplay(SegmentStatusEnumToDisplay.ONLINE_TIERED_STORAGE);
+                }
+            }
+        });
+    }
+
+    public List<NDataSegmentResponse> segmentResponseFilter(List<String> statuses, List<String> secondStorageStatuses,
+            List<NDataSegmentResponse> segmentResponseList, String modelId, String project) {
+        if (CollectionUtils.isEmpty(statuses) && CollectionUtils.isEmpty(secondStorageStatuses)) {
+            return segmentResponseList;
+        }
+        if (!SecondStorageUtil.isModelEnable(project, modelId) && CollectionUtils.isNotEmpty(secondStorageStatuses)) {
+            secondStorageStatuses.clear();
+        }
+        val statusEnumSet = statuses.stream().map(SegmentStatusEnumToDisplay::getByName).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        val statusSecondStorageEnum = secondStorageStatuses.stream().map(SegmentSecondStorageStatusEnum::getByName)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+
+        return segmentResponseList.stream()
+                .filter(segmentResponse -> CollectionUtils.isEmpty(statusEnumSet)
+                        || statusEnumSet.contains(segmentResponse.getStatusToDisplay()))
+                .filter(segmentResponse -> CollectionUtils.isEmpty(statusSecondStorageEnum)
+                        || statusSecondStorageEnum.contains(segmentResponse.getStatusSecondStorageToDisplay()))
+                .collect(Collectors.toList());
+    }
+
+    public void checkSegmentStatus(List<String> statuses) {
+        if (CollectionUtils.isEmpty(statuses)) {
+            return;
+        }
+        for (String status : statuses) {
+            if (Objects.isNull(SegmentStatusEnumToDisplay.getByName(status))) {
+                throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "statuses",
+                        StringUtils.join(SegmentStatusEnumToDisplay.getNames(), ", "));
+            }
+        }
+    }
+
+    public void checkSegmentSecondStorageStatus(List<String> segmentSecondStorageStatuses) {
+        if (CollectionUtils.isEmpty(segmentSecondStorageStatuses)) {
+            return;
+        }
+        for (String status : segmentSecondStorageStatuses) {
+            if (Objects.isNull(SegmentSecondStorageStatusEnum.getByName(status))) {
+                throw new KylinException(PARAMETER_INVALID_SUPPORT_LIST, "statuses_second_storage",
+                        StringUtils.join(SegmentSecondStorageStatusEnum.getNames(), ", "));
+            }
         }
     }
 
@@ -1256,12 +1408,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return relatedModel;
     }
 
-    @VisibleForTesting
-    public IndexPlan getIndexPlan(String modelId, String project) {
-        NIndexPlanManager indexPlanManager = getManager(NIndexPlanManager.class, project);
-        return indexPlanManager.getIndexPlan(modelId);
-    }
-
     private void checkAliasExist(String modelId, String newAlias, String project) {
         if (!checkModelAliasUniqueness(modelId, newAlias, project)) {
             throw new KylinException(MODEL_NAME_DUPLICATE, newAlias);
@@ -1386,13 +1532,22 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     @Transaction(project = 0)
-    public void renameDataModel(String project, String modelId, String newAlias) {
+    public void renameDataModel(String project, String modelId, String newAlias, String description) {
         aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
         NDataModel nDataModel = getModelById(modelId, project);
         //rename
-        checkAliasExist(modelId, newAlias, project);
-        nDataModel.setAlias(newAlias);
+
+        if (StringUtils.isNotBlank(description) && nDataModel.getAlias().equalsIgnoreCase(newAlias)) {
+            nDataModel.setDescription(description);
+        } else {
+            checkAliasExist(modelId, newAlias, project);
+            nDataModel.setAlias(newAlias);
+            if (StringUtils.isNotBlank(description)) {
+                nDataModel.setDescription(description);
+            }
+        }
+
         NDataModel modelUpdate = modelManager.copyForWrite(nDataModel);
         modelManager.updateDataModelDesc(modelUpdate);
     }
@@ -1419,11 +1574,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             modelUpdate.setManagementType(ManagementType.MODEL_BASED);
             dataModelManager.updateDataModelDesc(modelUpdate);
         }
-    }
-
-    public Set<String> listAllModelIdsInProject(String project) {
-        NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
-        return dataModelManager.listAllModelIds();
     }
 
     @Transaction(project = 0)
@@ -1730,7 +1880,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         .anyMatch(column -> column.getName().equalsIgnoreCase(columnName));
                 if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(fullColumnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getTimestampPartitionColumnNotExist()));
+                            MsgPicker.getMsg().getTimestampPartitionColumnNotExist());
                 }
             }
         }
@@ -2659,21 +2809,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    public void primaryCheck(NDataModel modelDesc) {
-        if (modelDesc == null) {
-            throw new KylinException(MODEL_NOT_EXIST);
-        }
-
-        String modelAlias = modelDesc.getAlias();
-
-        if (StringUtils.isEmpty(modelAlias)) {
-            throw new KylinException(MODEL_NAME_EMPTY);
-        }
-        if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(MODEL_NAME_INVALID, modelAlias);
-        }
-    }
-
     public ComputedColumnUsageResponse getComputedColumnUsages(String project) {
         aclEvaluate.checkProjectWritePermission(project);
         ComputedColumnUsageResponse ret = new ComputedColumnUsageResponse();
@@ -2697,7 +2832,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             model.updateRandomUuid();
         }
 
-        model.init(getConfig(), project, getCCRelatedModels(project));
+        model.init(getConfig(), project, getManager(NDataModelManager.class, project).getCCRelatedModels(model));
         model.getComputedColumnDescs().forEach(cc -> {
             String innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
             cc.setInnerExpression(innerExp);
@@ -2820,12 +2955,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     }
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
-        if (!model.getComputedColumnDescs().isEmpty()) {
-            model.init(getConfig(), project, getCCRelatedModels(project), true);
-        } else {
-            model.init(getConfig(), project, Lists.newArrayList(), true);
-        }
-
+        NDataModelManager modelManager = getManager(NDataModelManager.class, project);
+        model.init(getConfig(), project, modelManager.getCCRelatedModels(model), true);
         massageModelFilterCondition(model);
 
         checkCCNameAmbiguity(model);
@@ -3044,7 +3175,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             if (SegmentStatusEnum.READY != segment.getStatus() && SegmentStatusEnum.WARNING != segment.getStatus()) {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidMergeSegment());
             }
-
+            checkSegmentSecondStorage(modelId, project, segment);
             val segmentStart = segment.getTSRange().getStart();
             val segmentEnd = segment.getTSRange().getEnd();
 
@@ -3056,6 +3187,16 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
 
         return Pair.newPair(start, end);
+    }
+
+    public void checkSegmentSecondStorage(String modelId, String project, NDataSegment segment) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return;
+        }
+        // when enable second storage, need DFS build success, if not, throw exception
+        if (MapUtils.isEmpty(segment.getLayoutsMap())) {
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidMergeSegmentWithoutDFS());
+        }
     }
 
     @Transaction(project = 0)
@@ -3099,7 +3240,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
 
                 val copyModel = modelManager.copyForWrite(originModel);
                 UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-                copyModel.init(modelManager.getConfig(), project, getCCRelatedModels(project));
+                copyModel.init(modelManager.getConfig(), project, modelManager.getCCRelatedModels(copyModel));
 
                 BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel,
                         request.isWithBaseIndex());
@@ -3108,7 +3249,7 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 val updated = modelManager.updateDataModelDesc(copyModel);
 
                 // 1. delete old internal measure
-                // 2. expand new measuers
+                // 2. expand new measures
                 // the ordering of the two steps is important as tomb internal measure
                 // should not be used to construct new expandable measures
                 semanticUpdater.deleteExpandableMeasureInternalMeasures(updated);
@@ -3367,6 +3508,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
             throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }
         broken.setPartitionDesc(modelRequest.getPartitionDesc());
+        broken.setMultiPartitionDesc(modelRequest.getMultiPartitionDesc());
+        broken.setMultiPartitionKeyMapping(modelRequest.getMultiPartitionKeyMapping());
         broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
         discardInvalidColumnAndMeasure(broken, modelRequest);
@@ -3465,9 +3608,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
     public List<ModelConfigResponse> getModelConfig(String project, String modelName) {
         aclEvaluate.checkProjectReadPermission(project);
         val responseList = Lists.<ModelConfigResponse> newArrayList();
+        boolean streamingEnabled = getConfig().streamingEnabled();
         getManager(NDataflowManager.class, project).listUnderliningDataModels().stream()
                 .filter(model -> (StringUtils.isEmpty(modelName) || model.getAlias().contains(modelName)))
-                .filter(model -> NDataModelManager.isModelAccessible(model) && !model.fusionModelBatchPart())
+                .filter(model -> model.isAccessible(streamingEnabled) && !model.fusionModelBatchPart())
                 .forEach(dataModel -> {
                     val response = new ModelConfigResponse();
                     response.setModel(dataModel.getUuid());
@@ -3754,10 +3898,10 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                         MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(), antiFlattenLookup));
             }
         }
-        return sqlNode
-                .toSqlString(new CalciteSqlDialect(
-                        SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)
+        String exp = sqlNode
+                .toSqlString(new CalciteSqlDialect(SqlDialect.EMPTY_CONTEXT.withIdentifierQuoteString("`")), true)
                 .toString();
+        return CalciteParser.normalize(exp);
     }
 
     public NModelDescResponse getModelDesc(String modelAlias, String project) {
@@ -3799,7 +3943,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return response;
     }
 
-    @Transaction(project = 0)
     public void updateModelPartitionColumn(String project, String modelAlias,
             ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -3908,9 +4051,9 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
     }
 
-    public List<NDataModel> updateReponseAcl(List<NDataModel> models, String project) {
+    public List<NDataModel> updateResponseAcl(List<NDataModel> models, String project) {
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project, groups)) {
+        if (AclPermissionUtil.hasProjectAdminPermission(project, groups)) {
             models.forEach(model -> {
                 NDataModelAclParams aclParams = new NDataModelAclParams();
                 aclParams.setUnauthorizedTables(Sets.newHashSet());
@@ -3965,8 +4108,8 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return result;
     }
 
-    public NDataModel updateReponseAcl(NDataModel model, String project) {
-        List<NDataModel> models = updateReponseAcl(Arrays.asList(model), project);
+    public NDataModel updateResponseAcl(NDataModel model, String project) {
+        List<NDataModel> models = updateResponseAcl(Arrays.asList(model), project);
         return models.get(0);
     }
 
@@ -4073,231 +4216,6 @@ public class ModelService extends BasicService implements TableModelSupporter, P
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
     }
 
-    public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port) {
-        SyncContext syncContext = getADMINSyncContext(projectName, modelId, targetBI, modelElement, host, port);
-
-        return BISyncTool.dumpToBISyncModel(syncContext);
-    }
-
-    public BISyncModel exportTDSDimensionsAndMeasuresByNormalUser(SyncContext syncContext, List<String> dimensions,
-            List<String> measures) {
-        Set<String> groups = getCurrentUserGroups();
-        String currentUserName = aclEvaluate.getCurrentUserName();
-        String projectName = syncContext.getProjectName();
-        String modelId = syncContext.getModelId();
-        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
-        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
-            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
-                    "The model is broken and cannot be exported TDS file");
-        }
-
-        Set<String> authTables = getAllAuthTables(projectName, groups, currentUserName);
-        Set<String> authColumns = getAllAuthColumns(projectName, groups, currentUserName);
-
-        Set<String> newAuthColumns = Sets.newHashSet();
-        dataflow.getModel().getAllTables().forEach(tableRef -> {
-            List<TblColRef> collect = tableRef.getColumns().stream()
-                    .filter(column -> authColumns.contains(column.getCanonicalName())).collect(Collectors.toList());
-            collect.forEach(x -> newAuthColumns.add(x.getAliasDotName()));
-        });
-
-        checkTableHasColumnPermission(syncContext.getModelElement(), projectName, modelId, newAuthColumns, dimensions,
-                measures);
-
-        return BISyncTool.dumpHasPermissionToBISyncModel(syncContext, authTables, newAuthColumns, dimensions, measures);
-    }
-
-    public BISyncModel exportTDSDimensionsAndMeasuresByAdmin(SyncContext syncContext, List<String> dimensions,
-            List<String> measures) {
-        String projectName = syncContext.getProjectName();
-        String modelId = syncContext.getModelId();
-        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
-        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
-            throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
-        }
-        checkModelExportPermission(projectName, modelId);
-        checkModelPermission(projectName, modelId);
-        return BISyncTool.dumpBISyncModel(syncContext, dimensions, measures);
-    }
-
-    public SyncContext getADMINSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement element, String host, int port) {
-        NDataflow dataflow = getManager(NDataflowManager.class, projectName).getDataflow(modelId);
-        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
-            throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
-        }
-        checkModelExportPermission(projectName, modelId);
-        checkModelPermission(projectName, modelId);
-
-        return getSyncContext(projectName, modelId, targetBI, element, host, port);
-    }
-
-    public SyncContext getSyncContext(String projectName, String modelId, SyncContext.BI targetBI,
-            SyncContext.ModelElement modelElement, String host, int port) {
-        SyncContext syncContext = new SyncContext();
-        syncContext.setProjectName(projectName);
-        syncContext.setModelId(modelId);
-        syncContext.setTargetBI(targetBI);
-        syncContext.setModelElement(modelElement);
-        syncContext.setHost(host);
-        syncContext.setPort(port);
-        syncContext.setDataflow(getManager(NDataflowManager.class, projectName).getDataflow(modelId));
-        syncContext.setKylinConfig(getManager(NProjectManager.class).getProject(projectName).getConfig());
-        return syncContext;
-    }
-
-    public void checkTableHasColumnPermission(SyncContext.ModelElement modelElement, String project, String modeId,
-            Set<String> authColumns, List<String> dimensions, List<String> measures) {
-        if (AclPermissionUtil.isAdmin()) {
-            return;
-        }
-        aclEvaluate.checkProjectReadPermission(project);
-
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modeId);
-        long jointCount = model.getJoinTables().stream()
-                .filter(table -> authColumns
-                        .containsAll(Arrays.stream(table.getJoin().getPrimaryKeyColumns())
-                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()))
-                        && authColumns.containsAll(Arrays.stream(table.getJoin().getForeignKeyColumns())
-                                .map(TblColRef::getAliasDotName).collect(Collectors.toSet())))
-                .count();
-        long singleTableCount = model.getAllTables().stream().filter(ref -> ref.getColumns().stream()
-                .map(TblColRef::getAliasDotName).collect(Collectors.toSet()).stream().anyMatch(authColumns::contains))
-                .count();
-
-        if (jointCount != model.getJoinTables().size() || singleTableCount == 0
-                || (modelElement.equals(SyncContext.ModelElement.CUSTOM_COLS)
-                        && !checkColumnPermission(model, authColumns, dimensions, measures))) {
-            throw new KylinException(ServerErrorCode.INVALID_TABLE_AUTH,
-                    MsgPicker.getMsg().getTableNoColumnsPermission());
-        }
-    }
-
-    public boolean checkColumnPermission(NDataModel model, Set<String> authColumns, List<String> dimensions,
-            List<String> measures) {
-
-        if (!checkDimensionPermission(model, authColumns, dimensions)) {
-            return false;
-        }
-        if (CollectionUtils.isEmpty(measures)) {
-            return true;
-        }
-        List<MeasureDef> authMeasures = model.getEffectiveMeasures().values().stream()
-                .filter(measure -> measures.contains(measure.getName()))
-                .filter(measure -> checkMeasurePermission(authColumns, measure, model)).map(MeasureDef::new)
-                .collect(Collectors.toList());
-        return authMeasures.size() == measures.size();
-
-    }
-
-    private boolean checkDimensionPermission(NDataModel model, Set<String> authColumns, List<String> dimensions) {
-        if (CollectionUtils.isEmpty(dimensions)) {
-            return true;
-        }
-        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
-                .filter(cc -> dimensions.contains(cc.getFullName())).collect(Collectors.toList());
-
-        long authComputedCount = computedColumnDescs.stream()
-                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
-
-        if (computedColumnDescs.size() != authComputedCount) {
-            return false;
-        }
-
-        List<String> normalColumns = dimensions.stream().filter(column -> !computedColumnDescs.stream()
-                .map(ComputedColumnDesc::getFullName).collect(Collectors.toList()).contains(column))
-                .collect(Collectors.toList());
-        return authColumns.containsAll(normalColumns);
-    }
-
-    public Set<String> convertCCToNormalCols(NDataModel model, ComputedColumnDesc computedColumnDesc) {
-        IndexDependencyParser parser = new IndexDependencyParser(model);
-        try {
-            Set<TblColRef> tblColRefList = parser.unwrapComputeColumn(computedColumnDesc.getInnerExpression());
-            return tblColRefList.stream().map(TblColRef::getAliasDotName).collect(Collectors.toSet());
-        } catch (Exception e) {
-            log.warn("UnWrap computed column {} in project {} model {} exception",
-                    computedColumnDesc.getInnerExpression(), model.getProject(), model.getAlias(), e);
-        }
-        return Collections.emptySet();
-    }
-
-    private boolean checkMeasurePermission(Set<String> authColumns, NDataModel.Measure measure, NDataModel model) {
-        Set<String> measureColumns = measure.getFunction().getParameters().stream()
-                .filter(parameterDesc -> parameterDesc.getColRef() != null)
-                .map(parameterDesc -> parameterDesc.getColRef().getAliasDotName()).collect(Collectors.toSet());
-
-        List<ComputedColumnDesc> computedColumnDescs = model.getComputedColumnDescs().stream()
-                .filter(cc -> measureColumns.contains(cc.getFullName())).collect(Collectors.toList());
-
-        long authComputedCount = computedColumnDescs.stream()
-                .filter(cc -> authColumns.containsAll(convertCCToNormalCols(model, cc))).count();
-
-        if (computedColumnDescs.size() != authComputedCount) {
-            return false;
-        }
-
-        List<String> normalColumns = measureColumns.stream().filter(column -> !computedColumnDescs.stream()
-                .map(ComputedColumnDesc::getFullName).collect(Collectors.toList()).contains(column))
-                .collect(Collectors.toList());
-
-        return authColumns.containsAll(normalColumns);
-    }
-
-    private Set<String> getAllAuthTables(String project, Set<String> groups, String user) {
-        Set<String> allAuthTables = Sets.newHashSet();
-        AclTCRDigest auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, user, true);
-        allAuthTables.addAll(auths.getTables());
-        for (String group : groups) {
-            auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, group, false);
-            allAuthTables.addAll(auths.getTables());
-        }
-        return allAuthTables;
-    }
-
-    private Set<String> getAllAuthColumns(String project, Set<String> groups, String user) {
-        Set<String> allAuthColumns = Sets.newHashSet();
-        AclTCRDigest auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, user, true);
-        allAuthColumns.addAll(auths.getColumns());
-        for (String group : groups) {
-            auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, group, false);
-            allAuthColumns.addAll(auths.getColumns());
-        }
-        return allAuthColumns;
-    }
-
-    private void checkModelExportPermission(String project, String modeId) {
-        if (AclPermissionUtil.isAdmin()) {
-            return;
-        }
-        aclEvaluate.checkProjectReadPermission(project);
-
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modeId);
-        Map<String, Set<String>> modelTableColumns = new HashMap<>();
-        for (TableRef tableRef : model.getAllTables()) {
-            modelTableColumns.putIfAbsent(tableRef.getTableIdentity(), new HashSet<>());
-            modelTableColumns.get(tableRef.getTableIdentity())
-                    .addAll(tableRef.getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()));
-        }
-        AclTCRManager aclManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-
-        String currentUserName = AclPermissionUtil.getCurrentUsername();
-        Set<String> groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(currentUserName);
-        MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
-        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, acl);
-        AclTCRDigest digest = aclManager.getAllUnauthorizedTableColumn(currentUserName, groupsInProject,
-                modelTableColumns);
-        if (digest.getColumns() != null && !digest.getColumns().isEmpty()) {
-            throw new KylinException(UNAUTHORIZED_ENTITY,
-                    "current user does not have full permission on requesting model");
-        }
-        if (digest.getTables() != null && !digest.getTables().isEmpty()) {
-            throw new KylinException(UNAUTHORIZED_ENTITY,
-                    "current user does not have full permission on requesting model");
-        }
-    }
-
     public List<SegmentPartitionResponse> getSegmentPartitions(String project, String modelId, String segmentId,
             List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
@@ -4356,20 +4274,17 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         if (CollectionUtils.isEmpty(partitions)) {
             return;
         }
+        NDataflowManager dataflowManager = getManager(NDataflowManager.class, project);
         if (StringUtils.isNotEmpty(segmentId)) {
             // remove partition in target segment
-            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, partitions,
-                    Sets.newHashSet(segmentId));
+            dataflowManager.removeLayoutPartition(modelId, partitions, Sets.newHashSet(segmentId));
             // remove partition in target segment
-            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, partitions,
-                    Sets.newHashSet(segmentId));
+            dataflowManager.removeSegmentPartition(modelId, partitions, Sets.newHashSet(segmentId));
         } else {
             // remove partition in all layouts
-            getManager(NDataflowManager.class, project).removeLayoutPartition(modelId, Sets.newHashSet(partitions),
-                    null);
+            dataflowManager.removeLayoutPartition(modelId, Sets.newHashSet(partitions), null);
             // remove partition in all  segments
-            getManager(NDataflowManager.class, project).removeSegmentPartition(modelId, Sets.newHashSet(partitions),
-                    null);
+            dataflowManager.removeSegmentPartition(modelId, Sets.newHashSet(partitions), null);
             // remove partition in model
             getManager(NDataModelManager.class, project).updateDataModel(modelId, copyForWrite -> {
                 val multiPartitionDesc = copyForWrite.getMultiPartitionDesc();
@@ -4387,48 +4302,21 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return model;
     }
 
-    public void checkModelPermission(String project, String modelId) {
-        String userName = aclEvaluate.getCurrentUserName();
-        Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project, groups)) {
-            return;
-        }
-        Set<String> allAuthTables = Sets.newHashSet();
-        Set<String> allAuthColumns = Sets.newHashSet();
-        var auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, userName, true);
-        allAuthTables.addAll(auths.getTables());
-        allAuthColumns.addAll(auths.getColumns());
-        for (val group : groups) {
-            auths = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, group, false);
-            allAuthTables.addAll(auths.getTables());
-            allAuthColumns.addAll(auths.getColumns());
-        }
-
-        NDataModel model = getModelById(modelId, project);
-        Set<String> tablesInModel = Sets.newHashSet();
-        model.getJoinTables().forEach(table -> tablesInModel.add(table.getTable()));
-        tablesInModel.add(model.getRootFactTableName());
-        tablesInModel.forEach(table -> {
-            if (!allAuthTables.contains(table)) {
-                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getModelModifyAbandon(table));
-            }
-        });
-        tablesInModel.stream().filter(allAuthTables::contains).forEach(table -> {
-            ColumnDesc[] columnDescs = NTableMetadataManager.getInstance(getConfig(), project).getTableDesc(table)
-                    .getColumns();
-            Arrays.stream(columnDescs).map(column -> table + "." + column.getName()).forEach(column -> {
-                if (!allAuthColumns.contains(column)) {
-                    throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getModelModifyAbandon(column));
-                }
-            });
-        });
-    }
-
     public InvalidIndexesResponse detectInvalidIndexes(ModelRequest request) {
         String project = request.getProject();
         aclEvaluate.checkProjectReadPermission(project);
 
+        String modelId = request.getId();
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            if (modelId != null && getModelById(modelId, project).isBroken()) {
+                discardInvalidDataForBrokenModel(modelId, project);
+            }
+            return null;
+        }, project);
+
         request.setPartitionDesc(null);
+        request.setMultiPartitionDesc(null);
+        request.setMultiPartitionKeyMapping(null);
         NDataModel model = convertAndInitDataModel(request, project);
 
         String uuid = model.getUuid();
@@ -4472,8 +4360,66 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         return response;
     }
 
+    public void validatePartitionDesc(PartitionDesc partitionDesc) {
+        if (partitionDesc != null) {
+            if (partitionDesc.isEmpty()) {
+                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPartitionColumnNotExist());
+            }
+            if (!isSupportFormats(partitionDesc)) {
+                throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, partitionDesc.getPartitionDateFormat());
+            }
+            if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
+                validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
+            }
+        }
+    }
+
+    public void validateDateTimeFormatPattern(String pattern) {
+        if (pattern.isEmpty()) {
+            throw new KylinException(DATETIME_FORMAT_EMPTY);
+        }
+        try {
+            new SimpleDateFormat(pattern, Locale.getDefault(Locale.Category.FORMAT));
+        } catch (IllegalArgumentException e) {
+            throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, e, pattern);
+        }
+    }
+
+    private boolean isSupportFormats(PartitionDesc partitionDesc) {
+        if (partitionDesc.partitionColumnIsTimestamp()) {
+            return false;
+        }
+        String dateFormat = partitionDesc.getPartitionDateFormat();
+        Matcher matcher = QUOTE_PATTERN.matcher(dateFormat);
+        while (matcher.find()) {
+            dateFormat = dateFormat.replaceAll(matcher.group(), "");
+        }
+        for (String frontEndFormat : SUPPORTED_FORMATS) {
+            dateFormat = dateFormat.replaceAll(frontEndFormat, "");
+        }
+        int length = dateFormat.length();
+        for (int i = 0; i < length; i++) {
+            char c = dateFormat.charAt(i);
+            if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void discardInvalidDataForBrokenModel(String modelId, String project) {
+        NDataModelManager modelManager = getManager(NDataModelManager.class, project);
+        NDataModel brokenModel = modelQuerySupporter.getBrokenModel(project, modelId);
+        NDataModel copyForWrite = modelManager.copyForWrite(brokenModel);
+
+        semanticUpdater.discardInvalidColsAndMeasForBrokenModel(project, copyForWrite);
+
+        modelManager.updateDataBrokenModelDesc(copyForWrite);
+    }
+
     private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
         NDataModel model = convertToDataModel(request);
+        semanticUpdater.discardInvalidColsAndMeasForBrokenModel(project, model);
         model.init(KylinConfig.getInstanceFromEnv(), project,
                 getManager(NDataflowManager.class, project).listUnderliningDataModels());
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
@@ -4526,6 +4472,117 @@ public class ModelService extends BasicService implements TableModelSupporter, P
         }
 
         request.setProject(projectName);
+    }
+
+    public void checkCCEmpty(ModelRequest modelRequest) {
+        List<ComputedColumnDesc> ccList = modelRequest.getComputedColumnDescs();
+        if (CollectionUtils.isEmpty(ccList)) {
+            return;
+        }
+        boolean matchEmpty = ccList.stream()
+                .anyMatch(cc -> StringUtils.isEmpty(cc.getColumnName()) || StringUtils.isEmpty(cc.getExpression()));
+        if (matchEmpty) {
+            throw new KylinException(COMPUTED_COLUMN_NAME_OR_EXPR_EMPTY);
+        }
+    }
+
+    public Pair<ModelRequest, ComputedColumnConflictResponse> checkCCConflict(ModelRequest modelRequest) {
+        String project = modelRequest.getProject();
+        validatePartitionDateColumn(modelRequest);
+
+        val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        val modelManager = getManager(NDataModelManager.class, project);
+        val ccRelatedModels = modelManager.getCCRelatedModels(dataModel);
+        // check cc conflict and return ccConflictInfo
+        val ccConflictInfo = dataModel.checkCCFailAtEnd(getConfig(), project, ccRelatedModels, true);
+        boolean autoAdjust = modelRequest.isComputedColumnNameAutoAdjust();
+
+        if (ccConflictInfo.noneConflict()) {
+            // No conflict, return
+            return Pair.newPair(modelRequest, new ComputedColumnConflictResponse());
+        }
+        if (ccConflictInfo.hasSameNameConflict()) {
+            // have sameNameDiffExpr Conflict, all conflict messages need to be thrown
+            val response = handleOnConflictResponse(ccConflictInfo.getAllConflictException());
+            throw new KylinException(COMPUTED_COLUMN_CONFLICT).withData(response);
+        }
+        // have sameExprDiffExprConflict Conflict
+        if (!autoAdjust) {
+            // AutoAdjust = false
+            // SameExpr conflict messages need to be thrown
+            val response = handleOnConflictResponse(ccConflictInfo.getSameExprConflictException());
+            throw new KylinException(COMPUTED_COLUMN_CONFLICT).withData(response);
+        }
+        // AutoAdjust = true
+        List<ComputedColumnDesc> inputCCDescList = Lists.newArrayList(modelRequest.getComputedColumnDescs());
+        // deal with conflicts
+        val pair = ccConflictInfo.getAdjustedCCList(inputCCDescList);
+        val adjustExceptions = pair.getSecond().stream() //
+                .map(ComputedColumnUtil.CCConflictDetail::getAdjustKylinException).collect(Collectors.toList());
+        ModelRequest resultModelRequest = adjustModelRequestCCName(modelRequest, pair);
+
+        return Pair.newPair(resultModelRequest, handleOnConflictResponse(adjustExceptions));
+    }
+
+    public ModelRequest adjustModelRequestCCName(ModelRequest modelRequest,
+            Pair<List<ComputedColumnDesc>, List<ComputedColumnUtil.CCConflictDetail>> pair) {
+        val adjustDetails = pair.getSecond();
+        // adjust cc name
+        modelRequest.setComputedColumnDescs(pair.getFirst());
+
+        val dimensions = modelRequest.getSimplifiedDimensions();
+        val measures = modelRequest.getSimplifiedMeasures();
+        for (val detail : adjustDetails) {
+            String newCCFullName = detail.getNewCC().getFullName();
+            String existingCCFullName = detail.getExistingCC().getFullName();
+
+            // adjust dimensions
+            dimensions.stream() //
+                    .filter(NDataModel.NamedColumn::isExist) //
+                    // column equals
+                    .filter(d -> StringUtils.equalsIgnoreCase(d.getAliasDotColumn(), newCCFullName))
+                    .forEach(d -> d.setAliasDotColumn(existingCCFullName));
+
+            // adjust measures
+            measures.forEach(m -> m.getParameterValue().stream() //
+                    // type = column
+                    .filter(pr -> StringUtils.equalsIgnoreCase(pr.getType(), PARAMETER_TYPE_COLUMN))
+                    // value equals
+                    .filter(pr -> StringUtils.equalsIgnoreCase(pr.getValue(), newCCFullName))
+                    .forEach(pr -> pr.setValue(existingCCFullName)));
+        }
+
+        // adjust filter condition
+        String filterCondition = modelRequest.getFilterCondition();
+        if (StringUtils.isEmpty(filterCondition)) {
+            return modelRequest;
+        }
+        for (val detail : adjustDetails) {
+            String newCCFullName = detail.getNewCC().getFullName();
+            String existingCCFullName = detail.getExistingCC().getFullName();
+            if (StringUtils.containsIgnoreCase(filterCondition, newCCFullName)) {
+                filterCondition = replaceAllIgnoreCase(filterCondition, newCCFullName, existingCCFullName);
+            }
+        }
+        modelRequest.setFilterCondition(filterCondition);
+        return modelRequest;
+    }
+
+    public String replaceAllIgnoreCase(String input, String regex, String replacement) {
+        return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(input).replaceAll(replacement);
+    }
+
+    public ComputedColumnConflictResponse handleOnConflictResponse(List<KylinException> exceptionList) {
+        val response = new ComputedColumnConflictResponse();
+        exceptionList.stream() //
+                .filter(Objects::nonNull) //
+                .forEach(e -> {
+                    val producer = e.getErrorCodeProducer();
+                    val code = producer.getErrorCode().getCode();
+                    val msg = producer.getMsg(e.getArgs());
+                    response.addConflictDetail(code, msg);
+                });
+        return response;
     }
 
     @Override

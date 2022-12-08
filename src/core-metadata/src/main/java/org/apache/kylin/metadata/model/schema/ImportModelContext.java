@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,10 +41,9 @@ import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -55,17 +55,20 @@ import org.apache.kylin.metadata.cube.model.RuleBasedIndex;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
-import org.apache.kylin.metadata.recommendation.candidate.RawRecItem;
-import org.apache.kylin.metadata.recommendation.entity.DimensionRecItemV2;
-import org.apache.kylin.metadata.recommendation.entity.LayoutRecItemV2;
-import org.apache.kylin.metadata.recommendation.entity.MeasureRecItemV2;
-import org.apache.kylin.metadata.recommendation.entity.RecItemV2;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -92,6 +95,10 @@ public class ImportModelContext implements AutoCloseable {
     private final NTableMetadataManager importTableMetadataManager;
     private final NIndexPlanManager importIndexPlanManager;
 
+    @Getter
+    private final List<TableDesc> targetMissTableList;
+    @Getter
+    private final List<TableDesc> loadTableList;
     @Getter
     private final Map<String, String> newModels;
     private final List<String> unImportModels;
@@ -131,31 +138,39 @@ public class ImportModelContext implements AutoCloseable {
 
         targetKylinConfig.setProperty("kylin.metadata.validate-computed-column", "false");
 
+        val pairTable = getPairTable();
+        targetMissTableList = pairTable.getFirst();
+        loadTableList = pairTable.getSecond();
         loadTable();
         loadModel();
     }
 
-    private void loadTable() {
+    private Pair<List<TableDesc>, List<TableDesc>> getPairTable() {
+        List<TableDesc> missTables = Lists.newArrayList();
+        List<TableDesc> loadTables = Lists.newArrayList();
+
         List<TableDesc> tables = importTableMetadataManager.listAllTables();
         for (TableDesc tableDesc : tables) {
             TableDesc newTable = targetTableMetadataManager.copyForWrite(tableDesc);
             TableDesc originalTable = targetTableMetadataManager.getTableDesc(newTable.getIdentity());
-            long mvcc = -1;
-            if (originalTable != null) {
-                mvcc = originalTable.getMvcc();
-            }
-            newTable.setMvcc(mvcc);
             newTable.setLastModified(System.currentTimeMillis());
-            targetTableMetadataManager.saveSourceTable(newTable);
+            if (Objects.isNull(originalTable)) {
+                newTable.setMvcc(-1);
+                missTables.add(newTable);
+            } else {
+                newTable.setMvcc(originalTable.getMvcc());
+            }
+            loadTables.add(newTable);
+        }
+        return Pair.newPair(missTables, loadTables);
+    }
+
+    private void loadTable() {
+        for (TableDesc tableDesc : loadTableList) {
+            targetTableMetadataManager.saveSourceTable(tableDesc);
         }
     }
 
-    /**
-     *
-     * @param newDataModel
-     * @param importModel
-     * @throws IOException
-     */
     private void createNewModel(NDataModel newDataModel, NDataModel importModel) throws IOException {
         newDataModel.setProject(targetProject);
         newDataModel.setAlias(newModels.getOrDefault(importModel.getAlias(), newDataModel.getAlias()));
@@ -178,7 +193,6 @@ public class ImportModelContext implements AutoCloseable {
      *
      * @param originalDataModel model from current env
      * @param newDataModel model from import
-     * @return
      */
     private static Map<Integer, Integer> prepareIdChangedMap(NDataModel originalDataModel, NDataModel newDataModel) {
         Map<Integer, Integer> idChangedMap = new HashMap<>();
@@ -187,6 +201,8 @@ public class ImportModelContext implements AutoCloseable {
                 .mapToInt(Integer::intValue).max().orElse(1);
         int measureMaxId = originalDataModel.getAllMeasures().stream().map(NDataModel.Measure::getId)
                 .mapToInt(Integer::intValue).max().orElse(NDataModel.MEASURE_ID_BASE);
+        Set<Integer> existIds = Sets.newHashSet();
+
         for (NDataModel.NamedColumn namedColumn : newDataModel.getAllNamedColumns()) {
             val exists = originalDataModel.getAllNamedColumns().stream()
                     .anyMatch(original -> Objects.equals(original.getId(), namedColumn.getId())
@@ -197,13 +213,15 @@ public class ImportModelContext implements AutoCloseable {
                 int id = originalDataModel.getAllNamedColumns().stream()
                         .filter(original -> original.getAliasDotColumn().equals(namedColumn.getAliasDotColumn())
                                 && original.isExist() == namedColumn.isExist()
-                                && !idChangedMap.containsValue(original.getId()))
+                                && !idChangedMap.containsValue(original.getId())
+                                && !existIds.contains(original.getId()))
                         .mapToInt(NDataModel.NamedColumn::getId).findFirst().orElse(++columnMaxId);
                 if (!Objects.equals(id, namedColumn.getId())) {
                     idChangedMap.put(namedColumn.getId(), id);
                     namedColumn.setId(id);
                 }
             }
+            existIds.add(namedColumn.getId());
         }
 
         for (NDataModel.Measure measure : newDataModel.getAllMeasures()) {
@@ -216,7 +234,8 @@ public class ImportModelContext implements AutoCloseable {
                 val id = originalDataModel.getAllMeasures().stream()
                         .filter(original -> original.getName().equals(measure.getName())
                                 && original.isTomb() == measure.isTomb()
-                                && !idChangedMap.containsValue(original.getId()))
+                                && !idChangedMap.containsValue(original.getId())
+                                && !existIds.contains(original.getId()))
                         .map(NDataModel.Measure::getId).findFirst().orElse(++measureMaxId);
 
                 if (!Objects.equals(id, measure.getId())) {
@@ -224,17 +243,12 @@ public class ImportModelContext implements AutoCloseable {
                     measure.setId(id);
                 }
             }
+            existIds.add(measure.getId());
         }
 
         return idChangedMap;
     }
 
-    /**
-     *
-     * @param newDataModel
-     * @param originalDataModel
-     * @param hasModelOverrideProps
-     */
     private void updateModel(NDataModel newDataModel, NDataModel originalDataModel, boolean hasModelOverrideProps) {
         newDataModel.setUuid(originalDataModel.getUuid());
         newDataModel.setProject(targetProject);
@@ -246,12 +260,6 @@ public class ImportModelContext implements AutoCloseable {
         targetDataModelManager.updateDataModelDesc(newDataModel);
     }
 
-    /**
-     *
-     * @param originalDataModel
-     * @param targetIndexPlan
-     * @param hasModelOverrideProps
-     */
     private void updateIndexPlan(NDataModel originalDataModel, IndexPlan targetIndexPlan,
             boolean hasModelOverrideProps) {
         targetIndexPlanManger.updateIndexPlan(originalDataModel.getUuid(), copyForWrite -> {

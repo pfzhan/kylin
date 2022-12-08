@@ -22,9 +22,20 @@ import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.AddressUtil;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public abstract class EpochStore {
     public static final String EPOCH_SUFFIX = "_epoch";
+    protected static final KylinConfig KYLIN_CONFIG;
+    protected static final String SERVICE_INFO;
+
+    static {
+        KYLIN_CONFIG = KylinConfig.getInstanceFromEnv();
+        SERVICE_INFO = AddressUtil.getLocalInstance();
+    }
 
     public abstract void update(Epoch epoch);
 
@@ -43,6 +54,8 @@ public abstract class EpochStore {
     public abstract void createIfNotExist() throws Exception;
 
     public abstract <T> T executeWithTransaction(Callback<T> callback);
+
+    public abstract <T> T executeWithTransaction(Callback<T> callback, int timeout);
 
     public Epoch getGlobalEpoch() {
         return getEpoch("_global");
@@ -69,5 +82,23 @@ public abstract class EpochStore {
         default void onError() {
             // do nothing by default
         }
+    }
+
+    public static boolean isLeaderNode() {
+        Epoch epoch = null;
+        try {
+            epoch = getEpochStore(KYLIN_CONFIG).getGlobalEpoch();
+        } catch (Exception e) {
+            log.warn("Get global epoch failed.", e);
+        }
+        if (epoch != null) {
+            String currentEpochOwner = epoch.getCurrentEpochOwner();
+            if (currentEpochOwner != null && currentEpochOwner.split("\\|")[0].equals(SERVICE_INFO)) {
+                log.debug("Current node is leader node.");
+                return true;
+            }
+        }
+        log.debug("Current node is not leader node.");
+        return false;
     }
 }

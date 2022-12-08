@@ -20,6 +20,7 @@ package org.apache.kylin.metadata.favorite;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import org.apache.ibatis.annotations.DeleteProvider;
 import org.apache.ibatis.annotations.InsertProvider;
 import org.apache.ibatis.annotations.Mapper;

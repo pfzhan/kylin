@@ -25,8 +25,8 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EpochStartedNotifier;
 import org.apache.kylin.common.scheduler.ProjectControlledNotifier;
 import org.apache.kylin.common.scheduler.ProjectEscapedNotifier;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.rest.service.UserAclService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.service.task.QueryHistoryMetaUpdateScheduler;
 import org.apache.kylin.rest.util.CreateAdminUserUtils;
@@ -39,6 +39,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +55,10 @@ public class EpochChangedListener {
     @Autowired
     @Qualifier("userService")
     UserService userService;
+
+    @Autowired
+    @Qualifier("userAclService")
+    UserAclService userAclService;
 
     @Subscribe
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
@@ -75,7 +80,6 @@ public class EpochChangedListener {
 
                 QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
                 qhMetaUpdateScheduler.init();
-
                 if (!qhMetaUpdateScheduler.hasStarted()) {
                     throw new RuntimeException(
                             "Query history accelerate scheduler for " + project + " has not been started");
@@ -91,6 +95,7 @@ public class EpochChangedListener {
                 return null;
             }, "", 1);
             InitResourceGroupUtils.initResourceGroup();
+            userAclService.syncAdminUserAcl();
         }
     }
 

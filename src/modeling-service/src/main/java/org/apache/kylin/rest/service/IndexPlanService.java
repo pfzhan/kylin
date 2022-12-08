@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.SegmentOnlineMode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -73,6 +76,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
@@ -110,6 +114,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -397,7 +403,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
         modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
 
-        updateSecondStorage(project, modelId);
+        removeSecondStorageIndex(project, modelId, ids);
     }
 
     private void removeAggGroup(Set<Integer> invalidDimensions, Set<Integer> invalidMeasures, IndexPlan indexPlan) {
@@ -425,11 +431,26 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             Preconditions.checkNotNull(layout);
         }
 
-        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.markWhiteIndexToBeDelete(indexPlan.getUuid(), Sets.newHashSet(layoutIds));
-        });
+        Map<Long, Boolean> secondStorageLayoutStatus = getSecondStorageLayoutStatus(project, layoutIds, indexPlan);
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> copyForWrite
+                .markWhiteIndexToBeDelete(indexPlan.getUuid(), Sets.newHashSet(layoutIds), secondStorageLayoutStatus));
 
         return true;
+    }
+
+    public Map<Long, Boolean> getSecondStorageLayoutStatus(String project, Set<Long> layoutIds, IndexPlan indexPlan) {
+        if (!SecondStorageUtil.isModelEnable(project, indexPlan.getUuid())) {
+            return Collections.emptyMap();
+        }
+        Map<Long, Boolean> secondStorageLayoutStatus = new HashMap<>(layoutIds.size());
+        for (long layoutId : layoutIds) {
+            if (indexPlan.getLayoutEntity(layoutId) != null && indexPlan.getLayoutEntity(layoutId).isBaseIndex()
+                    && indexPlan.getLayoutEntity(layoutId).getIndex().isTableIndex()) {
+                secondStorageLayoutStatus.put(layoutId,
+                        isSecondStorageLayoutReady(project, indexPlan.getUuid(), layoutId));
+            }
+        }
+        return secondStorageLayoutStatus;
     }
 
     public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
@@ -1162,13 +1183,29 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             for (long layoutId : needDelete) {
                 NDataLayout dataLayout = segment.getLayout(layoutId);
                 // may no data before the last ready segments but have a add cuboid job.
-                if (null == dataLayout) {
+                if (null == dataLayout && !isSecondStorageLayoutReady(project, modelId, layoutId)) {
                     removeIndex(project, modelId, layoutId);
                 } else {
                     addIndexToBeDeleted(project, modelId, Sets.newHashSet(layoutId));
                 }
             }
         }
+    }
+
+    public boolean isSecondStorageLayoutReady(String project, String modelId, long layoutId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) {
+            return false;
+        }
+        if (!SegmentOnlineMode.ANY.toString().equalsIgnoreCase(NProjectManager.getInstance(getConfig())
+                .getProject(project).getConfig().getKylinEngineSegmentOnlineMode())) {
+            return false;
+        }
+        Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(getConfig(), project);
+        if (!tableFlowManager.isPresent()) {
+            return false;
+        }
+        Optional<TableFlow> tableFlow = tableFlowManager.get().get(modelId);
+        return tableFlow.map(flow -> flow.containsLayout(layoutId)).orElse(false);
     }
 
     @Transaction(project = 0)
@@ -1259,10 +1296,10 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
     }
 
     @Transaction(project = 0)
-    private void updateSecondStorage(String project, String modelId) {
+    private void removeSecondStorageIndex(String project, String modelId, Set<Long> layoutIds) {
         if (SecondStorageUtil.isModelEnable(project, modelId)) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            updater.updateIndex(project, modelId);
+            updater.removeIndexByLayoutId(project, modelId, layoutIds);
         }
     }
 

@@ -22,8 +22,6 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.DATETIME_FORMAT_PARSE_ERROR;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 
 import java.io.IOException;
@@ -32,28 +30,21 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.exception.LookupTableException;
@@ -90,13 +81,14 @@ import org.apache.kylin.rest.response.ModelConfigResponse;
 import org.apache.kylin.rest.response.ModelSaveCheckResponse;
 import org.apache.kylin.rest.response.MultiPartitionValueResponse;
 import org.apache.kylin.rest.response.PurgeModelAffectedResponse;
+import org.apache.kylin.rest.service.AbstractModelService;
 import org.apache.kylin.rest.service.FusionIndexService;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.IndexPlanService;
 import org.apache.kylin.rest.service.ModelService;
-import org.apache.kylin.rest.util.AclPermissionUtil;
-import org.apache.kylin.tool.bisync.BISyncModel;
+import org.apache.kylin.rest.service.ModelTdsService;
 import org.apache.kylin.tool.bisync.SyncContext;
+import org.apache.kylin.tool.bisync.model.SyncModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -113,7 +105,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -129,15 +120,14 @@ import lombok.extern.slf4j.Slf4j;
 public class NModelController extends NBasicController {
     public static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
-    //The front-end supports only the following formats
-    private static final List<String> SUPPORTED_FORMATS = ImmutableList.of("ZZ", "DD", "D", "Do", "dddd", "ddd", "dd", //
-            "d", "MMM", "MM", "M", "yyyy", "yy", "hh", "hh", "h", "HH", "H", "m", "mm", "ss", "s", "SSS", "SS", "S", //
-            "A", "a");
-    private static final Pattern QUOTE_PATTERN = Pattern.compile("\'(.*?)\'");
 
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    @Qualifier("modelTdsService")
+    private ModelTdsService tdsService;
 
     @Autowired
     private FusionModelService fusionModelService;
@@ -214,7 +204,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
-        validatePartitionDesc(modelRequest.getPartitionDesc());
+        modelService.validatePartitionDesc(modelRequest.getPartitionDesc());
         String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null
                 : modelRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(modelRequest.getStart(), modelRequest.getEnd(), partitionDateFormat);
@@ -430,33 +420,11 @@ public class NModelController extends NBasicController {
         }
     }
 
-    private boolean isSupportFormatsFormats(PartitionDesc partitionDesc) {
-        if (partitionDesc.partitionColumnIsTimestamp()) {
-            return false;
-        }
-        String dateFormat = partitionDesc.getPartitionDateFormat();
-        Matcher matcher = QUOTE_PATTERN.matcher(dateFormat);
-        while (matcher.find()) {
-            dateFormat = dateFormat.replaceAll(matcher.group(), "");
-        }
-        for (String frontEndFormat : SUPPORTED_FORMATS) {
-            dateFormat = dateFormat.replaceAll(frontEndFormat, "");
-        }
-        int length = dateFormat.length();
-        for (int i = 0; i < length; i++) {
-            char c = dateFormat.charAt(i);
-            if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @ApiOperation(value = "checkPartitionDesc", tags = { "AI" })
     @PostMapping(value = "/check_partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> checkPartitionDesc(@RequestBody PartitionDesc partitionDesc) {
-        validatePartitionDesc(partitionDesc);
+        modelService.validatePartitionDesc(partitionDesc);
         String partitionDateFormat = partitionDesc.getPartitionDateFormat();
         PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
         if (timestampType == null) {
@@ -486,7 +454,7 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(request.getProject(), request.getId());
         validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
-        validatePartitionDesc(request.getPartitionDesc());
+        modelService.validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {
             BuildBaseIndexResponse response = BuildBaseIndexResponse.EMPTY;
@@ -512,7 +480,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model") String modelId,
             @RequestBody PartitionColumnRequest request) throws Exception {
         checkProjectName(request.getProject());
-        validatePartitionDesc(request.getPartitionDesc());
+        modelService.validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, modelId);
         try {
             modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc(),
@@ -532,11 +500,12 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
-        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL)) {
+        String description = modelRenameRequest.getDescription();
+        if (!StringUtils.containsOnly(newAlias, AbstractModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(MODEL_NAME_INVALID, newAlias);
         }
 
-        fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
+        fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias, description);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
@@ -593,7 +562,7 @@ public class NModelController extends NBasicController {
         String newModelName = request.getNewModelName();
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
-        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL)) {
+        if (!StringUtils.containsOnly(newModelName, AbstractModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(MODEL_NAME_INVALID, newModelName);
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
@@ -660,20 +629,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    public void validatePartitionDesc(PartitionDesc partitionDesc) {
-        if (partitionDesc != null) {
-            if (partitionDesc.isEmpty()) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPartitionColumnNotExist());
-            }
-            if (!isSupportFormatsFormats(partitionDesc)) {
-                throw new KylinException(DATETIME_FORMAT_PARSE_ERROR, partitionDesc.getPartitionDateFormat());
-            }
-            if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
-                validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
-            }
-        }
-    }
-
     @ApiOperation(value = "checkBeforeModelSave", tags = { "AI" })
     @PostMapping(value = "/model_save/check")
     @ResponseBody
@@ -694,6 +649,19 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "validate tds export", tags = { "QE" })
+    @GetMapping(value = "/validate_export")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateExport(@RequestParam(value = "model") String modelId,
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element) {
+        String projectName = checkProjectName(project);
+        SyncContext virtualContext = tdsService.prepareSyncContext(projectName, modelId, null, element, "", -1);
+        SyncModel syncModel = tdsService.exportModel(virtualContext);
+        Boolean result = tdsService.preCheckNameConflict(syncModel);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
+    }
+
     @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
@@ -704,73 +672,12 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         String projectName = checkProjectName(project);
-
         String host = getHost(serverHost, request.getServerName());
-        Integer port = getPort(serverPort, request.getServerPort());
+        int port = getPort(serverPort, request.getServerPort());
 
-        BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
-
-        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
-    }
-
-    @ApiOperation(value = "biExport", tags = { "QE" })
-    @GetMapping(value = "/bi_export")
-    @ResponseBody
-    public void biExport(@RequestParam("model") String modelId, @RequestParam(value = "project") String project,
-            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-            @RequestParam(value = "server_host", required = false) String serverHost,
-            @RequestParam(value = "server_port", required = false) Integer serverPort,
-            @RequestParam(value = "dimensions", required = false) List<String> dimensions,
-            @RequestParam(value = "measures", required = false) List<String> measures, HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
-        String projectName = checkProjectName(project);
-
-        String host = getHost(serverHost, request.getServerName());
-        Integer port = getPort(serverPort, request.getServerPort());
-
-        SyncContext syncContext = modelService.getSyncContext(projectName, modelId, exportAs, element, host, port);
-
-        BISyncModel syncModel = AclPermissionUtil.isAdmin()
-                ? modelService.exportTDSDimensionsAndMeasuresByAdmin(syncContext, dimensions, measures)
-                : modelService.exportTDSDimensionsAndMeasuresByNormalUser(syncContext, dimensions, measures);
-
-        dumpSyncModel(modelId, exportAs, projectName, syncModel, response);
-    }
-
-    private void dumpSyncModel(String modelId, SyncContext.BI exportAs, String projectName, BISyncModel syncModel,
-            HttpServletResponse response) throws IOException {
-        NDataModelManager manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
-        NDataModel dataModel = manager.getDataModelDesc(modelId);
-        String alias = dataModel.getAlias();
-        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName, alias,
-                new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
-        switch (exportAs) {
-        case TABLEAU_CONNECTOR_TDS:
-        case TABLEAU_ODBC_TDS:
-            response.setContentType("application/xml");
-            response.setHeader("Content-Disposition",
-                    String.format(Locale.ROOT, "attachment; filename=\"%s.tds\"", fileName));
-            break;
-        default:
-            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
-        }
-        syncModel.dump(response.getOutputStream());
-        response.getOutputStream().flush();
-        response.getOutputStream().close();
-    }
-
-    private String getHost(String serverHost, String serverName) {
-        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
-        host = Optional.ofNullable(Optional.ofNullable(host).orElse(serverHost)).orElse(serverName);
-        return host;
-    }
-
-    private Integer getPort(Integer serverPort, Integer requestServerPort) {
-        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
-                : KylinConfig.getInstanceFromEnv().getModelExportPort();
-        port = Optional.ofNullable(Optional.ofNullable(port).orElse(serverPort)).orElse(requestServerPort);
-        return port;
+        SyncContext syncContext = tdsService.prepareSyncContext(projectName, modelId, exportAs, element, host, port);
+        SyncModel syncModel = tdsService.exportModel(syncContext);
+        tdsService.dumpSyncModel(syncContext, syncModel, response);
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" }, notes = "Add URL: {model}")
@@ -799,6 +706,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> addMultiPartitionValues(@PathVariable("model") String modelId,
             @RequestBody UpdateMultiPartitionValueRequest request) {
         checkProjectName(request.getProject());
+        checkRequiredArg("sub_partition_values", request.getSubPartitionValues());
         modelService.addMultiPartitionValues(request.getProject(), modelId, request.getSubPartitionValues());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

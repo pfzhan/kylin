@@ -22,6 +22,7 @@ import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IllegalFormatException;
@@ -33,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -69,6 +71,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.base.Throwables;
 import lombok.Getter;
@@ -157,6 +160,18 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     @Getter
     @Setter
     private ExecutablePO po;
+
+    @Getter
+    @Setter
+    private JobSchedulerModeEnum jobSchedulerMode = JobSchedulerModeEnum.CHAIN;
+
+    @Getter
+    @Setter
+    private String previousStep;
+
+    @Getter
+    @Setter
+    private Set<String> nextSteps = Sets.newHashSet();
 
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
@@ -275,6 +290,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
                         result.getShortErrMsg(), this::onExecuteErrorHook);
+                killOtherPipelineApplicationOrUpdateOtherPipelineStepStatus();
             });
             throw new ExecuteException(result.getThrowable());
         }
@@ -285,7 +301,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     protected void onExecuteErrorHook(String jobId) {
-        // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
+        // At present, only instance of DefaultExecutableOnModel take full advantage of this method.
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
@@ -379,13 +395,57 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return result;
     }
 
+    protected void killOtherPipelineApplicationOrUpdateOtherPipelineStepStatus() {
+        logger.error("{} kill other piper line application or update other piper line step status", getDisplayName());
+        List<AbstractExecutable> otherPipelineRunningStep = getOtherPipelineRunningStep();
+        otherPipelineRunningStep.forEach(AbstractExecutable::killApplicationIfExistsOrUpdateStepStatus);
+    }
+
+    protected List<AbstractExecutable> getOtherPipelineRunningStep() {
+        val parent = getParent();
+        val previousStepId = getPreviousStep();
+        if (parent instanceof DefaultExecutable && parent.getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)) {
+            val otherPipelineTasks = getOtherPipelineTasks((DefaultExecutable) parent, previousStepId);
+            val dagExecutablesMap = ((DefaultExecutable) parent).getTasks().stream()
+                    .collect(Collectors.toMap(AbstractExecutable::getId, task -> task));
+            return otherPipelineTasks.stream()
+                    .map(task -> getStepOrNextStepsWithStatus(task, dagExecutablesMap, ExecutableState.RUNNING))
+                    .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+        }
+        return Lists.newArrayList();
+    }
+
+    private List<AbstractExecutable> getOtherPipelineTasks(DefaultExecutable parent, String previousStepId) {
+        return parent.getTasks().stream() //
+                .filter(task -> StringUtils.equals(task.getPreviousStep(), previousStepId))
+                .filter(task -> !task.getId().equals(getId())).collect(Collectors.toList());
+    }
+
+    protected List<AbstractExecutable> getStepOrNextStepsWithStatus(AbstractExecutable executable,
+            Map<String, AbstractExecutable> dagExecutablesMap, ExecutableState state) {
+        if (executable.getStatus().equals(state)) {
+            return Lists.newArrayList(executable);
+        }
+        return executable.getNextSteps().stream().map(dagExecutablesMap::get)
+                .map(step -> getStepOrNextStepsWithStatus(step, dagExecutablesMap, state))
+                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+    }
+
+    /**
+     * default UpdateStepStatus when other piper line step failed
+     */
+    public void killApplicationIfExistsOrUpdateStepStatus() {
+        ExecutableManager executableManager = getExecutableManager(project);
+        executableManager.updateJobOutput(getId(), ExecutableState.PAUSED, null, null, null, 0, null);
+    }
+
     protected void checkNeedQuit(boolean applyChange) throws JobStoppedException {
         // non voluntarily
         abortIfJobStopped(applyChange);
     }
 
     /**
-     * For non-chained executable, depend on its parent(instance of DefaultChainedExecutable).
+     * For non-chained executable, depend on its parent(instance of DefaultExecutable).
      */
     public boolean checkSuicide() {
         final AbstractExecutable parent = getParent();
@@ -441,7 +501,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     // 1) if property "kylin.job.retry-exception-classes" is not set or is null, all jobs with exceptions will retry according to the retry times.
     // 2) if property "kylin.job.retry-exception-classes" is set and is not null, only jobs with the specified exceptions will retry according to the retry times.
     public boolean needRetry(int retry, Throwable t) {
-        if (t == null || this instanceof DefaultChainedExecutable)
+        if (t == null || this instanceof DefaultExecutable)
             return false;
 
         if (retry > KylinConfig.getInstanceFromEnv().getJobRetry())
@@ -528,8 +588,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     }
 
     public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
-        Preconditions.checkState(
-                (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
+        Preconditions.checkState((this instanceof DefaultExecutable) || this.getParent() instanceof DefaultExecutable);
         val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
         boolean needNotification = true;
         switch (jobIssue) {
@@ -550,7 +609,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         }
         List<String> users;
         users = getAllNotifyUsers(projectConfig);
-        if (this instanceof DefaultChainedExecutable) {
+        if (this instanceof DefaultExecutable) {
             MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
         } else {
             MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()),
@@ -573,6 +632,13 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     public final AbstractExecutable getParent(ExecutablePO po) {
         return getManager().getJob(getParam(PARENT_ID), po);
+    }
+
+    public void checkParentJobStatus() {
+        if (!getParent().getStatus().equals(ExecutableState.RUNNING)) {
+            throw new IllegalStateException("invalid parent job state, parent job:" + getParent().getDisplayName()
+                    + ", state:" + getParent().getStatus());
+        }
     }
 
     public final String getProject() {
@@ -661,27 +727,61 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     // just using to get job duration in get job list
     public long getDurationFromStepOrStageDurationSum(ExecutablePO executablePO) {
         var duration = getDuration(executablePO);
-        if (this instanceof ChainedExecutable) {
-            val tasks = ((ChainedExecutable) this).getTasks();
-            val jobAtomicDuration = new AtomicLong(0);
-            tasks.forEach(task -> {
-                var taskDuration = task.getDuration(executablePO);
-                if (task instanceof ChainedStageExecutable) {
-                    val stagesMap = ((ChainedStageExecutable) task).getStagesMap();
-                    if (stagesMap.size() == 1) {
-                        for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                            taskDuration = entry.getValue().stream()
-                                    .map(stage -> getDuration(stage.getOutput(entry.getKey(), executablePO))) //
-                                    .mapToLong(Long::valueOf) //
-                                    .sum();
-                        }
-                    }
-                }
-                jobAtomicDuration.addAndGet(taskDuration);
-            });
-            duration = jobAtomicDuration.get();
+        if (this instanceof DagExecutable && getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)) {
+            duration = calculateDagExecutableDuration(executablePO);
+        } else if (this instanceof ChainedExecutable) {
+            duration = calculateChainedExecutableDuration(executablePO);
         }
         return duration;
+    }
+
+    private long calculateDagExecutableDuration(ExecutablePO executablePO) {
+        val tasks = ((DagExecutable) this).getTasks();
+        val tasksMap = tasks.stream().collect(Collectors.toMap(AbstractExecutable::getId, task -> task));
+        return tasks.stream().filter(task -> StringUtils.isBlank(task.getPreviousStep()))
+                .map(task -> calculateDagTaskExecutableDuration(task, executablePO, tasksMap)).max(Long::compare).orElse(0L);
+    }
+
+    private Long calculateDagTaskExecutableDuration(AbstractExecutable task, ExecutablePO executablePO,
+            Map<String, ? extends AbstractExecutable> tasksMap) {
+        Long nextTaskDurationMax = task.getNextSteps().stream().map(tasksMap::get)
+                .map(nextTask -> calculateDagTaskExecutableDuration(nextTask, executablePO, tasksMap)).max(Long::compare).orElse(0L);
+        return getTaskDuration(task, executablePO) + nextTaskDurationMax;
+    }
+
+    private long calculateChainedExecutableDuration(ExecutablePO executablePO) {
+        val tasks = ((ChainedExecutable) this).getTasks();
+        val jobAtomicDuration = new AtomicLong(0);
+        tasks.forEach(task -> {
+            long taskDuration = getTaskDuration(task, executablePO);
+            jobAtomicDuration.addAndGet(taskDuration);
+        });
+        return jobAtomicDuration.get();
+    }
+
+    @VisibleForTesting
+    public long getTaskDurationToTest(AbstractExecutable task, ExecutablePO executablePO) {
+        return getTaskDuration(task, executablePO);
+    }
+
+    private long getTaskDuration(AbstractExecutable task, ExecutablePO executablePO) {
+        var taskDuration = task.getDuration(executablePO);
+        if (task instanceof ChainedStageExecutable) {
+            taskDuration = calculateSingleSegmentStagesDuration((ChainedStageExecutable) task, executablePO, taskDuration);
+        }
+        return taskDuration;
+    }
+
+    private long calculateSingleSegmentStagesDuration(ChainedStageExecutable task, ExecutablePO executablePO, long taskDuration) {
+        val stagesMap = task.getStagesMap();
+        if (stagesMap.size() == 1) {
+            for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
+                taskDuration = entry.getValue().stream().map(stage -> getDuration(stage.getOutput(entry.getKey(), executablePO))) //
+                        .mapToLong(Long::valueOf) //
+                        .sum();
+            }
+        }
+        return taskDuration;
     }
 
     public long getDuration() {
@@ -696,7 +796,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         if (output.getDuration() != 0) {
             var duration = output.getDuration();
             if (ExecutableState.RUNNING == output.getState()) {
-                duration = duration + System.currentTimeMillis() - output.getLastModified();
+                duration = duration + System.currentTimeMillis() - output.getLastRunningStartTime();
             }
             return duration;
         }
@@ -722,8 +822,8 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         int stepId = getStepId();
 
         // get end_time of last task
-        if (getParent(po) instanceof DefaultChainedExecutable) {
-            val parentExecutable = (DefaultChainedExecutable) getParent(po);
+        if (getParent(po) instanceof DefaultExecutable) {
+            val parentExecutable = (DefaultExecutable) getParent(po);
             val lastExecutable = parentExecutable.getSubTaskByStepId(stepId - 1);
 
             lastTaskEndTime = lastExecutable.map(e -> e.getEndTime(po))
@@ -747,7 +847,8 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             }
         }
 
-        return startTime - lastTaskEndTime;
+        long waitTime = startTime - lastTaskEndTime;
+        return waitTime < 0 ? 0 : waitTime;
     }
 
     public long getTotalDurationTime() {

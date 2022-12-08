@@ -61,7 +61,11 @@ object ResourceUtils extends Logging {
   }
 
   @throws(classOf[Exception])
-  def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager): Boolean = {
+  def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager, skipCheckResource: Boolean = false): Boolean = {
+    if (skipCheckResource) {
+      logInfo("skip check resource.")
+      return true
+    }
     verifyClusterResource(clusterManager.fetchMaximumResourceAllocation, sparkConf)
 
     val queue = sparkConf.get("spark.yarn.queue", "default")

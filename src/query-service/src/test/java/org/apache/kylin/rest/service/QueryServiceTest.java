@@ -16,24 +16,6 @@
  * limitations under the License.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.QueryContext.PUSHDOWN_HIVE;
@@ -42,6 +24,7 @@ import static org.apache.kylin.common.QueryTrace.SPARK_JOB_EXECUTION;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
 import static org.apache.kylin.rest.metrics.QueryMetricsContextTest.getInfluxdbFields;
 import static org.awaitility.Awaitility.await;
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -53,7 +36,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -82,12 +67,14 @@ import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.hystrix.NCircuitBreaker;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.metadata.acl.AclTCR;
+import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -104,15 +91,16 @@ import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.NativeQueryRealization;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryMetricsContext;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
+import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.query.blacklist.SQLBlacklistItem;
 import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.engine.PrepareSqlStateParam;
@@ -120,7 +108,7 @@ import org.apache.kylin.query.engine.QueryExec;
 import org.apache.kylin.query.engine.QueryRoutingEngine;
 import org.apache.kylin.query.engine.data.QueryResult;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.util.KapQueryUtil;
+import org.apache.kylin.query.util.DateNumberFilterTransformer;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.RawSqlParser;
 import org.apache.kylin.rest.cluster.ClusterManager;
@@ -132,8 +120,15 @@ import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.security.AclEntityFactory;
+import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.MutableAclRecord;
+import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
@@ -151,20 +146,24 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.security.acls.model.Permission;
+import org.springframework.security.acls.model.Sid;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
 /**
  * @author xduo
  */
-@Ignore
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, UserGroupInformation.class, SparkSession.class, QueryService.class })
 @PowerMockIgnore({ "javax.management.*" })
@@ -185,6 +184,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+    @Mock
+
+    protected UserAclService userAclService = Mockito.spy(UserAclService.class);
 
     @Mock
     protected AccessService accessService = Mockito.spy(AccessService.class);
@@ -227,10 +230,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "userService", userService);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
+        ReflectionTestUtils.setField(userService, "userAclService", userAclService);
 
         userService.createUser(new ManagedUser("ADMIN", "KYLIN", false,
                 Collections.singletonList(new UserGrantedAuthority("ROLE_ADMIN"))));
         queryCacheManager.init();
+        Mockito.doNothing().when(userAclService).updateUserAclPermission(Mockito.any(UserDetails.class),
+                Mockito.any(Permission.class));
     }
 
     @After
@@ -271,7 +277,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String correctedSql = KapQueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
-                .thenThrow(new RuntimeException("shouldnt execute queryexec"));
+                .thenThrow(new RuntimeException("shouldn't execute executeQuery"));
+        Mockito.doThrow(new RuntimeException("shouldn't execute searchCache")).when(queryService)
+                .searchCache(Mockito.any(), Mockito.any());
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
@@ -282,6 +290,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         final SQLResponse response = queryService.queryWithCache(sqlRequest);
 
+        Assert.assertFalse(response.isStorageCacheUsed());
         Assert.assertTrue(response.isQueryPushDown());
     }
 
@@ -470,11 +479,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals(QueryMetricsContext.TABLE_INDEX,
                 secondSuccess.getNativeRealizations().get(1).getIndexType());
-        Assert.assertEquals("mock_model_alias1", secondSuccess.getNativeRealizations().get(0).getModelAlias());
+        // mock realization, return true model name by model id
+        Assert.assertEquals("nmodel_basic", secondSuccess.getNativeRealizations().get(0).getModelAlias());
         // assert log info
         log = queryService.logQuery(request, secondSuccess);
-        Assert.assertTrue(log.contains("mock_model_alias1"));
-        Assert.assertTrue(log.contains("mock_model_alias2"));
+        Assert.assertTrue(log.contains("nmodel_basic"));
+        Assert.assertTrue(log.contains("nmodel_basic_inner"));
     }
 
     private void mockOLAPContextForEmptyLayout() throws Exception {
@@ -571,6 +581,39 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
         aggMock.storageContext.setLayoutId(20001L);
         aggMock.storageContext.setStreamingLayoutId(10001L);
+        aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
+        OLAPContext.registerContext(aggMock);
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+        mockQueryWithSqlMassage();
+    }
+
+    private void mockOLAPContextWithBatchPart() throws Exception {
+        val modelManager = Mockito
+                .spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test"));
+
+        Mockito.doReturn(modelManager).when(queryService).getManager(NDataModelManager.class, "streaming_test");
+        // mock agg index realization
+        OLAPContext aggMock = new OLAPContext(1);
+        NDataModel mockModel1 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel1.getUuid()).thenReturn("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Mockito.when(mockModel1.getAlias()).thenReturn("model_streaming");
+        Mockito.doReturn(mockModel1).when(modelManager).getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+
+        IRealization batchRealization = Mockito.mock(IRealization.class);
+        Mockito.when(batchRealization.getUuid()).thenReturn("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
+
+        HybridRealization hybridRealization = Mockito.mock(HybridRealization.class);
+        Mockito.when(hybridRealization.getModel()).thenReturn(mockModel1);
+        Mockito.when(hybridRealization.getBatchRealization()).thenReturn(batchRealization);
+
+        aggMock.realization = hybridRealization;
+        IndexEntity mockIndexEntity1 = new IndexEntity();
+        mockIndexEntity1.setId(1);
+        LayoutEntity mockLayout1 = new LayoutEntity();
+        mockLayout1.setIndex(mockIndexEntity1);
+        aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
+        aggMock.storageContext.setLayoutId(20001L);
         aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(aggMock);
 
@@ -747,6 +790,47 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetMetadataAddType() throws Exception {
+        List<TableMetaWithType> tableMetasAddType = queryService.getMetadataAddType("default", null);
+        List<TableMeta> tableMetas = queryService.getMetadata("default", null);
+        List<TableMeta> tablesV2 = Lists.newLinkedList();
+        for (TableMetaWithType t : tableMetasAddType) {
+            TableMeta tableMeta = new TableMeta(t.getTABLE_CAT(), t.getTABLE_SCHEM(), t.getTABLE_NAME(),
+                    t.getTABLE_TYPE(), t.getREMARKS(), t.getTYPE_CAT(), t.getTYPE_SCHEM(), t.getTYPE_NAME(),
+                    t.getSELF_REFERENCING_COL_NAME(), t.getREF_GENERATION());
+            tableMeta.setColumns(t.getColumns().stream()
+                    .map(c -> new ColumnMeta(c.getTABLE_CAT(), c.getTABLE_SCHEM(), c.getTABLE_NAME(),
+                            c.getCOLUMN_NAME(), c.getDATA_TYPE(), c.getTYPE_NAME(), c.getCOLUMN_SIZE(),
+                            c.getBUFFER_LENGTH(), c.getDECIMAL_DIGITS(), c.getNUM_PREC_RADIX(), c.getNULLABLE(),
+                            c.getREMARKS(), c.getCOLUMN_DEF(), c.getSQL_DATA_TYPE(), c.getSQL_DATETIME_SUB(),
+                            c.getCHAR_OCTET_LENGTH(), c.getORDINAL_POSITION(), c.getIS_NULLABLE(), c.getSCOPE_CATLOG(),
+                            c.getSCOPE_SCHEMA(), c.getSCOPE_TABLE(), c.getSOURCE_DATA_TYPE(), c.getIS_AUTOINCREMENT()))
+                    .collect(Collectors.toList()));
+            tablesV2.add(tableMeta);
+        }
+        Assert.assertEquals(JsonUtil.writeValueAsString(tablesV2), JsonUtil.writeValueAsString(tableMetas));
+
+        tableMetasAddType = queryService.getMetadataAddType("default", "test_bank");
+        tableMetas = queryService.getMetadata("default", "test_bank");
+        tablesV2 = Lists.newLinkedList();
+        for (TableMetaWithType t : tableMetasAddType) {
+            TableMeta tableMeta = new TableMeta(t.getTABLE_CAT(), t.getTABLE_SCHEM(), t.getTABLE_NAME(),
+                    t.getTABLE_TYPE(), t.getREMARKS(), t.getTYPE_CAT(), t.getTYPE_SCHEM(), t.getTYPE_NAME(),
+                    t.getSELF_REFERENCING_COL_NAME(), t.getREF_GENERATION());
+            tableMeta.setColumns(t.getColumns().stream()
+                    .map(c -> new ColumnMeta(c.getTABLE_CAT(), c.getTABLE_SCHEM(), c.getTABLE_NAME(),
+                            c.getCOLUMN_NAME(), c.getDATA_TYPE(), c.getTYPE_NAME(), c.getCOLUMN_SIZE(),
+                            c.getBUFFER_LENGTH(), c.getDECIMAL_DIGITS(), c.getNUM_PREC_RADIX(), c.getNULLABLE(),
+                            c.getREMARKS(), c.getCOLUMN_DEF(), c.getSQL_DATA_TYPE(), c.getSQL_DATETIME_SUB(),
+                            c.getCHAR_OCTET_LENGTH(), c.getORDINAL_POSITION(), c.getIS_NULLABLE(), c.getSCOPE_CATLOG(),
+                            c.getSCOPE_SCHEMA(), c.getSCOPE_TABLE(), c.getSOURCE_DATA_TYPE(), c.getIS_AUTOINCREMENT()))
+                    .collect(Collectors.toList()));
+            tablesV2.add(tableMeta);
+        }
+        Assert.assertEquals(JsonUtil.writeValueAsString(tablesV2), JsonUtil.writeValueAsString(tableMetas));
+    }
+
+    @Test
     public void testExposedColumnsProjectConfigByModel() throws Exception {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
@@ -800,7 +884,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertFalse(tableSchemas.contains("metadata"));
-            Assert.assertEquals(20, tableNames.size());
+            Assert.assertEquals(21, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -831,7 +915,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertFalse(tableSchemas.contains("metadata"));
-            Assert.assertEquals(20, tableNames.size());
+            Assert.assertEquals(21, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_MEASURE"));
         }
 
@@ -859,7 +943,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertFalse(tableSchemas.contains("metadata"));
-            Assert.assertEquals(20, tableNames.size());
+            Assert.assertEquals(21, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -979,7 +1063,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(20, tableNames.size());
+            Assert.assertEquals(21, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -1161,8 +1245,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
 
         SQLResponse response = new SQLResponse();
-        response.setNativeRealizations(
-                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setNativeRealizations(Lists.newArrayList(
+                new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX, Lists.newArrayList())));
         Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         String signature = QueryCacheSignatureUtil.createCacheSignature(response, project);
         Assert.assertEquals(
@@ -1184,8 +1268,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
         SQLResponse response = new SQLResponse();
-        response.setNativeRealizations(
-                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setNativeRealizations(Lists.newArrayList(
+                new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX, Lists.newArrayList())));
         Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
@@ -1203,8 +1287,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
         SQLResponse response = new SQLResponse();
-        response.setNativeRealizations(
-                Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        response.setNativeRealizations(Lists.newArrayList(
+                new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX, Lists.newArrayList())));
         Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
@@ -1213,6 +1297,18 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getModel().getRootFactTable().getTableDesc()
                 .setLastModified(1);
         Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testAddColsToTblMetaWithSpecialCharacter() {
+        Map<QueryService.TableMetaIdentify, TableMetaWithType> tblMap = new HashMap<>();
+        Map<QueryService.ColumnMetaIdentify, ColumnMetaWithType> columnMetaWithTypeMap = new HashMap<>();
+        tblMap.put(new QueryService.TableMetaIdentify("default", "city"), new TableMetaWithType());
+        //        column name contain #
+        columnMetaWithTypeMap.put(new QueryService.ColumnMetaIdentify("default", "city", "n#a#me"),
+                new ColumnMetaWithType(null, null, null, null, 0, null, 0, 0, 0, 0, 0, null, null, 0, 0, 0, 0, null,
+                        null, null, null, (short) 0, null));
+        QueryService.addColsToTblMeta(tblMap, columnMetaWithTypeMap);
     }
 
     @Test
@@ -1242,6 +1338,16 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals("nmodel_basic", secondSuccess.getNativeRealizations().get(0).getModelAlias());
+
+        // modify model name
+        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId).getModel()
+                .setAlias("model_new");
+        final SQLResponse secondSuccess1 = queryService.queryWithCache(request);
+        Assert.assertTrue(secondSuccess1.isStorageCacheUsed());
+        Assert.assertEquals(1, secondSuccess1.getNativeRealizations().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX,
+                secondSuccess1.getNativeRealizations().get(0).getIndexType());
+        Assert.assertEquals("model_new", secondSuccess1.getNativeRealizations().get(0).getModelAlias());
     }
 
     @Test
@@ -1605,7 +1711,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testQueryWithConstant() throws SQLException {
         doTestQueryWithConstant("select current_timestamp");
         doTestQueryWithConstant("select 1,2,3,4,5");
-
+        doTestQueryWithConstant("select max(1) from TEST_ACCOUNT inner join TEST_MEASURE "
+                + "on TEST_ACCOUNT.ACCOUNT_ID = TEST_MEASURE.ID1");
     }
 
     private void doTestQueryWithConstant(String testSql) {
@@ -1755,6 +1862,70 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testExecuteAsADMIN() {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql("select 2");
+        getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
+        request.setQueryId(RandomUtil.randomUUIDStr());
+        request.setExecuteAs("ADMIN");
+        queryService.queryWithCache(request);
+    }
+
+    @Test
+    public void testExecuteAsProjectAdmin() {
+        try {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("prjAdmin", "prjAdmin", Constant.ROLE_MODELER));
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql("select 2");
+            getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
+            request.setQueryId(RandomUtil.randomUUIDStr());
+            request.setExecuteAs("ADMIN");
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject("default");
+            AclEntity projectAE = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE,
+                    projectInstance.getUuid());
+            AclServiceTest.MockAclEntity userAE = new AclServiceTest.MockAclEntity("prjAdmin");
+            MutableAclRecord projectAcl = (MutableAclRecord) aclService.createAcl(new ObjectIdentityImpl(projectAE));
+            aclService.createAcl(new ObjectIdentityImpl(userAE));
+            Map<Sid, Permission> map = new HashMap<>();
+            Sid sidUser = accessService.getSid("prjAdmin", true);
+            map.put(sidUser, ADMINISTRATION);
+            queryService.getManager(AclManager.class).batchUpsertAce(projectAcl, map);
+            MutableAclRecord ace = AclPermissionUtil.getProjectAcl("default");
+            queryService.queryWithCache(request);
+        } finally {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        }
+    }
+
+    @Test
+    public void testExecuteAsNormalUser() {
+        try {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("testuser", "testuser", Constant.ROLE_MODELER));
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql("select 2");
+            request.setExecuteAs("ADMIN");
+            getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
+            request.setQueryId(RandomUtil.randomUUIDStr());
+            AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), "default");
+            AclTCR u1a1 = new AclTCR();
+            manager.updateAclTCR(u1a1, "testuser", true);
+            queryService.queryWithCache(request);
+        } finally {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        }
+    }
+
+    @Test
     public void testExecuteAsUserAccessDenied() {
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
@@ -1828,10 +1999,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @Ignore
     @Test
     public void testTableauIntercept() throws Exception {
-        List<String> sqlList = Files.walk(Paths.get("../kap-it/src/test/resources/query/tableau_probing"))
+        List<String> sqlList = Files.walk(Paths.get("./src/test/resources/query/tableau_probing"))
                 .filter(file -> Files.isRegularFile(file)).map(path -> {
                     try {
                         String sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
@@ -1856,28 +2026,48 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryContextWithFusionModel() throws Exception {
         final String project = "streaming_test";
-        final String sql = "select count(*) from SSB_STREAMING";
 
-        stubQueryConnection(sql, project);
-        mockOLAPContextWithHybrid();
+        {
+            final String sql = "select count(*) from SSB_STREAMING";
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject(project);
-        request.setSql(sql);
-        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+            stubQueryConnection(sql, project);
+            mockOLAPContextWithHybrid();
 
-        Assert.assertEquals(2, sqlResponse.getNativeRealizations().size());
+            final SQLRequest request = new SQLRequest();
+            request.setProject(project);
+            request.setSql(sql);
+            Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+            SQLResponse sqlResponse = queryService.doQueryWithCache(request);
 
-        Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
-                sqlResponse.getNativeRealizations().get(0).getModelId());
-        Assert.assertEquals((Long) 10001L, sqlResponse.getNativeRealizations().get(0).getLayoutId());
-        Assert.assertEquals("cd2b9a23-699c-4699-b0dd-38c9412b3dfd",
-                sqlResponse.getNativeRealizations().get(1).getModelId());
-        Assert.assertEquals((Long) 20001L, sqlResponse.getNativeRealizations().get(1).getLayoutId());
+            Assert.assertEquals(2, sqlResponse.getNativeRealizations().size());
 
-        Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
-        Assert.assertFalse(sqlResponse.getNativeRealizations().get(1).isStreamingLayout());
+            Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
+                    sqlResponse.getNativeRealizations().get(0).getModelId());
+            Assert.assertEquals((Long) 10001L, sqlResponse.getNativeRealizations().get(0).getLayoutId());
+            Assert.assertEquals("cd2b9a23-699c-4699-b0dd-38c9412b3dfd",
+                    sqlResponse.getNativeRealizations().get(1).getModelId());
+            Assert.assertEquals((Long) 20001L, sqlResponse.getNativeRealizations().get(1).getLayoutId());
+
+            Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
+            Assert.assertFalse(sqlResponse.getNativeRealizations().get(1).isStreamingLayout());
+        }
+        {
+            final String sql = "select count(1) from SSB_STREAMING";
+
+            stubQueryConnection(sql, project);
+            mockOLAPContextWithBatchPart();
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject(project);
+            request.setSql(sql);
+            Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+            SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+
+            Assert.assertEquals(1, sqlResponse.getNativeRealizations().size());
+            Assert.assertFalse(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
+            Assert.assertEquals("cd2b9a23-699c-4699-b0dd-38c9412b3dfd",
+                    sqlResponse.getNativeRealizations().get(0).getModelId());
+        }
     }
 
     @Test
@@ -1903,11 +2093,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
     }
 
-    @Ignore
     @Test
     public void testQueryWithParamWhenTransformWithToSubQuery() {
         overwriteSystemProp("kylin.query.transformers",
-                "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.util.WithToSubQueryTransformer");
+                "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,org.apache.kylin.query.util.EscapeTransformer,org.apache.kylin.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,org.apache.kylin.query.security.RowFilter,org.apache.kylin.query.util.WithToSubQueryTransformer");
         PrepareSqlStateParam[] params1 = new PrepareSqlStateParam[2];
         params1[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.1");
         params1[1] = new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123");
@@ -2071,8 +2260,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
-        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
-        SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+        QueryService spiedQueryService = Mockito.spy(queryService);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(spiedQueryService);
+        SQLResponse sqlResponse = spiedQueryService.doQueryWithCache(request);
         Assert.assertFalse(sqlResponse.isException());
 
         SQLBlacklistManager sqlBlacklistManager = SQLBlacklistManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -2080,8 +2270,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlBlacklistItem.setId("1");
         sqlBlacklistItem.setSql("select count(*) from test_kylin_fact");
         sqlBlacklistManager.addSqlBlacklistItem(project, sqlBlacklistItem);
-
-        sqlResponse = queryService.doQueryWithCache(request);
+        sqlResponse = spiedQueryService.doQueryWithCache(request);
         Assert.assertTrue(sqlResponse.isException());
         Assert.assertEquals("Query is rejected by blacklist, blacklist item id: 1.", sqlResponse.getExceptionMessage());
         queryCacheManager.clearQueryCache(request);
@@ -2321,7 +2510,167 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testCheckSqlRequestProject() {
         SQLRequest sqlRequest = new SQLRequest();
         Message msg = MsgPicker.getMsg();
-        Assert.assertThrows(KylinException.class, ()->ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject",
-                sqlRequest, msg));
+        Assert.assertThrows(KylinException.class,
+                () -> ReflectionTestUtils.invokeMethod(queryService, "checkSqlRequestProject", sqlRequest, msg));
+    }
+
+    @Test
+    public void testGetMetadataWithModelName() throws Exception {
+        String project = "default";
+        String cube = "nmodel_basic_inner";
+        overwriteSystemProp("kylin.query.metadata.expose-computed-column", "true");
+        List<TableMeta> tableMetas = queryService.getMetadata(project, cube);
+        List<ColumnMeta> columnMetas = tableMetas.stream()
+                .filter(tableMeta -> tableMeta.getTABLE_NAME().equals("TEST_KYLIN_FACT")).findFirst().get()
+                .getColumns();
+        Assert.assertEquals(12, columnMetas.size());
+        Assert.assertFalse(columnMetas.stream()
+                .anyMatch(columnMeta -> columnMeta.getCOLUMN_NAME().equals("LEFTJOIN_SELLER_COUNTRY_ABBR")));
+    }
+
+    public void setCalendarMock() {
+        Calendar mockCalendar = Calendar.getInstance();
+        mockCalendar.setTimeInMillis(1622432018000L);
+        List<Calendar> calendarSet = new ArrayList<>();
+        while (calendarSet.size() < 20) {
+            calendarSet.add((Calendar) mockCalendar.clone());
+        }
+        PowerMockito.mockStatic(Calendar.class);
+        PowerMockito.when(Calendar.getInstance()).thenReturn(mockCalendar,
+                calendarSet.toArray(new Calendar[calendarSet.size()]));
+    }
+
+    @Test
+    public void testDateNumberFilterTransformer() {
+        final DateNumberFilterTransformer transformer = new DateNumberFilterTransformer();
+        setCalendarMock();
+        String originSql1 = "select count(1) from KYLIN_SALES where \n" + "    {fn YEAR(PART_DT)} = 2012\n"
+                + "and {fn YEAR(PART_DT)} <> 2011\n" + "and {fn YEAR(PART_DT)} > 2011\n"
+                + "and {fn YEAR(PART_DT)} >= 2012\n" + "and {fn YEAR(PART_DT)} < 2013\n"
+                + "and {fn YEAR(PART_DT)} <= 2012\n" + "and {fn YEAR(PART_DT)} between 2011 AND 2013\n"
+                + "and {fn YEAR(PART_DT)} not between 2013 AND 2014\n" + "and {fn YEAR(PART_DT)} not in (2013, 2015)\n"
+                + "and YEAR(PART_DT) in (2012, 2011)\n"
+                + "and 201201 = {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)}\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} <> 201205\n"
+                + "and 100 * {fn YEAR(PART_DT)} + {fn MONTH(PART_DT)} > 201112\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} >= 201112\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} < 201305\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} <= 201205\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} between 201101 AND 201305\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} not between 201205 AND 201307\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn MONTH(PART_DT)} not in (201305, 201306)\n"
+                + "and YEAR(PART_DT) * 100 + MONTH(PART_DT) in (201201, 201202)\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} = 20120101\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} <> 20120501\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} > 20111231\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} >= 20111231\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} < 20130501\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} <= 20120501\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)} between 20110131 AND 20130501\n"
+                + "and {fn year(PART_DT)} * 10000 + {fn month(PART_DT)} * 100 + {fn dayofmonth(PART_DT)} not between 20120501 AND 20130702\n"
+                + "and {fn YEAR(PART_DT)} * 10000 + DAYOFMONTH(PART_DT) + {fn MONTH(PART_DT)} * 100 not in (20130501, 20130631)\n"
+                + "and YEAR(PART_DT) * 10000 + MONTH(PART_DT) * 100 + DAYOFMONTH(PART_DT) in (20120101, 20120201)";
+        String expectedSql1 = "select count(1) from KYLIN_SALES where \n"
+                + "    cast(\"PART_DT\" as date) BETWEEN '2012-01-01' and '2012-12-31'\n"
+                + "and cast(\"PART_DT\" as date) NOT BETWEEN '2011-01-01' and '2011-12-31'\n"
+                + "and cast(\"PART_DT\" as date) > '2011-12-31'\n" + "and cast(\"PART_DT\" as date) >= '2012-01-01'\n"
+                + "and cast(\"PART_DT\" as date) < '2013-01-01'\n" + "and cast(\"PART_DT\" as date) <= '2012-12-31'\n"
+                + "and cast(\"PART_DT\" as date) BETWEEN '2011-01-01' and '2013-12-31'\n"
+                + "and cast(\"PART_DT\" as date) NOT BETWEEN '2013-01-01' and '2014-12-31'\n"
+                + "and (cast(\"PART_DT\" as date) NOT BETWEEN '2013-01-01' and '2013-12-31' AND cast(\"PART_DT\" as date) NOT BETWEEN '2015-01-01' and '2015-12-31')\n"
+                + "and (cast(\"PART_DT\" as date) BETWEEN '2012-01-01' and '2012-12-31' OR cast(\"PART_DT\" as date) BETWEEN '2011-01-01' and '2011-12-31')\n"
+                + "and cast(\"PART_DT\" as date) BETWEEN '2012-01-01' and '2012-01-31'\n"
+                + "and cast(\"PART_DT\" as date) NOT BETWEEN '2012-05-01' and '2012-05-31'\n"
+                + "and cast(\"PART_DT\" as date) > '2011-12-31'\n" + "and cast(\"PART_DT\" as date) >= '2011-12-01'\n"
+                + "and cast(\"PART_DT\" as date) < '2013-05-01'\n" + "and cast(\"PART_DT\" as date) <= '2012-05-31'\n"
+                + "and cast(\"PART_DT\" as date) BETWEEN '2011-01-01' and '2013-05-31'\n"
+                + "and cast(\"PART_DT\" as date) NOT BETWEEN '2012-05-01' and '2013-07-31'\n"
+                + "and (cast(\"PART_DT\" as date) NOT BETWEEN '2013-05-01' and '2013-05-31' AND cast(\"PART_DT\" as date) NOT BETWEEN '2013-06-01' and '2013-06-30')\n"
+                + "and (cast(\"PART_DT\" as date) BETWEEN '2012-01-01' and '2012-01-31' OR cast(\"PART_DT\" as date) BETWEEN '2012-02-01' and '2012-02-29')\n"
+                + "and cast(\"PART_DT\" as date) = '2012-01-01'\n" + "and cast(\"PART_DT\" as date) <> '2012-05-01'\n"
+                + "and cast(\"PART_DT\" as date) > '2011-12-31'\n" + "and cast(\"PART_DT\" as date) >= '2011-12-31'\n"
+                + "and cast(\"PART_DT\" as date) < '2013-05-01'\n" + "and cast(\"PART_DT\" as date) <= '2012-05-01'\n"
+                + "and cast(\"PART_DT\" as date) BETWEEN '2011-01-31' and '2013-05-01'\n"
+                + "and cast(\"PART_DT\" as date) NOT BETWEEN '2012-05-01' and '2013-07-02'\n"
+                + "and (cast(\"PART_DT\" as date) <> '2013-05-01' AND cast(\"PART_DT\" as date) <> '2013-06-31')\n"
+                + "and (cast(\"PART_DT\" as date) = '2012-01-01' OR cast(\"PART_DT\" as date) = '2012-02-01')";
+        String transformedSql1 = transformer.transform(originSql1, null, null);
+        Assert.assertEquals(expectedSql1, transformedSql1);
+
+        String originSql2 = "select count(1) from KYLIN_SALES where {fn YEAR(PART_DT)} in (2012,2013,100) and year(PART_DT) in (2012,2009)";
+        String expectedSql2 = "select count(1) from KYLIN_SALES where {fn YEAR(PART_DT)} in (2012,2013,100) and (cast(\"PART_DT\" as date) "
+                + "BETWEEN '2012-01-01' and '2012-12-31' OR cast(\"PART_DT\" as date) BETWEEN '2009-01-01' and '2009-12-31')";
+        String transformedSql2 = transformer.transform(originSql2, null, null);
+        Assert.assertEquals(expectedSql2, transformedSql2);
+
+        String originSql3 = "select count(1) from KYLIN_SALES where ((({fn YEAR(\"kylin\".\"PART_DT\")} * 10000) + {fn MONTH(\"kylin\".\"PART_DT\")} * 100) + {fn DAYOFMONTH(\"kylin\".\"PART_DT\")}) = 20120101";
+        String expectedSql3 = "select count(1) from KYLIN_SALES where cast(\"kylin\".\"PART_DT\" as date) = '2012-01-01'";
+        String transformedSql3 = transformer.transform(originSql3, null, null);
+        Assert.assertEquals(expectedSql3, transformedSql3);
+
+        String originSql4 = "select count(1) from KYLIN_SALES where {fn YEAR(cast(PART_DT as date))} = 2012";
+        String expectedSql4 = "select count(1) from KYLIN_SALES where cast(CAST(\"PART_DT\" AS DATE) as date) BETWEEN '2012-01-01' and '2012-12-31'";
+        String transformedSql4 = transformer.transform(originSql4, null, null);
+        Assert.assertEquals(expectedSql4, transformedSql4);
+
+        String originSql5 = "select count(1) from KYLIN_SALES where"
+                + "{fn YEAR(case when PART_DT = '1990-01-02' then PART_DT else cast(PART_DT as date) end)} * 10000 + {fn month(PART_DT)} * 100 + {fn dayofmonth(PART_DT)} != 20120203\n"
+                + "and {fn YEAR(cast(PART_DT as date))} * 100 + {fn month(PART_DT)} = '201202'\n"
+                + "and {fn YEAR(PART_DT)} * 10 + {fn month(PART_DT)} != 201202\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn month(PART_DT)} * 10 != 201202\n"
+                + "and {fn YEAR(PART_DT)} * 1000 + {fn month(PART_DT)} * 100 != 201202\n"
+                + "and {fn YEAR(PART_DT)} * 1000 + {fn month(PART_DT)} * '100' != 201202\n"
+                + "and {fn YEAR(PART_DT)} * 100 + {fn month(PART_DT)} != 20120203\n"
+                + "and {fn YEAR(PART_DT)} / 100 + {fn month(PART_DT)} != 20120203\n"
+                + "and {fn YEAR(PART_DT)} * '100' + {fn month(PART_DT)} != 20120203\n"
+                + "and {fn YEAR(PART_DT)} + 1000 + {fn month(PART_DT)} + 100 != 201202\n"
+                + "and {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)}  != 201202\n"
+                + "and {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)}  != 1202\n"
+                + "and 1000 + {fn YEAR(PART_DT)} + {fn month(PART_DT)} * 100 != 201202\n"
+                + "and 1000 + {fn YEAR(PART_DT)} + {fn month(PART_DT)} * 100 != 201202\n"
+                + "and {fn YEAR(cast(PART_DT as date))} * 100 + {fn month(PART_DT)} * 10 != 201202\n"
+                + "and {fn YEAR(PART_DT)} * 100000 + {fn MONTH(PART_DT)} * 1001 + {fn DAYOFMONTH(PART_DT)} * 1 != 20120201\n"
+                + "and {fn YEAR(PART_DT)} / 1000 + {fn MONTH(PART_DT)} * 1000 + {fn DAYOFMONTH(PART_DT)} * 1 != 20120201\n"
+                + "and {fn YEAR(PART_DT)} * 100000 + {fn MONTH(PART_DT)} * '100' + {fn DAYOFMONTH(PART_DT)} * 1 != '20120201'\n"
+                + "and {fn YEAR(PART_DT)} * 1000 + {fn MONTH(PART_DT)} * 100 + {fn DAYOFMONTH(PART_DT)}  != '20120201'";
+        String transformedSql5 = transformer.transform(originSql5, null, null);
+        Assert.assertEquals(originSql5, transformedSql5);
+    }
+
+    @Test
+    public void testMetaDataReturnOnlyIndexPlanColsAndJoinKey() throws Exception {
+        String project = "default";
+        String modelName = "nmodel_basic_inner";
+        overwriteSystemProp("kylin.model.tds-expose-all-model-related-columns", "false");
+        List<TableMeta> tableMetas = queryService.getMetadata(project, modelName);
+        List<ColumnMeta> columnMetas = tableMetas.stream()
+                .filter(tableMeta -> tableMeta.getTABLE_NAME().equals("TEST_ACCOUNT")).findFirst().get().getColumns();
+        Assert.assertEquals(8, tableMetas.size());
+        Assert.assertEquals(4, columnMetas.size());
+    }
+
+    @Test
+    public void testMetadataReturnOnlyIndexPlanCols() throws Exception {
+        String project = "default";
+        String modelName = "nmodel_basic_inner";
+        overwriteSystemProp("kylin.model.tds-expose-all-model-related-columns", "false");
+        overwriteSystemProp("kylin.model.tds-expose-model-join-key", "false");
+        List<TableMeta> tableMetas = queryService.getMetadata(project, modelName);
+        List<ColumnMeta> columnMetas = tableMetas.stream()
+                .filter(tableMeta -> tableMeta.getTABLE_NAME().equals("TEST_ACCOUNT")).findFirst().get().getColumns();
+        Assert.assertEquals(3, columnMetas.size());
+    }
+
+    @Test
+    public void testGetTargetModelColumns() {
+        String project = "default";
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<NDataModel> dataModels = dataModelManager.listAllModels();
+        overwriteSystemProp("kylin.model.tds-expose-all-model-related-columns", "true");
+        List<String> modelColumns1 = queryService.getTargetModelColumns("nmodel_basic", dataModels, project);
+        Assert.assertEquals(861, modelColumns1.size());
+        overwriteSystemProp("kylin.model.tds-expose-all-model-related-columns", "false");
+        List<String> modelColumns2 = queryService.getTargetModelColumns("nmodel_basic", dataModels, project);
+        Assert.assertEquals(172, modelColumns2.size());
     }
 }

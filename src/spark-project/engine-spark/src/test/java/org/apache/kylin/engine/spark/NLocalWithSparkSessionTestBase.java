@@ -59,7 +59,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
 
     private static final String CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv";
 
-    protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
+    protected static final String KYLIN_SQL_BASE_DIR = "../kylin-it/src/test/resources/query";
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
@@ -89,14 +89,22 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
                 TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
-        sparkConf.set("spark.sql.legacy.parquet.int96RebaseModeInWrite", "LEGACY");
-        sparkConf.set("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "LEGACY");
-        sparkConf.set("spark.sql.legacy.parquet.int96RebaseModeInRead", "CORRECTED");
-        sparkConf.set("spark.sql.legacy.parquet.datetimeRebaseModeInRead", "CORRECTED");
+        sparkConf.set("spark.sql.parquet.int96RebaseModeInWrite", "LEGACY");
+        sparkConf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY");
+        sparkConf.set("spark.sql.parquet.int96RebaseModeInRead", "CORRECTED");
+        sparkConf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED");
         sparkConf.set("spark.sql.legacy.timeParserPolicy", "LEGACY");
         sparkConf.set("spark.sql.parquet.mergeSchema", "true");
         sparkConf.set("spark.sql.legacy.allowNegativeScaleOfDecimal", "true");
         sparkConf.set("spark.sql.broadcastTimeout", "900");
+
+        if (!sparkConf.getOption("spark.sql.extensions").isEmpty()) {
+            sparkConf.set("spark.sql.extensions",
+                    sparkConf.get("spark.sql.extensions") + ", io.delta.sql.DeltaSparkSessionExtension");
+        } else {
+            sparkConf.set("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension");
+        }
+        sparkConf.set("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog");
         ss = SparkSession.builder().withExtensions(ext -> {
             ext.injectOptimizerRule(ss -> new ConvertInnerJoinToSemiJoin());
             return null;
@@ -114,6 +122,10 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
     @Before
     public void setUp() throws Exception {
         overwriteSystemProp("calcite.keep-in-clause", "true");
+        overwriteSystemProp("kylin.build.resource.consecutive-idle-state-num", "1");
+        overwriteSystemProp("kylin.build.resource.state-check-interval-seconds", "1s");
+        overwriteSystemProp("kylin.engine.spark.build-job-progress-reporter", //
+                "org.apache.kylin.engine.spark.job.MockJobProgressReport");
         this.createTestMetadata();
         ExecutableUtils.initJobFactory();
         Random r = new Random(10000);
@@ -147,7 +159,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         Preconditions.checkArgument(projectInstance != null);
         for (String table : projectInstance.getTables()) {
 
-            if ("DEFAULT.STREAMING_TABLE".equals(table)) {
+            if ("DEFAULT.STREAMING_TABLE".equals(table) || "DEFAULT.TEST_SNAPSHOT_TABLE".equals(table)) {
                 continue;
             }
 

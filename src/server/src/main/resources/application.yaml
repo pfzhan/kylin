@@ -22,6 +22,7 @@ server:
     accesslog:
       enabled: true
       pattern: '%h %l %u %{User-Agent}i %t "%r" %s %b %D'
+      max-days: ${kylin.server.accesslog-max-days:10}
   compression:
     enabled: true
     min-response-size: 51200
@@ -30,7 +31,8 @@ server:
     context-path: "/kylin"
     encoding:
       charset: UTF-8
-  max-http-header-size: 5242880
+      force: true
+  max-http-header-size: 32KB
 
 management:
   endpoint:
@@ -99,10 +101,21 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
+  arthas:
+    enabled: false
+  security:
+    filter:
+      dispatcher-types: forward, request, error, async
+
 mybatis:
   mapper-locations: classpath:/mybatis-mapper/*Mapper.xml
 #  configuration:
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+arthas:
+  app-name: ${kylin.server.mode}_${server.port}
+  http-port: -1
+  telnet-port: -1
 
 ---
 spring:

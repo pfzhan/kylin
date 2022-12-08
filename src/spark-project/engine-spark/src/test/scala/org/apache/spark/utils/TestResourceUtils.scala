@@ -246,4 +246,8 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     assertResult(2049)(ResourceUtils.getAllMemory(conf, kylinConfig))
     assertResult("test_build_queue")(ResourceUtils.getQueueName(conf))
   }
+
+  test("checkResource return true when skipCheckResource=true") {
+    assert(ResourceUtils.checkResource(new SparkConf(), fetcher, true))
+  }
 }

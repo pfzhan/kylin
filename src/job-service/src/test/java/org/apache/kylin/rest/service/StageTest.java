@@ -19,7 +19,9 @@
 package org.apache.kylin.rest.service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,9 +44,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
-import org.apache.kylin.job.execution.stage.NStageForBuild;
-import org.apache.kylin.job.execution.stage.NStageForMerge;
-import org.apache.kylin.job.execution.stage.NStageForSnapshot;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -56,6 +55,7 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -66,9 +66,13 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
+import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
+import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import lombok.val;
 import lombok.var;
 
@@ -344,6 +348,49 @@ public class StageTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.READY, outputLogicStep2.getState());
         Assert.assertNull(outputLogicStep2.getShortErrMsg());
         Assert.assertTrue(MapUtils.isEmpty(outputLogicStep2.getExtra()));
+    }
+
+    /**
+     useless for yinglong
+     */
+    @Ignore
+    @Test
+    public void testUpdateStageStatusNoSaveCache() {
+        val segmentId = RandomUtil.randomUUIDStr();
+        val segmentId2 = RandomUtil.randomUUIDStr();
+
+        val manager = ExecutableManager.getInstance(jobInfoService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setJobType(JobTypeEnum.INC_BUILD);
+
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId + "," + segmentId2);
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
+
+        val build1 = new NStageForBuild();
+        val build2 = new NStageForBuild();
+        val build3 = new NStageForBuild();
+        sparkExecutable.addStage(build1);
+        sparkExecutable.addStage(build2);
+        sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        List<AbstractExecutable> tasks = executable.getTasks();
+        tasks.forEach(task -> {
+            final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+            for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                        .forEach(stage -> //
+                manager.updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
+            }
+        });
+
+        Assert.assertEquals(1, manager.getAllJobs().get(0).getMvcc());
     }
 
     @Test

@@ -329,7 +329,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.content().string(containsString("Query name should not be empty.")));
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
 
         Mockito.verify(nQueryController).saveQuery(Mockito.any(SaveSqlRequest.class));
     }

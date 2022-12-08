@@ -38,6 +38,7 @@ import org.apache.kylin.rest.request.DiagProgressRequest;
 import org.apache.kylin.rest.response.DiagStatusResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.tool.constant.DiagTypeEnum;
 import org.apache.kylin.tool.constant.StageEnum;
 import org.junit.After;
@@ -79,6 +80,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+        new SpringContext().setApplicationContext(null);
         createTestMetadata();
     }
 
@@ -105,7 +107,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "diagMap", exportPathMap);
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
-        val result = systemService.getDiagPackagePath("test2");
+        val result = systemService.getDiagPackagePath("test2", "");
         Assert.assertTrue(result.endsWith("diag.zip"));
     }
 
@@ -118,7 +120,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "diagMap", extractorMap);
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
-        val result = systemService.getExtractorStatus("test1");
+        val result = systemService.getExtractorStatus("test1", "");
         Assert.assertEquals("PREPARE", ((DiagStatusResponse) result.getData()).getStage());
     }
 
@@ -146,6 +148,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.security.allow-non-admin-generate-query-diag-package", "false");
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        Mockito.doNothing().when(aclEvaluate).checkProjectQueryPermission(null);
         systemService.dumpLocalQueryDiagPackage(null, null);
     }
 
@@ -165,7 +168,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         diagInfo.setStage(StageEnum.DONE.toString());
         exportPathMap.put("test2", diagInfo);
         ReflectionTestUtils.setField(systemService, "diagMap", exportPathMap);
-        val result = systemService.getDiagPackagePath("test2");
+        val result = systemService.getDiagPackagePath("test2", "");
         Assert.assertTrue(result.endsWith("diag.zip"));
     }
 
@@ -179,7 +182,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "diagMap", extractorMap);
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
-        val result = systemService.getExtractorStatus("test1");
+        val result = systemService.getExtractorStatus("test1", "");
         Assert.assertEquals("PREPARE", ((DiagStatusResponse) result.getData()).getStage());
     }
 
@@ -203,8 +206,13 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDumpLocalDiagPackage() {
+        ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
+        Mockito.doNothing().when(aclEvaluate).checkProjectAdminPermission(null);
+        Mockito.doNothing().when(aclEvaluate).checkIsGlobalAdmin();
+        systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", "");
         systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", null, "test");
         systemService.dumpLocalDiagPackage(null, null, null, "5bc63cbe-a2fe-fa4e-3142-1bb4ebab8f98", "test");
+        systemService.dumpLocalDiagPackage("1657546517380", "1657632917380", "", "", null);
     }
 
     @Test
@@ -224,7 +232,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
 
-        val result = systemService.getExtractorStatus("testUpdate");
+        val result = systemService.getExtractorStatus("testUpdate", "");
         Assert.assertEquals(StageEnum.DONE.toString(), result.getData().getStage());
         Assert.assertEquals(new Float(100), result.getData().getProgress());
     }

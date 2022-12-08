@@ -56,13 +56,14 @@ import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.EmailNotificationContent;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.SucceedDagTestExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -172,8 +173,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDefaultChainedExecutable() {
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+    public void testDefaultExecutable() {
+        val job = new DefaultExecutable();
         job.setProject(DEFAULT_PROJECT);
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
@@ -184,9 +185,9 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         assertEquals(2, job.getTasks().size());
         assertNotNull(job.getTask(SucceedTestExecutable.class));
         AbstractExecutable anotherJob = manager.getJob(job.getId());
-        assertEquals(DefaultChainedExecutable.class, anotherJob.getClass());
-        assertEquals(2, ((DefaultChainedExecutable) anotherJob).getTasks().size());
-        assertNotNull(((DefaultChainedExecutable) anotherJob).getTask(SucceedTestExecutable.class));
+        assertEquals(DefaultExecutable.class, anotherJob.getClass());
+        assertEquals(2, ((DefaultExecutable) anotherJob).getTasks().size());
+        assertNotNull(((DefaultExecutable) anotherJob).getTask(SucceedTestExecutable.class));
 
         job.setProject(DEFAULT_PROJECT);
         executable.setProject(DEFAULT_PROJECT);
@@ -307,7 +308,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testResumeAndPauseJob() throws InterruptedException {
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        var job = new DefaultExecutable();
         job.setProject(DEFAULT_PROJECT);
         SucceedTestExecutable executable = new SucceedTestExecutable();
         executable.setProject(DEFAULT_PROJECT);
@@ -321,16 +322,16 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
         AbstractExecutable anotherJob = manager.getJob(job.getId());
         assertEquals(ExecutableState.PAUSED, anotherJob.getStatus());
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutable) manager.getJob(job.getId());
         manager.resumeJob(job.getId(), job);
         assertEquals(ExecutableState.READY, anotherJob.getStatus());
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutable) manager.getJob(job.getId());
         manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
         val duration = job.getDuration();
         Thread.sleep(3000);
         assertEquals(duration, job.getDuration());
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutable) manager.getJob(job.getId());
         manager.resumeJob(job.getId(), job);
         assertEquals(ExecutableState.READY, anotherJob.getStatus());
     }
@@ -489,7 +490,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testResumeJob_AllStep() {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        var job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetSubject("test");
@@ -502,7 +503,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.addTask(executable2);
         manager.addJob(job);
         manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutableOnModel) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
         manager.updateJobOutput(job.getId(), ExecutableState.READY);
         manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
@@ -513,9 +514,9 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable2.getId(), ExecutableState.PENDING);
         manager.updateJobOutput(executable2.getId(), ExecutableState.PAUSED);
 
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutableOnModel) manager.getJob(job.getId());
         manager.restartJob(job.getId(), job);
-        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        val job1 = (DefaultExecutable) manager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.READY, job1.getStatus());
 
         job1.getTasks().forEach(task -> {
@@ -525,7 +526,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPauseJob_IncBuildJobDataFlowStatusChange() {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        var job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INC_BUILD.toString());
         job.setJobType(JobTypeEnum.INC_BUILD);
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -534,10 +535,10 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.addTask(executable);
         manager.addJob(job);
         manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutableOnModel) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
 
-        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        val job1 = (DefaultExecutable) manager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.PAUSED, job1.getStatus());
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
@@ -547,7 +548,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPauseJob_IndexBuildJobDataFlowStatusNotChange() {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        var job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -556,10 +557,10 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         job.addTask(executable);
         manager.addJob(job);
         manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
-        job = (DefaultChainedExecutable) manager.getJob(job.getId());
+        job = (DefaultExecutableOnModel) manager.getJob(job.getId());
         manager.pauseJob(job.getId(), ExecutableManager.toPO(job, DEFAULT_PROJECT), job);
 
-        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        val job1 = (DefaultExecutable) manager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.PAUSED, job1.getStatus());
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
@@ -569,7 +570,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testEmptyType_ThrowException() {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -587,7 +588,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testForCoverage() throws IOException {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309gg");
@@ -627,7 +628,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testEmailNotificationContent() {
         val project = DEFAULT_PROJECT;
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setProject(project);
@@ -788,7 +789,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetgetTargetModelAlias() {
         val project = "streaming_test";
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setProject(project);
@@ -887,4 +888,90 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
     }
 
+    /*
+    @Test
+    public void testCancelTaskAnfInterruptJobThread() {
+        val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler.init(new JobEngineConfig(getTestConfig()));
+
+        val job = new DefaultExecutable();
+        job.setProject(DEFAULT_PROJECT);
+        val executable1 = new SucceedDagTestExecutable();
+        executable1.setProject(DEFAULT_PROJECT);
+        job.addTask(executable1);
+        val executable2 = new FiveSecondSucceedDagTestExecutable();
+        executable2.setProject(DEFAULT_PROJECT);
+        job.addTask(executable2);
+        val executable3 = new FiveSecondSucceedDagTestExecutable();
+        executable3.setProject(DEFAULT_PROJECT);
+        job.addTask(executable3);
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        manager.addJob(job);
+
+        manager.cancelJobSubTasks(ExecutableManager.toPO(job, DEFAULT_PROJECT));
+
+        JobContextUtil.getJobContext(getTestConfig());
+        await().untilAsserted(() -> Assertions.assertEquals(ExecutableState.SUCCEED, executable1.getStatus()));
+
+        Assertions.assertNotNull(scheduler.getContext().getRunningJobThread(job));
+        manager.cancelJob(ExecutableManager.toPO(job, DEFAULT_PROJECT), job.getId());
+        Assertions.assertNotNull(scheduler.getContext().getRunningJobThread(job));
+
+        val env = getTestConfig().getDeployEnv();
+        getTestConfig().setProperty("kylin.env", "PROD");
+        manager.cancelJob(ExecutableManager.toPO(job, DEFAULT_PROJECT), job.getId());
+        Assertions.assertNull(scheduler.getContext().getRunningJobThread(job));
+        getTestConfig().setProperty("kylin.env", env);
+        scheduler.shutdown();
+    }
+
+     */
+
+    @Test
+    public void testCancelRemoteJob() {
+        val config = getTestConfig();
+        val job = new DefaultExecutable();
+        job.setProject(DEFAULT_PROJECT);
+        val executable1 = new SucceedDagTestExecutable();
+        executable1.setProject(DEFAULT_PROJECT);
+        job.addTask(executable1);
+        val executable2 = new SucceedDagTestExecutable();
+        executable2.setProject(DEFAULT_PROJECT);
+        job.addTask(executable2);
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        executable1.setNextSteps(Sets.newHashSet(executable2.getId()));
+        executable2.setPreviousStep(executable1.getId());
+        manager.addJob(job);
+
+        val executablePO = ExecutableManager.toPO(job, DEFAULT_PROJECT);
+        manager.cancelRemoteJob(executablePO);
+
+        executablePO.getOutput().setStatus(ExecutableState.RUNNING.toString());
+        manager.cancelRemoteJob(executablePO);
+    }
+
+    @Test
+    public void testCheckParentJobStatus() {
+        val job = new DefaultExecutable();
+        job.setProject("default");
+        val executable = new SucceedTestExecutable();
+        executable.setProject("default");
+        job.setJobType(JobTypeEnum.INC_BUILD);
+        job.addTask(executable);
+        manager.addJob(job);
+
+        try {
+            executable.checkParentJobStatus();
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalStateException);
+            Assert.assertEquals(
+                    "invalid parent job state, parent job:" + job.getDisplayName() + ", state:" + job.getStatus(),
+                    e.getMessage());
+        }
+
+        manager.updateJobOutput(job.getId(), ExecutableState.PENDING);
+        manager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
+        executable.checkParentJobStatus();
+    }
 }

@@ -62,7 +62,8 @@ case class LayoutFileSourceScanExec(
    optionalNumCoalescedBuckets: Option[Int],
    dataFilters: Seq[Expression],
    tableIdentifier: Option[TableIdentifier],
-   disableBucketedScan: Boolean = false)
+   disableBucketedScan: Boolean = false,
+   sourceScanRows: Long = 1L)
   extends DataSourceScanExec {
 
   lazy val metadataColumns: Seq[AttributeReference] =
@@ -576,6 +577,7 @@ case class LayoutFileSourceScanExec(
       optionalNumCoalescedBuckets,
       QueryPlan.normalizePredicates(dataFilters, output),
       None,
-      disableBucketedScan)
+      disableBucketedScan,
+      sourceScanRows)
   }
 }

@@ -57,6 +57,8 @@ public class QueryHistoryInfo implements Serializable {
     private String cacheType;
     @JsonProperty("query_msg")
     private String queryMsg;
+    @JsonProperty("source_result_count")
+    private long sourceResultCount = 0L;
     @JsonProperty("host_name")
     private String hostName;
 

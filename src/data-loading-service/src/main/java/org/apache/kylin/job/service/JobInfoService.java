@@ -468,12 +468,12 @@ public class JobInfoService extends BasicService implements JobSupporter {
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
-            SecondStorageUtil.checkJobResume(project, jobId, executable, executablePO);
+            SecondStorageUtil.checkJobResume(executableManager.fromPO(executablePO));
             executableManager.resumeJob(jobId);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
-            SecondStorageUtil.checkJobRestart(project, jobId, executable);
+            SecondStorageUtil.checkJobRestart(project, executable);
             killExistApplication(executable);
             executableManager.restartJob(jobId);
             break;
@@ -484,6 +484,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType));
             break;
         case PAUSE:
+            SecondStorageUtil.checkJobPause(project, jobId);
             executableManager.pauseJob(jobId);
             killExistApplication(executable);
             break;

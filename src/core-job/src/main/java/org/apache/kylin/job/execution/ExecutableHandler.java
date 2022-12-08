@@ -72,11 +72,11 @@ public abstract class ExecutableHandler {
         manager.addJob(new JobParam(segment, modelId, owner).withJobTypeEnum(jobTypeEnum));
     }
 
-    protected DefaultChainedExecutableOnModel getExecutable() {
+    protected DefaultExecutableOnModel getExecutable() {
         val executable = getExecutableManager(project, KylinConfig.getInstanceFromEnv()).getJob(jobId);
         Preconditions.checkNotNull(executable);
-        Preconditions.checkArgument(executable instanceof DefaultChainedExecutableOnModel);
-        return (DefaultChainedExecutableOnModel) executable;
+        Preconditions.checkArgument(executable instanceof DefaultExecutableOnModel);
+        return (DefaultExecutableOnModel) executable;
     }
 
     public int getErrorOrPausedJobCount() {

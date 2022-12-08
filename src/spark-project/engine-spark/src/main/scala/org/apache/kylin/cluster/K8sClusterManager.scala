@@ -116,6 +116,8 @@ class K8sClusterManager extends IClusterManager with Logging {
       }.toList
     pods
   }
+
+  override def getApplicationNameById(yarnAppId: Int): String = ""
 }
 
 object K8sClusterManager extends Logging {

@@ -25,7 +25,6 @@ import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.EncryptUtil;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,6 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.loadbalancer.annotation.LoadBalancerClient;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.event.ContextClosedEvent;
@@ -51,6 +49,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 
 import io.kyligence.kap.guava20.shaded.common.base.Charsets;
 import io.kyligence.kap.guava20.shaded.common.hash.Hashing;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
@@ -62,7 +61,7 @@ import lombok.val;
 @LoadBalancerClient(name = "spring-boot-provider", configuration = org.apache.kylin.rest.LoadBalanced.class)
 @EnableSpringHttpSession
 @MapperScan("io.kyligence.kap.job.mapper")
-public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
+public class BootstrapServer implements ISmartApplicationListenerForSystem {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
 
@@ -137,4 +136,10 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
             EpochManager.getInstance().releaseOwnedEpochs();
         }
     }
+
+    @Override
+    public int getOrder() {
+        return LOWEST_PRECEDENCE;
+    }
+
 }

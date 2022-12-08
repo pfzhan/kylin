@@ -35,7 +35,6 @@ import org.apache.kylin.metadata.acl.NDataModelAclParams;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
-import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExcludedLookupChecker;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -59,6 +58,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

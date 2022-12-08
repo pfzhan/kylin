@@ -44,6 +44,7 @@ trait IClusterManager {
 
   def withConfig(config: KylinConfig): Unit = {}
 
+  def getApplicationNameById(yarnAppId: Int): String
 }
 
 // memory unit is MB

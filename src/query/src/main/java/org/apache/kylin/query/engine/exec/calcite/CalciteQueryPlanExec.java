@@ -39,7 +39,6 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.query.engine.exec.QueryPlanExec;
 import org.apache.kylin.query.engine.meta.MutableDataContext;
-import org.apache.kylin.query.relnode.KapRel;
 
 /**
  * implement and execute a physical plan with Calcite
@@ -51,8 +50,6 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
         QueryContext.currentTrace().startSpan(QueryTrace.EXECUTION);
         initContextVars(dataContext);
-        // allocate the olapContext anyway since it's being checked by some unit tests
-        new KapRel.OLAPContextImplementor().allocateContext((KapRel) rel.getInput(0), rel);
 
         List<List<String>> result = doExecute(rel, dataContext);
 
@@ -105,6 +102,8 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
             return DateFormat.formatDayToEpochToDateStr(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
         case TIMESTAMP:
             return DateFormat.castTimestampToString(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
+        case TIME:
+            return DateFormat.formatToTimeStr(Long.parseLong(value), "HH:mm:ss", TimeZone.getTimeZone("GMT"));
         default:
             return value;
         }

@@ -25,12 +25,10 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.junit.annotation.OverwriteProp;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +41,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -87,7 +86,6 @@ public class ScheduleServiceTest extends NLocalFileMetadataTestCase {
         });
         EpochManager epochManager = EpochManager.getInstance();
         epochManager.updateAllEpochs();
-        thrown.expect(ExecutionException.class);
         scheduleService.doRoutineTask();
     }
 

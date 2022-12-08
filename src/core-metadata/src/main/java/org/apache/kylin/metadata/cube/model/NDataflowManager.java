@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
@@ -258,10 +258,7 @@ public class NDataflowManager implements IRealizationProvider {
     }
 
     public NDataflow getDataflow(String id) {
-        if (StringUtils.isEmpty(id)) {
-            return null;
-        }
-        return crud.get(id);
+        return getDataflow(id, false);
     }
 
     public NDataflow getDataflowByModelAlias(String name) {
@@ -677,6 +674,19 @@ public class NDataflowManager implements IRealizationProvider {
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
+        updateDataflowWithoutIndex(update);
+        if (ArrayUtils.isNotEmpty(update.getToRemoveSegs())) {
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(update.getDataflowId());
+            if (!indexPlan.isBroken() && !indexPlan.getAllToBeDeleteLayoutId().isEmpty()) {
+                indexPlanManager.updateIndexPlan(update.getDataflowId(), IndexPlan::removeTobeDeleteIndexIfNecessary);
+            }
+        }
+        return getDataflow(update.getDataflowId());
+    }
+
+    public void updateDataflowWithoutIndex(final NDataflowUpdate update) {
         updateDataflow(update.getDataflowId(), df -> {
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
@@ -716,15 +726,6 @@ public class NDataflowManager implements IRealizationProvider {
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
             newSegs.forEach(this::updateSegmentStatus);
         });
-        if (ArrayUtils.isNotEmpty(update.getToRemoveSegs())) {
-            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                    project);
-            IndexPlan indexPlan = indexPlanManager.getIndexPlan(update.getDataflowId());
-            if (!indexPlan.isBroken() && !indexPlan.getAllToBeDeleteLayoutId().isEmpty()) {
-                indexPlanManager.updateIndexPlan(update.getDataflowId(), IndexPlan::removeTobeDeleteIndexIfNecessary);
-            }
-        }
-        return getDataflow(update.getDataflowId());
     }
 
     private void updateSegmentStatus(NDataSegment seg) {
@@ -868,6 +869,40 @@ public class NDataflowManager implements IRealizationProvider {
         boolean isOfflineScdModel = SCD2CondChecker.INSTANCE.isScd2Model(df.getModel())
                 && !config.isQueryNonEquiJoinModelEnabled();
         return offlineManually || isOfflineMultiPartitionModel || isOfflineScdModel;
+    }
+
+    /**
+     * get dataflow choose whether init all Segment LayoutInfo.
+     * Segment LayoutInfo is lazy load, It can be loaded immediately if needed.
+     */
+    public NDataflow getDataflow(String id, boolean loadSegLayoutInfo) {
+        if (StringUtils.isEmpty(id)) {
+            return null;
+        }
+        NDataflow dataflow = crud.get(id);
+        if (!loadSegLayoutInfo) {
+            return dataflow;
+        }
+        dataflow.initAllSegLayoutInfo();
+        return dataflow;
+    }
+
+    /**
+     * get dataflow and init specified Segment LayoutInfo.
+     */
+    public NDataflow getDataflow(String id, Set<String> segmentIds) {
+        if (StringUtils.isEmpty(id)) {
+            return null;
+        }
+        NDataflow dataflow = getDataflow(id, false);
+        if (CollectionUtils.isEmpty(segmentIds)) {
+            return dataflow;
+        }
+        if (Objects.isNull(dataflow)) {
+            return null;
+        }
+        dataflow.initSegLayoutInfoById(segmentIds);
+        return dataflow;
     }
 
 }

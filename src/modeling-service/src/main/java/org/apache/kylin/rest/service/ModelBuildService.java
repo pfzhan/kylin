@@ -66,6 +66,8 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.util.MultiPartitionUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.aspect.Transaction;
@@ -85,12 +87,12 @@ import org.apache.kylin.rest.service.params.FullBuildSegmentParams;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
 import org.apache.kylin.rest.service.params.MergeSegmentParams;
 import org.apache.kylin.rest.service.params.RefreshSegmentParams;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.source.SourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -98,13 +100,10 @@ import lombok.val;
 import lombok.var;
 
 @Component("modelBuildService")
-public class ModelBuildService extends BasicService implements ModelBuildSupporter {
+public class ModelBuildService extends AbstractModelService implements ModelBuildSupporter {
 
     @Autowired
     private ModelService modelService;
-
-    @Autowired
-    private AclEvaluate aclEvaluate;
 
     @Autowired
     private SegmentHelper segmentHelper;
@@ -138,8 +137,8 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             throws Exception {
         NDataModel modelDesc = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
-            throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getPartitionValueNotSupport(), modelDesc.getAlias()));
+            throw new KylinException(PARTITION_VALUE_NOT_SUPPORT,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPartitionValueNotSupport(), modelDesc.getAlias()));
         }
         if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
@@ -158,7 +157,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
     public JobInfoResponse fullBuildSegmentsManually(FullBuildSegmentParams params) {
         aclEvaluate.checkProjectOperationPermission(params.getProject());
-        modelService.checkModelPermission(params.getProject(), params.getModelId());
+        checkModelPermission(params.getProject(), params.getModelId());
         modelService.checkModelAndIndexManually(params);
         String project = params.getProject();
         String modelId = params.getModelId();
@@ -288,7 +287,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         List<JobInfoResponse.JobInfo> jobIds = new ArrayList<>();
         List<NDataSegment> newSegments = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataflowManager dfMgr = getManager(NDataflowManager.class, params.getProject());
-            IndexPlan indexPlan = modelService.getIndexPlan(params.getModelId(), params.getProject());
+            IndexPlan indexPlan = getIndexPlan(params.getModelId(), params.getProject());
             NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
             List<NDataSegment> segments = Lists.newArrayList();
             for (String id : params.getSegmentIds()) {
@@ -333,7 +332,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
     public JobInfoResponse incrementBuildSegmentsManually(IncrementBuildSegmentParams params) throws Exception {
         String project = params.getProject();
         aclEvaluate.checkProjectOperationPermission(project);
-        modelService.checkModelPermission(project, params.getModelId());
+        checkModelPermission(project, params.getModelId());
         val modelManager = getManager(NDataModelManager.class, project);
         if (PartitionDesc.isEmptyPartitionDesc(params.getPartitionDesc())) {
             throw new KylinException(EMPTY_PARTITION_COLUMN, "Partition column is null.'");
@@ -357,7 +356,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             }
         }
 
-        copyModel.init(modelManager.getConfig(), project, getCCRelatedModels(project));
+        copyModel.init(modelManager.getConfig(), project, modelManager.getCCRelatedModels(copyModel));
         String format = modelService.probeDateFormatIfNotExist(project, copyModel);
 
         IncrementBuildSegmentParams buildSegmentParams = new IncrementBuildSegmentParams(project,
@@ -625,7 +624,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             List<String[]> partitionValues, boolean parallelBuild, boolean buildAllPartitions, int priority,
             String yarnQueue, Object tag) {
         aclEvaluate.checkProjectOperationPermission(project);
-        modelService.checkModelPermission(project, modelId);
+        checkModelPermission(project, modelId);
         modelService.checkSegmentsExistById(modelId, project, new String[] { segmentId });
         modelService.checkModelIsMLP(modelId, project);
         List<String[]> finalPartitionValues = partitionValues == null ? Lists.newArrayList() : partitionValues;
@@ -660,7 +659,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             String segmentId, Set<Long> partitionIds, int priority, String yarnQueue, Object tag) {
         val jobIds = Lists.<String> newArrayList();
         if (parallelBuild) {
-            checkConcurrentSubmit(partitionIds.size());
+            checkConcurrentSubmit(partitionIds.size(), project);
             partitionIds.forEach(partitionId -> {
                 val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(),
                         Sets.newHashSet(partitionId), null).withPriority(priority).withYarnQueue(yarnQueue)
@@ -679,12 +678,20 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         return JobInfoResponse.of(jobIds, JobTypeEnum.SUB_PARTITION_BUILD.toString());
     }
 
-    private void checkConcurrentSubmit(int partitionSize) {
-        int runningJobLimit = getConfig().getMaxConcurrentJobLimit();
+    private void checkConcurrentSubmit(int partitionSize, String project) {
+        int runningJobLimit = getMaxConcurrentJobLimitByProject(getConfig(), project);
         int submitJobLimit = runningJobLimit * 5;
         if (partitionSize > submitJobLimit) {
             throw new KylinException(JOB_CONCURRENT_SUBMIT_LIMIT, submitJobLimit);
         }
+    }
+
+    public int getMaxConcurrentJobLimitByProject(KylinConfig config, String project) {
+        ProjectInstance prjInstance = NProjectManager.getInstance(config).getProject(project);
+        if (Strings.isNullOrEmpty(project) || prjInstance == null) {
+            return config.getMaxConcurrentJobLimit();
+        }
+        return prjInstance.getConfig().getMaxConcurrentJobLimit();
     }
 
     @Override
@@ -695,8 +702,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse(project, table,
                 refreshStart, refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    MsgPicker.getMsg().getSegmentCanNotRefreshBySegmentChange());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSegmentCanNotRefreshBySegmentChange());
         }
         TableDesc tableDesc = getManager(NTableMetadataManager.class, project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
@@ -712,7 +718,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
         val segment = df.getSegment(param.getSegmentId());
         var partitions = param.getPartitionIds();
         aclEvaluate.checkProjectOperationPermission(project);
-        modelService.checkModelPermission(project, modelId);
+        checkModelPermission(project, modelId);
 
         if (CollectionUtils.isEmpty(param.getPartitionIds())) {
             partitions = modelService.getModelById(modelId, project).getMultiPartitionDesc()
@@ -745,7 +751,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
 
         NDataSegment mergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val dfManager = getManager(NDataflowManager.class, project);
-            val indexPlan = modelService.getIndexPlan(modelId, project);
+            val indexPlan = getIndexPlan(modelId, project);
             val df = dfManager.getDataflow(indexPlan.getUuid());
             return modelMetadataInvoker.mergeSegments(project, new MergeSegmentRequest(indexPlan.getUuid(),
                     new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()), true,
@@ -774,7 +780,7 @@ public class ModelBuildService extends BasicService implements ModelBuildSupport
             List<Long> indexIds, boolean parallelBuildBySegment, int priority, boolean partialBuild, String yarnQueue,
             Object tag) {
         aclEvaluate.checkProjectOperationPermission(project);
-        modelService.checkModelPermission(project, modelId);
+        checkModelPermission(project, modelId);
         val dfManger = getManager(NDataflowManager.class, project);
         NDataflow dataflow = dfManger.getDataflow(modelId);
         modelService.checkSegmentsExistById(modelId, project, segmentIds.toArray(new String[0]));

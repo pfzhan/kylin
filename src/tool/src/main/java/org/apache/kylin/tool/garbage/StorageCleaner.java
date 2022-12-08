@@ -97,19 +97,19 @@ public class StorageCleaner {
     public static final String ANSI_YELLOW = "\u001B[33m";
     public static final String ANSI_BLUE = "\u001B[34m";
     public static final String ANSI_RESET = "\u001B[0m";
-    // for s3 https://olapio.atlassian.net/browse/AL-3154
-    private static RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
+
     private final boolean cleanup;
-    private final Collection<String> projectNames;
     private boolean timeMachineEnabled;
+    private final Collection<String> projectNames;
     private long duration;
     private KylinConfig kylinConfig;
+
+    // for s3 https://olapio.atlassian.net/browse/AL-3154
+    private static RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
+
     @Getter
     private Map<String, String> trashRecord;
     private ResourceStore resourceStore;
-    @Getter
-    private Set<StorageItem> outdatedItems = Sets.newHashSet();
-    private Set<StorageItem> allFileSystems = Sets.newHashSet();
 
     public StorageCleaner() throws Exception {
         this(true);
@@ -141,6 +141,11 @@ public class StorageCleaner {
         }
     }
 
+    @Getter
+    private Set<StorageItem> outdatedItems = Sets.newHashSet();
+
+    private Set<StorageItem> allFileSystems = Sets.newHashSet();
+
     public void execute() throws Exception {
         long start = System.currentTimeMillis();
         val config = KylinConfig.getInstanceFromEnv();
@@ -160,6 +165,13 @@ public class StorageCleaner {
                 });
         allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(HadoopUtil.getWorkingFileSystem()),
                 config.getHdfsWorkingDirectory()));
+        // Check if independent storage of flat tables under read/write separation is enabled
+        // For build tasks it is a project-level parameter(Higher project-level priority), but for cleaning up storage garbage,
+        // WRITING_CLUSTER_WORKING_DIR is a system-level parameter
+        if (kylinConfig.isBuildFilesSeparationEnabled()) {
+            allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(HadoopUtil.getWritingClusterFileSystem()),
+                    config.getWritingClusterWorkingDir("")));
+        }
         log.info("all file systems are {}", allFileSystems);
         for (StorageItem allFileSystem : allFileSystems) {
             log.debug("start to collect HDFS from {}", allFileSystem.getPath());
@@ -186,7 +198,7 @@ public class StorageCleaner {
                 }
                 try {
                     log.debug("start to add item {}", path);
-                    addItem(item.getFs(), path, protectionTime);
+                    addItem(item.getFileSystemDecorator(), path, protectionTime);
                 } catch (FileNotFoundException e) {
                     log.warn("{} not found", path);
                 }
@@ -254,7 +266,7 @@ public class StorageCleaner {
                 }
                 try {
                     stats.onItemStart(item);
-                    item.getFs().delete(new Path(item.getPath()), true);
+                    item.getFileSystemDecorator().delete(new Path(item.getPath()), true);
                     if (timeMachineEnabled) {
                         trashRecord.remove(item.getPath());
                     }
@@ -325,7 +337,7 @@ public class StorageCleaner {
     }
 
     private void collectFromHDFS(StorageItem item) throws Exception {
-        val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_")
+        val projectFolders = item.getFileSystemDecorator().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_")
                 && (this.projectNames.isEmpty() || this.projectNames.contains(path.getName())));
         for (FileStatus projectFolder : projectFolders) {
             List<FileTreeNode> tableSnapshotParents = Lists.newArrayList();
@@ -340,7 +352,7 @@ public class StorageCleaner {
                 val treeNode = new FileTreeNode(pair.getFirst(), projectNode);
                 try {
                     log.debug("collect files from {}", pair.getFirst());
-                    Stream.of(item.getFs().listStatus(new Path(item.getPath(), treeNode.getRelativePath())))
+                    Stream.of(item.getFileSystemDecorator().listStatus(new Path(item.getPath(), treeNode.getRelativePath())))
                             .forEach(x -> pair.getSecond().add(new FileTreeNode(x.getPath().getName(), treeNode)));
                 } catch (FileNotFoundException e) {
                     log.info("folder {} not found", new Path(item.getPath(), treeNode.getRelativePath()));
@@ -357,7 +369,7 @@ public class StorageCleaner {
                 val slot = pair.getSecond();
                 for (FileTreeNode node : pair.getFirst()) {
                     log.debug("collect from {} -> {}", node.getName(), node);
-                    Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
+                    Stream.of(item.getFileSystemDecorator().listStatus(new Path(item.getPath(), node.getRelativePath())))
                             .forEach(x -> slot.add(new FileTreeNode(x.getPath().getName(), node)));
                 }
             }
@@ -388,7 +400,7 @@ public class StorageCleaner {
             }
 
             if (Boolean.TRUE.equals(cached.get(dataflowId))) {
-                Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
+                Stream.of(item.getFileSystemDecorator().listStatus(new Path(item.getPath(), node.getRelativePath())))
                         .filter(FileStatus::isDirectory) // Essential check in case of bad design.
                         .forEach(x -> buckets.add(new FileTreeNode(x.getPath().getName(), node)));
             }
@@ -397,12 +409,13 @@ public class StorageCleaner {
 
     @AllArgsConstructor
     public static class FileSystemDecorator {
-        private static int retryTimes = 3;
         @NonNull
         private FileSystem fs;
 
-        public static FileSystemDecorator getInstance(FileSystem fs) {
-            return new FileSystemDecorator(fs);
+        private static int retryTimes = 3;
+
+        interface Action<T> {
+            T run() throws IOException;
         }
 
         private <E> E sleepAndRetry(Action<E> action) throws IOException {
@@ -429,6 +442,10 @@ public class StorageCleaner {
             return action.run();
         }
 
+        public static FileSystemDecorator getInstance(FileSystem fs) {
+            return new FileSystemDecorator(fs);
+        }
+
         public FileStatus[] listStatus(Path f) throws IOException {
             return sleepAndRetry(() -> fs.listStatus(f));
         }
@@ -444,16 +461,18 @@ public class StorageCleaner {
         public boolean delete(Path f, boolean recursive) throws IOException {
             return sleepAndRetry(() -> fs.delete(f, recursive));
         }
-
-        interface Action<T> {
-            T run() throws IOException;
-        }
     }
 
     @Data
     @RequiredArgsConstructor
     @AllArgsConstructor
     public static class StorageItem {
+
+        @NonNull
+        private FileSystemDecorator fileSystemDecorator;
+
+        @NonNull
+        private String path;
 
         /**
          * File hierarchy is
@@ -482,11 +501,8 @@ public class StorageCleaner {
          */
 
         List<FileTreeNode> projectNodes = Lists.newArrayList();
+
         Map<String, ProjectFileTreeNode> projects = Maps.newHashMap();
-        @NonNull
-        private FileSystemDecorator fs;
-        @NonNull
-        private String path;
 
         List<FileTreeNode> getAllNodes() {
             val allNodes = projects.values().stream().flatMap(p -> p.getAllCandidates().stream())
@@ -497,6 +513,24 @@ public class StorageCleaner {
 
         ProjectFileTreeNode getProject(String name) {
             return projects.getOrDefault(name, new ProjectFileTreeNode(name));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            StorageItem that = (StorageItem) o;
+            return Objects.equals(fileSystemDecorator.fs, that.fileSystemDecorator.fs)
+                    && Objects.equals(path, that.path);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(fileSystemDecorator.fs, path);
         }
     }
 
@@ -523,22 +557,33 @@ public class StorageCleaner {
     @ToString(onlyExplicitlyIncluded = true, callSuper = true)
     public static class ProjectFileTreeNode extends FileTreeNode {
 
-        List<FileTreeNode> jobTmps = Lists.newLinkedList();
-        List<FileTreeNode> tableExds = Lists.newLinkedList();
-        List<FileTreeNode> globalDictTables = Lists.newLinkedList();
-        List<FileTreeNode> globalDictColumns = Lists.newLinkedList();
-        List<FileTreeNode> snapshotTables = Lists.newLinkedList();
-        List<FileTreeNode> snapshots = Lists.newLinkedList();
-        List<FileTreeNode> dataflows = Lists.newLinkedList();
-        List<FileTreeNode> segments = Lists.newLinkedList();
-        List<FileTreeNode> layouts = Lists.newLinkedList();
-        List<FileTreeNode> buckets = Lists.newLinkedList();
-        List<FileTreeNode> dfFlatTables = Lists.newArrayList();
-        List<FileTreeNode> segmentFlatTables = Lists.newArrayList();
-
         public ProjectFileTreeNode(String name) {
             super(name);
         }
+
+        List<FileTreeNode> jobTmps = Lists.newLinkedList();
+
+        List<FileTreeNode> tableExds = Lists.newLinkedList();
+
+        List<FileTreeNode> globalDictTables = Lists.newLinkedList();
+
+        List<FileTreeNode> globalDictColumns = Lists.newLinkedList();
+
+        List<FileTreeNode> snapshotTables = Lists.newLinkedList();
+
+        List<FileTreeNode> snapshots = Lists.newLinkedList();
+
+        List<FileTreeNode> dataflows = Lists.newLinkedList();
+
+        List<FileTreeNode> segments = Lists.newLinkedList();
+
+        List<FileTreeNode> layouts = Lists.newLinkedList();
+
+        List<FileTreeNode> buckets = Lists.newLinkedList();
+
+        List<FileTreeNode> dfFlatTables = Lists.newArrayList();
+
+        List<FileTreeNode> segmentFlatTables = Lists.newArrayList();
 
         Collection<List<FileTreeNode>> getAllCandidates() {
             return Arrays.asList(jobTmps, tableExds, globalDictTables, globalDictColumns, snapshotTables, snapshots,

@@ -57,12 +57,14 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.job.BuildJobInfos;
+import org.apache.kylin.engine.spark.job.EnviromentAdaptor;
+import org.apache.kylin.engine.spark.job.IJobProgressReport;
 import org.apache.kylin.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.engine.spark.job.LogJobInfoUtils;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
+import org.apache.kylin.engine.spark.job.ParamsConstants;
 import org.apache.kylin.engine.spark.job.ResourceDetect;
 import org.apache.kylin.engine.spark.job.RestfulJobProgressReport;
-import org.apache.kylin.engine.spark.job.SegmentBuildJob;
 import org.apache.kylin.engine.spark.job.SparkJobConstants;
 import org.apache.kylin.engine.spark.job.UdfManager;
 import org.apache.kylin.engine.spark.scheduler.ClusterMonitor;
@@ -97,9 +99,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.job.EnviromentAdaptor;
-import io.kyligence.kap.engine.spark.job.IJobProgressReport;
-import io.kyligence.kap.engine.spark.job.ParamsConstants;
+import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
@@ -302,8 +302,8 @@ public abstract class SparkApplication implements Application {
 
             if (config.useDynamicS3RoleCredentialInTable()) {
                 val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
-                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv
-                        .addS3CredentialFromTableToSpark(tableMetadataManager.getOrCreateTableExt(tableDesc), ss));
+                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv.addS3Credential(
+                        tableMetadataManager.getOrCreateTableExt(tableDesc).getS3RoleCredentialInfo(), ss));
             }
 
             if (!config.isUTEnv()) {
@@ -458,15 +458,16 @@ public abstract class SparkApplication implements Application {
     protected Boolean hasCountDistinct() throws IOException {
         Path countDistinct = new Path(config.getJobTmpShareDir(project, jobId),
                 ResourceDetectUtils.countDistinctSuffix());
-        FileSystem fileSystem = countDistinct.getFileSystem(HadoopUtil.getCurrentConfiguration());
+        // Keep the same with ResourceDetectUtils#write
+        FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
         Boolean exist;
         if (fileSystem.exists(countDistinct)) {
             exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
         } else {
             exist = false;
-            logger.debug("File count_distinct.json doesn't exist, set hasCountDistinct to false.");
+            logger.info("File count_distinct.json doesn't exist, set hasCountDistinct to false.");
         }
-        logger.debug("Exist count distinct measure: {}", exist);
+        logger.info("Exist count distinct measure: {}", exist);
         return exist;
     }
 

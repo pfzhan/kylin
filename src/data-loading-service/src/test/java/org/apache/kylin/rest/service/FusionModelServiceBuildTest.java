@@ -104,7 +104,9 @@ public class FusionModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelBuildService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(fusionModelService, "modelBuildService", modelBuildService);
+        ReflectionTestUtils.setField(fusionModelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
         ModelMetadataInvoker.setDelegate(modelService);

@@ -17,22 +17,68 @@
  */
 package org.apache.kylin.rest.service;
 
-import java.util.Map;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_RESTART_CHECK_SEGMENT_STATUS;
 
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.cluster.ClusterManagerFactory;
+import org.apache.kylin.cluster.IClusterManager;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.metadata.Epoch;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.job.constant.JobActionEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
+import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.JobSchedulerModeEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.Output;
+import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.metadata.model.SegmentSecondStorageStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
+import org.apache.kylin.rest.ISmartApplicationListenerForSystem;
+import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.JobStatisticsResponse;
+import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.BuildAsyncProfileHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.val;
 
 @Component("jobService")
-public class JobService extends BasicService {
+public class JobService extends BasicService implements ISmartApplicationListenerForSystem {
 
     @Autowired
     private ProjectService projectService;
@@ -42,12 +88,31 @@ public class JobService extends BasicService {
     @Autowired
     private ModelService modelService;
 
+    @Autowired
+    private JobInfoDao jobInfoDao;
+
     private static final Logger logger = LoggerFactory.getLogger("schedule");
 
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
+    private static final String LAST_MODIFIED = "last_modified";
+    private static final String CREATE_TIME = "create_time";
+    private static final String DURATION = "duration";
+    private static final String TOTAL_DURATION = "total_duration";
+    private static final String TARGET_SUBJECT = "target_subject";
+    private static final String JOB_NAME = "job_name";
+    private static final String JOB_STATUS = "job_status";
+    private static final String PROJECT = "project";
 
     public static final String EXCEPTION_CODE_PATH = "exception_to_code.json";
     public static final String EXCEPTION_CODE_DEFAULT = "KE-030001000";
+
+    public static final String JOB_STEP_PREFIX = "job_step_";
+    public static final String YARN_APP_SEPARATOR = "_";
+    public static final String BUILD_JOB_PROFILING_PARAMETER = "kylin.engine.async-profiler-enabled";
+    public static final String CHINESE_LANGUAGE = "zh";
+    public static final String CHINESE_SIMPLE_LANGUAGE = "zh-CN";
+    public static final String CHINESE_HK_LANGUAGE = "zh-HK";
+    public static final String CHINESE_TW_LANGUAGE = "zh-TW";
 
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
@@ -61,6 +126,63 @@ public class JobService extends BasicService {
     public JobService setAclEvaluate(AclEvaluate aclEvaluate) {
         this.aclEvaluate = aclEvaluate;
         return this;
+    }
+
+    public List<ExecutableResponse.SegmentResponse> getSegments(AbstractExecutable executable) {
+        if (SecondStorageUtil.isModelEnable(executable.getProject(), executable.getTargetModelId())) {
+            return modelService
+                    .getSegmentsResponseByJob(executable.getTargetModelId(), executable.getProject(), executable)
+                    .stream()
+                    .map(dataSegmentResponse -> new ExecutableResponse.SegmentResponse(dataSegmentResponse.getId(),
+                            dataSegmentResponse.getStatusToDisplay()))
+                    .collect(Collectors.toList());
+        }
+        return Lists.newArrayList();
+    }
+
+    private void jobActionValidate(String jobId, String project, String action) {
+        JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
+
+        AbstractExecutable job = getManager(ExecutableManager.class, project).getJob(jobId);
+        if (SecondStorageUtil.isModelEnable(project, job.getTargetModelId())
+                && job.getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)) {
+            checkSegmentState(project, action, job);
+        }
+    }
+
+    @VisibleForTesting
+    public void jobActionValidateToTest(String jobId, String project, String action) {
+        jobActionValidate(jobId, project, action);
+    }
+
+    public void checkSegmentState(String project, String action, AbstractExecutable job) {
+        if (!JobActionEnum.RESTART.equals(JobActionEnum.valueOf(action))) {
+            return;
+        }
+
+        val buildJobTypes = Sets.newHashSet(JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH,
+                JobTypeEnum.SUB_PARTITION_BUILD, JobTypeEnum.SUB_PARTITION_REFRESH, JobTypeEnum.INDEX_MERGE);
+        val segmentHalfOnlineStatuses = Sets.newHashSet(SegmentStatusEnumToDisplay.ONLINE_HDFS,
+                SegmentStatusEnumToDisplay.ONLINE_OBJECT_STORAGE, SegmentStatusEnumToDisplay.ONLINE_TIERED_STORAGE);
+        val segmentMayHalfOnlineStatuses = Sets.newHashSet(SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.WARNING);
+        if (buildJobTypes.contains(job.getJobType()) && CollectionUtils.isNotEmpty(job.getSegmentIds())) {
+            List<NDataSegmentResponse> segmentsResponseByJob = modelService.getSegmentsResponse(job.getTargetModelId(),
+                    project, "0", "" + (Long.MAX_VALUE - 1), "", null, null, false, "sortBy", false, null, null);
+
+            val onlineSegmentCount = segmentsResponseByJob.stream()
+                    .filter(segmentResponse -> job.getSegmentIds().contains(segmentResponse.getId()))
+                    .filter(segmentResponse -> {
+                        val statusSecondStorageToDisplay = segmentResponse.getStatusSecondStorageToDisplay();
+                        val statusToDisplay = segmentResponse.getStatusToDisplay();
+                        return segmentHalfOnlineStatuses.contains(statusToDisplay)
+                                || (segmentMayHalfOnlineStatuses.contains(statusToDisplay)
+                                && SegmentSecondStorageStatusEnum.LOADED == statusSecondStorageToDisplay);
+                    }).count();
+            if (onlineSegmentCount != 0) {
+                throw new KylinException(JOB_RESTART_CHECK_SEGMENT_STATUS);
+            }
+        }
     }
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
@@ -98,5 +220,158 @@ public class JobService extends BasicService {
         result.put("data", null);
         result.put("size", 0);
         return result;
+    }
+
+    public Map<String, Object> getStepOutput(String project, String jobId, String stepId) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        val executableManager = getManager(ExecutableManager.class, project);
+        Output output = executableManager.getOutputFromHDFSByJobId(jobId, stepId);
+        Map<String, Object> result = new HashMap<>();
+        result.put("cmd_output", output.getVerboseMsg());
+
+        Map<String, String> info = output.getExtra();
+        List<String> servers = Lists.newArrayList();
+        if (info != null && info.get("nodes") != null) {
+            servers = Lists.newArrayList(info.get("nodes").split(","));
+        }
+        List<String> nodes = servers.stream().map(server -> {
+            String[] split = server.split(":");
+            return split[0] + ":" + split[1];
+        }).collect(Collectors.toList());
+        result.put("nodes", nodes);
+        return result;
+    }
+
+    public void startProfileByProject(String project, String jobStepId, String params) {
+        if (!KylinConfig.getInstanceFromEnv().buildJobProfilingEnabled()) {
+            throw new KylinException(JobErrorCode.PROFILING_NOT_ENABLED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getProfilingNotEnabled(), BUILD_JOB_PROFILING_PARAMETER));
+        }
+        BuildAsyncProfileHelper.startProfile(project, jobStepId, params);
+    }
+
+    public void dumpProfileByProject(String project, String jobStepId, String params,
+                                     Pair<InputStream, String> jobOutputAndDownloadFile) {
+        if (!KylinConfig.getInstanceFromEnv().buildJobProfilingEnabled()) {
+            throw new KylinException(JobErrorCode.PROFILING_NOT_ENABLED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getProfilingNotEnabled(), BUILD_JOB_PROFILING_PARAMETER));
+        }
+        InputStream jobOutput = BuildAsyncProfileHelper.dump(project, jobStepId, params);
+        jobOutputAndDownloadFile.setFirst(jobOutput);
+        String downloadFilename = String.format(Locale.ROOT, "%s_%s_dump.tar.gz", project, jobStepId);
+        jobOutputAndDownloadFile.setSecond(downloadFilename);
+    }
+
+    public void startProfileByYarnAppId(String yarnAppId, String params) {
+        if (!KylinConfig.getInstanceFromEnv().buildJobProfilingEnabled()) {
+            throw new KylinException(JobErrorCode.PROFILING_NOT_ENABLED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getProfilingNotEnabled(), BUILD_JOB_PROFILING_PARAMETER));
+        }
+        Pair<String, String> projectNameAndJobStepId = getProjectNameAndJobStepId(yarnAppId);
+        BuildAsyncProfileHelper.startProfile(projectNameAndJobStepId.getFirst(), projectNameAndJobStepId.getSecond(),
+                params);
+    }
+
+    public void dumpProfileByYarnAppId(String yarnAppId, String params,
+                                       Pair<InputStream, String> jobOutputAndDownloadFile) {
+        if (!KylinConfig.getInstanceFromEnv().buildJobProfilingEnabled()) {
+            throw new KylinException(JobErrorCode.PROFILING_NOT_ENABLED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getProfilingNotEnabled(), BUILD_JOB_PROFILING_PARAMETER));
+        }
+        Pair<String, String> projectNameAndJobStepId = getProjectNameAndJobStepId(yarnAppId);
+        InputStream jobOutput = BuildAsyncProfileHelper.dump(projectNameAndJobStepId.getFirst(),
+                projectNameAndJobStepId.getSecond(), params);
+        jobOutputAndDownloadFile.setFirst(jobOutput);
+        String downloadFilename = String.format(Locale.ROOT, "%s_%s_dump.tar.gz", projectNameAndJobStepId.getFirst(),
+                projectNameAndJobStepId.getSecond());
+        jobOutputAndDownloadFile.setSecond(downloadFilename);
+    }
+
+    /*
+     * return as [projectName, jobStepId]
+     */
+    public Pair<String, String> getProjectNameAndJobStepId(String yarnAppId) {
+        IClusterManager iClusterManager = ClusterManagerFactory.create(KylinConfig.getInstanceFromEnv());
+        if (yarnAppId.contains(YARN_APP_SEPARATOR)) {
+            // yarnAppId such as application_{timestamp}_30076
+            String[] splits = yarnAppId.split(YARN_APP_SEPARATOR);
+            if (splits.length == 3) {
+                String appId = splits[2];
+                // build applicationName such as job_step_{jobId}_01, sometimes maybe job_step_{jobId}_00
+                String applicationName = iClusterManager.getApplicationNameById(Integer.parseInt(appId));
+
+                if (applicationName.contains(JOB_STEP_PREFIX)) {
+                    String jobStepId = StringUtils.replace(applicationName, JOB_STEP_PREFIX, "");
+                    String jobId = applicationName.split(YARN_APP_SEPARATOR)[2];
+
+                    String projectName = getProjectByJobId(jobId);
+                    return Pair.newPair(projectName, jobStepId);
+                } else {
+                    throw new KylinException(JobErrorCode.PROFILING_STATUS_ERROR,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getProfilingJobFinishedError()));
+                }
+            } else {
+                throw new KylinException(JobErrorCode.PROFILING_STATUS_ERROR,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getProfilingYarnAppIdError()));
+            }
+        } else {
+            throw new KylinException(JobErrorCode.PROFILING_STATUS_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getProfilingYarnAppIdError()));
+        }
+    }
+
+    public String getProjectByJobId(String jobId) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setJobId(jobId);
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        if (CollectionUtils.isEmpty(jobInfoList)) {
+            return null;
+        }
+        return jobInfoList.get(0).getProject();
+    }
+
+    public void setResponseLanguage(HttpServletRequest request) {
+        String languageToHandle = request.getHeader(HttpHeaders.ACCEPT_LANGUAGE);
+        if (languageToHandle == null) {
+            ErrorCode.setMsg("cn");
+            MsgPicker.setMsg("cn");
+            return;
+        }
+        // The user's browser may contain multiple language preferences, such as xx,xx;ss,ss
+        String language = StringUtil.dropFirstSuffix(StringUtil.dropFirstSuffix(languageToHandle, ";"), ",");
+        if (CHINESE_LANGUAGE.equals(language) || CHINESE_SIMPLE_LANGUAGE.equals(language)
+                || CHINESE_HK_LANGUAGE.equals(language) || CHINESE_TW_LANGUAGE.equals(language)) {
+            ErrorCode.setMsg("cn");
+            MsgPicker.setMsg("cn");
+        } else {
+            ErrorCode.setMsg("en");
+            MsgPicker.setMsg("en");
+        }
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ContextClosedEvent) {
+            logger.info("Stop kyligence node, kill job on yarn for yarn cluster mode");
+            EpochManager epochManager = EpochManager.getInstance();
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            List<Epoch> ownedEpochs = epochManager.getOwnedEpochs();
+
+            for (Epoch epoch : ownedEpochs) {
+                String project = epoch.getEpochTarget();
+                ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
+                if (executableManager != null) {
+                    List<ExecutablePO> allJobs = executableManager.getAllJobs();
+                    for (ExecutablePO executablePO : allJobs) {
+                        executableManager.cancelRemoteJob(executablePO);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return HIGHEST_PRECEDENCE;
     }
 }

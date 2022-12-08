@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -41,7 +41,7 @@ import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import lombok.val;
 
-public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
+public class ClickHouseModelCleanJob extends DefaultExecutable {
 
     public ClickHouseModelCleanJob() {}
 

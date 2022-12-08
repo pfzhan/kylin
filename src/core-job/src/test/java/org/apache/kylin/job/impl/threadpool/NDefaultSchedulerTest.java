@@ -54,7 +54,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -139,7 +139,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -180,11 +180,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     private void assertJobTime(final AbstractExecutable job, long deltaTime) {
 
-        if (!(job instanceof DefaultChainedExecutable)) {
+        if (!(job instanceof DefaultExecutable)) {
             return;
 
         }
-        DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+        val chainedExecutable = (DefaultExecutable) job;
 
         long lastExecutableEndTime = chainedExecutable.getOutput().getCreateTime();
         long totalWaitTime = 0L;
@@ -226,8 +226,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         AbstractExecutable job = executableManager.getJob(id);
         assertJobRun(createTime, job);
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
-        if (job instanceof DefaultChainedExecutable) {
-            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+        if (job instanceof DefaultExecutable) {
+            val chainedExecutable = (DefaultExecutable) job;
             Assert.assertTrue(chainedExecutable.getTasks().stream()
                     .allMatch(task -> ExecutableState.SUCCEED == executableManager.getOutput(task.getId()).getState()));
         }
@@ -240,8 +240,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertJobRun(createTime, job);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
 
-        if (job instanceof DefaultChainedExecutable) {
-            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+        if (job instanceof DefaultExecutable) {
+            val chainedExecutable = (DefaultExecutable) job;
             Assert.assertTrue(chainedExecutable.getTasks().stream()
                     .anyMatch(task -> ExecutableState.ERROR == executableManager.getOutput(task.getId()).getState()));
         }
@@ -281,8 +281,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private void assertTimeLegal(String id) {
         AbstractExecutable job = executableManager.getJob(id);
         assertTimeLegal(job);
-        if (job instanceof DefaultChainedExecutable) {
-            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+        if (job instanceof DefaultExecutable) {
+            val chainedExecutable = (DefaultExecutable) job;
             for (AbstractExecutable task : chainedExecutable.getTasks()) {
                 assertTimeLegal(task);
             }
@@ -321,7 +321,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -374,7 +374,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -413,7 +413,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -436,7 +436,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(job.getId()).getState());
         getConditionFactory().until(() -> {
-            DefaultChainedExecutable job1 = (DefaultChainedExecutable) getManager().getJob(job.getId());
+            val job1 = (DefaultExecutable) getManager().getJob(job.getId());
             return job1.getTasks().get(0).getStatus().isFinalState();
         });
         assertTimeDiscard(createTime, job.getId());
@@ -536,7 +536,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
         pauseJobWithLock(job.getId());
         getConditionFactory().untilAsserted(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.PAUSED, job1.getTasks().get(0).getStatus());
         });
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -569,7 +569,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private long[] getAllDurations(String jobId) {
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        val stopJob = (DefaultExecutable) executableManager.getJob(jobId);
         int size = 2 * (stopJob.getTasks().size() + 1);
         long[] durations = new long[size];
         durations[0] = stopJob.getDuration();
@@ -595,12 +595,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long[] durations2 = getDurationByJobId(jobId);
         double[] waitTime2 = getWaitTimeByJobId(jobId);
         Assert.assertArrayEquals(durations, durations2);
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        val stopJob = (DefaultExecutable) executableManager.getJob(jobId);
         Assert.assertArrayEquals(waitTime, waitTime2, 50);
     }
 
     private long[] getDurationByJobId(String jobId) {
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        val stopJob = (DefaultExecutable) executableManager.getJob(jobId);
         int size = (stopJob.getTasks().size() + 1);
         long[] durations = new long[size];
         durations[0] = stopJob.getDuration();
@@ -613,7 +613,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private double[] getWaitTimeByJobId(String jobId) {
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        val stopJob = (DefaultExecutable) executableManager.getJob(jobId);
         int size = (stopJob.getTasks().size() + 1);
         double[] waitTimes = new double[size];
         waitTimes[0] = stopJob.getWaitTime();
@@ -631,7 +631,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -679,7 +679,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
         getConditionFactory().untilAsserted(() -> {
-            DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            val job2 = (DefaultExecutable) executableManager.getJob(job.getId());
             ExecutableState status = job2.getStatus();
             Assert.assertEquals(ExecutableState.SUICIDAL, status);
             Assert.assertEquals(ExecutableState.SUICIDAL, job2.getTasks().get(0).getStatus());
@@ -870,8 +870,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
     }
 
-    private DefaultChainedExecutable testDataflowStatusWhenJobError(ManagementType tableOriented,
-            JobTypeEnum indexBuild) {
+    private DefaultExecutable testDataflowStatusWhenJobError(ManagementType tableOriented, JobTypeEnum indexBuild) {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
         modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
@@ -974,7 +973,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1007,7 +1006,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1029,7 +1028,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         var currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1050,7 +1049,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         //sleep 2s to make sure SucceedTestExecutable is running
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
         });
 
@@ -1064,7 +1063,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        val stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         Predicate<ExecutablePO> updater = (po) -> {
             po.getOutput().setStatus(ExecutableState.RUNNING.toString());
             po.getOutput().setEndTime(0);
@@ -1085,7 +1084,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         currMem = NDefaultScheduler.currentAvailableMem();
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(1).getStatus() == ExecutableState.RUNNING;
         });
         assertTimeRunning(createTime, job.getId());
@@ -1103,7 +1102,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1123,7 +1122,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(createTime > 0L);
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
         });
         try {
@@ -1134,7 +1133,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         //pause job due to some reason
         pauseJobWithLock(job.getId());
-        //sleep 7s to make sure DefaultChainedExecutable is paused
+        //sleep 7s to make sure val is paused
         try {
             Thread.sleep(7000);
         } catch (InterruptedException e) {
@@ -1158,10 +1157,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         resumeJobWithLock(job.getId());
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(1).getStatus() == ExecutableState.RUNNING;
         });
-        val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        val stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         long totalDuration3 = stopJob.getDuration();
         long task1Duration3 = stopJob.getTasks().get(0).getDuration();
         long task2Duration3 = stopJob.getTasks().get(1).getDuration();
@@ -1191,7 +1190,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1211,11 +1210,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(createTime > 0L);
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
         });
 
-        DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        var stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.RUNNING, stopJob.getStatus());
         Assert.assertEquals(ExecutableState.RUNNING, stopJob.getTasks().get(0).getStatus());
         Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
@@ -1235,7 +1234,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         long newCreateTime = stopJob.getCreateTime();
         Assert.assertTrue(newCreateTime > createTime);
         assertTimeLegal(job.getId());
@@ -1253,7 +1252,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1274,7 +1273,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(createTime > 0L);
 
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
         });
         try {
@@ -1284,7 +1283,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }
         //pause job due to some reason
         pauseJobWithLock(job.getId());
-        //sleep 7s to make sure DefaultChainedExecutable is paused
+        //sleep 7s to make sure val is paused
         try {
             Thread.sleep(7000);
         } catch (InterruptedException e) {
@@ -1308,7 +1307,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        val stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         long newCreateTime = stopJob.getCreateTime();
         Assert.assertTrue(newCreateTime > createTime);
         assertTimeLegal(job.getId());
@@ -1355,8 +1354,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         }
         int memory = NDefaultScheduler.getMemoryRemaining().availablePermits();
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        DefaultChainedExecutable job1 = generateJob(df, project);
-        DefaultChainedExecutable job2 = generatePartial(df, project);
+        val job1 = generateJob(df, project);
+        val job2 = generatePartial(df, project);
         executableManager.addJob(job1);
         executableManager.addJob(job2);
         waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
@@ -1394,12 +1393,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.job.max-concurrent-jobs", "1");
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        DefaultChainedExecutable job0 = generateJob(df, project, 4);
-        DefaultChainedExecutable job1 = generatePartial(df, project, 3);
-        DefaultChainedExecutable job2 = generatePartial(df, project, 2);
-        DefaultChainedExecutable job3 = generateJob(df, project, 1);
-        DefaultChainedExecutable job4 = generatePartial(df, project, 0);
-        DefaultChainedExecutable job5 = generateJob(df, project, 3);
+        val job0 = generateJob(df, project, 4);
+        val job1 = generatePartial(df, project, 3);
+        val job2 = generatePartial(df, project, 2);
+        val job3 = generateJob(df, project, 1);
+        val job4 = generatePartial(df, project, 0);
+        val job5 = generateJob(df, project, 3);
         executableManager.addJob(job0);
         executableManager.addJob(job1);
         executableManager.addJob(job2);
@@ -1416,7 +1415,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         var runningExecutables = executableManager.getRunningExecutables(project, modelId);
         Assert.assertEquals(5, runningExecutables.size());
         waitForJobByStatus(job2.getId(), 60000, ExecutableState.SUCCEED, executableManager);
-        DefaultChainedExecutable job6 = generateJob(df, project, 0);
+        val job6 = generateJob(df, project, 0);
         executableManager.addJob(job6);
         runningExecutables = executableManager.getRunningExecutables(project, modelId);
         Assert.assertEquals(4, runningExecutables.size());
@@ -1429,14 +1428,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         scheduler.shutdown();
     }
 
-    private DefaultChainedExecutable generateJob(NDataflow df, String project, int priority) {
-        DefaultChainedExecutable job = generateJob(df, project);
+    private DefaultExecutable generateJob(NDataflow df, String project, int priority) {
+        val job = generateJob(df, project);
         job.setPriority(priority);
         return job;
     }
 
-    private DefaultChainedExecutable generateJob(NDataflow df, String project) {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+    private DefaultExecutable generateJob(NDataflow df, String project) {
+        val job = new DefaultExecutableOnModel();
         job.setProject(project);
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1448,14 +1447,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         return job;
     }
 
-    private DefaultChainedExecutable generatePartial(NDataflow df, String project, int priority) {
-        DefaultChainedExecutable job = generatePartial(df, project);
+    private DefaultExecutable generatePartial(NDataflow df, String project, int priority) {
+        val job = generatePartial(df, project);
         job.setPriority(priority);
         return job;
     }
 
-    private DefaultChainedExecutable generatePartial(NDataflow df, String project) {
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+    private DefaultExecutable generatePartial(NDataflow df, String project) {
+        val job = new DefaultExecutableOnModel();
         job.setProject(project);
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         val targetSubject = df.getModel().getUuid();
@@ -1581,7 +1580,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1620,10 +1619,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         resumeJobWithLock(job.getId());
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
         getConditionFactory().until(() -> {
-            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            final val job1 = (DefaultExecutable) executableManager.getJob(job.getId());
             return job1.getTasks().get(1).getStatus() == ExecutableState.RUNNING;
         });
-        val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        val stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         long totalDuration3 = stopJob.getDuration();
         long task1Duration3 = stopJob.getTasks().get(0).getDuration();
         long task2Duration3 = stopJob.getTasks().get(1).getDuration();
@@ -1648,7 +1647,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1688,7 +1687,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         getConditionFactory() //
                 .until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.READY
                         && executableManager.getJob(job.getId()).getCreateTime() > createTime);
-        val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+        val stopJob = (DefaultExecutable) executableManager.getJob(job.getId());
         long newCreateTime = stopJob.getCreateTime();
         assertTimeLegal(job.getId());
         Assert.assertEquals(ExecutableState.READY, stopJob.getStatus());
@@ -1716,7 +1715,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testRetryableException() {
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        val job = new DefaultExecutable();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1728,7 +1727,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         overwriteSystemProp("kylin.job.retry", "3");
 
-        //don't retry on DefaultChainedExecutable, only retry on subtasks
+        //don't retry on DefaultExecutable, only retry on subtasks
         Assert.assertFalse(job.needRetry(1, new Exception("")));
         Assert.assertTrue(task.needRetry(1, new Exception("")));
         Assert.assertFalse(task.needRetry(1, null));
@@ -1745,7 +1744,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         overwriteSystemProp("kylin.scheduler.schedule-job-timeout-minute", "1");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        val job = new DefaultExecutable();
         job.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
         job.setTargetSubject(df.getModel().getUuid());
@@ -1766,7 +1765,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
@@ -1790,7 +1789,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         job.setProject("default");
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
@@ -1830,7 +1829,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testMarkJobError_AfterUpdateJobStateFailed() {
         changeSchedulerInterval(1);
 
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val job = new DefaultExecutableOnModel();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         job.setProject("default");
@@ -1846,7 +1845,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
 
         getConditionFactory().untilAsserted(() -> {
-            DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            val job2 = (DefaultExecutable) executableManager.getJob(job.getId());
             ExecutableState status = job2.getStatus();
             Assert.assertEquals(ExecutableState.ERROR, status);
             Assert.assertEquals(ExecutableState.ERROR, job2.getTasks().get(0).getStatus());
@@ -1855,7 +1854,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     private void addParallelTasksForJob(List<NDataflow> dfs, NExecutableManager executableManager) {
         for (NDataflow df : dfs) {
-            DefaultChainedExecutable job = new NoErrorStatusExecutableOnModel();
+            val job = new NoErrorStatusExecutableOnModel();
             job.setProject("default");
             job.setJobType(JobTypeEnum.INDEX_BUILD);
             job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2");
@@ -1889,7 +1888,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             {
                 scheduler.getContext().setReachQuotaLimit(true);
                 overwriteSystemProp("kylin.storage.quota-in-giga-bytes", "0");
-                DefaultChainedExecutable job = new DefaultChainedExecutable();
+                val job = new DefaultExecutable();
                 job.setProject(project);
                 AbstractExecutable task1 = new SucceedTestExecutable();
                 task1.setProject(project);
@@ -1903,7 +1902,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             {
                 scheduler.getContext().setReachQuotaLimit(true);
                 overwriteSystemProp("kylin.storage.quota-in-giga-bytes", Integer.toString(Integer.MAX_VALUE));
-                DefaultChainedExecutable job = new DefaultChainedExecutable();
+                val job = new DefaultExecutable();
                 job.setProject(project);
                 AbstractExecutable task1 = new LongRunningTestExecutable();
                 task1.setProject(project);
@@ -1927,7 +1926,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             // add a long running job with max concurrent job = 1 to avoid further jobs added to be running
             overwriteSystemProp("kylin.job.max-concurrent-jobs", "1");
             overwriteSystemProp("kylin.storage.quota-in-giga-bytes", Integer.toString(Integer.MAX_VALUE));
-            DefaultChainedExecutable job = new DefaultChainedExecutable();
+            val job = new DefaultExecutable();
             job.setProject(project);
             AbstractExecutable task = new LongRunningTestExecutable();
             task.setProject(project);
@@ -1936,7 +1935,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             waitForJobByStatus(job.getId(), 60000, ExecutableState.RUNNING, executableManager);
 
             // add a pending job
-            DefaultChainedExecutable job1 = new DefaultChainedExecutable();
+            val job1 = new DefaultExecutable();
             job1.setProject(project);
             AbstractExecutable task1 = new LongRunningTestExecutable();
             task1.setProject(project);
@@ -1956,5 +1955,78 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             scheduler.getContext().setReachQuotaLimit(false);
         }
     }
-     */
+
+    @Test
+    @Repeat(3)
+    public void testProjectConcurrentJobLimit() {
+        String project = "heterogeneous_segment";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.job.max-concurrent-jobs", "1");
+        config.setProperty("kylin.engine.driver-memory-base", "512");
+
+        val scheduler = NDefaultScheduler.getInstance(project);
+        val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val executableManager = Mockito.spy(originExecutableManager);
+        executableManager.deleteAllJob();
+        Mockito.doAnswer(invocation -> {
+            String jobId = invocation.getArgument(0);
+            originExecutableManager.destroyProcess(jobId);
+            return null;
+        }).when(executableManager).destroyProcess(Mockito.anyString());
+
+        scheduler.init(new JobEngineConfig(config));
+        val projectManager = NProjectManager.getInstance(config);
+
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+        int memory = NDefaultScheduler.getMemoryRemaining().availablePermits();
+        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
+        val job1 = generateJob(df, project);
+        val job2 = generatePartial(df, project);
+        executableManager.addJob(job1);
+        executableManager.addJob(job2);
+        waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
+        Assert.assertNotEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
+        var runningExecutables = executableManager.getRunningExecutables(project, modelId);
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(1).getStatus());
+
+        projectManager.getProject(project).getConfig().setProperty("kylin.job.max-concurrent-jobs", "2");
+        Assert.assertNotEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
+        val job3 = generateJob(df, project);
+        executableManager.addJob(job3);
+        waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
+        waitForJobByStatus(job2.getId(), 60000, ExecutableState.RUNNING, executableManager);
+        runningExecutables = executableManager.getRunningExecutables(project, modelId);
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(1).getStatus());
+        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(2).getStatus());
+
+        projectManager.getProject(project).getConfig().setProperty("kylin.job.max-concurrent-jobs", "1");
+        waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
+        waitForJobByStatus(job2.getId(), 60000, ExecutableState.RUNNING, executableManager);
+
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(1).getStatus());
+        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(2).getStatus());
+
+        waitForJobByStatus(job1.getId(), 60000, null, executableManager);
+        runningExecutables = executableManager.getRunningExecutables(project, modelId);
+        Assert.assertEquals(2, runningExecutables.size());
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(1).getStatus());
+
+        scheduler.shutdown();
+        Assert.assertEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
+
+        Assert.assertEquals(1,
+                scheduler.getMaxConcurrentJobLimitByProject(config, scheduler.getJobEngineConfig(), "xxxxx"));
+    }
+*/
 }

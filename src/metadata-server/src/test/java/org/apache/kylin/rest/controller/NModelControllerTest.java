@@ -62,9 +62,9 @@ import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.response.RelatedModelResponse;
 import org.apache.kylin.rest.service.FusionModelService;
 import org.apache.kylin.rest.service.ModelService;
-import org.apache.kylin.tool.bisync.BISyncModel;
-import org.apache.kylin.tool.bisync.BISyncTool;
+import org.apache.kylin.rest.service.ModelTdsService;
 import org.apache.kylin.tool.bisync.SyncContext;
+import org.apache.kylin.tool.bisync.model.SyncModel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -95,6 +95,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private ModelTdsService tdsService;
 
     @Mock
     private FusionModelService fusionModelService;
@@ -272,7 +275,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRenameModel() throws Exception {
         Mockito.doNothing().when(modelService).renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "newAlias");
+                "newAlias", "");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/name", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -286,7 +289,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
         modelUpdateRequest.setNewModelName("newAlias)))&&&");
         Mockito.doNothing().when(modelService).renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "newAlias)))&&&");
+                "newAlias)))&&&", "");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/name", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -365,7 +368,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+                .andExpect(MockMvcResultMatchers.status().isOk());
         partitionDesc.setPartitionDateFormat("yyyy'@:1008'MM''dd");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
@@ -375,17 +378,17 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
         partitionDesc.setPartitionDateFormat("");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+                .andExpect(MockMvcResultMatchers.status().isOk());
         partitionDesc.setPartitionDateFormat("YYYY-dd-hh");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+                .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController, times(5)).checkPartitionDesc(Mockito.any(PartitionDesc.class));
     }
 
@@ -672,6 +675,10 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testAddMultiPartitionValues() throws Exception {
         UpdateMultiPartitionValueRequest request = new UpdateMultiPartitionValueRequest();
         request.setProject("default");
+        List<String[]> partition_values = Lists.newArrayList();
+        String[] value = new String[] { "5" };
+        partition_values.add(value);
+        request.setSubPartitionValues(partition_values);
         Mockito.doNothing().when(modelService).addMultiPartitionValues(request.getProject(),
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getSubPartitionValues());
         mockMvc.perform(MockMvcRequestBuilders
@@ -680,6 +687,20 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testAddMultiPartitionValuesException() throws Exception {
+        UpdateMultiPartitionValueRequest request = new UpdateMultiPartitionValueRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService).addMultiPartitionValues(request.getProject(),
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getSubPartitionValues());
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model}/multi_partition/sub_partition_values",
+                        "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
     }
 
     @Test
@@ -695,56 +716,20 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBIExportByADMIN() throws Exception {
+    public void testValidateExport() throws Exception {
         String project = "default";
         String modelName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(project);
         syncContext.setModelId(modelName);
-        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
-        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
-        syncContext.setHost("localhost");
-        syncContext.setPort(8080);
-        syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
-        syncContext.setKylinConfig(getTestConfig());
-        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
-        Mockito.doReturn(syncContext).when(modelService).getSyncContext(project, modelName,
+        syncContext.setModelElement(SyncContext.ModelElement.ALL_COLS);
+        SyncModel syncModel = Mockito.mock(SyncModel.class);
+        Mockito.doReturn(syncContext).when(tdsService).prepareSyncContext(project, modelName,
                 SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
-        Mockito.doReturn(syncModel).when(modelService).exportTDSDimensionsAndMeasuresByAdmin(syncContext,
-                Lists.newArrayList(), Lists.newArrayList());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model", modelName)
-                .param("project", project).param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "CUSTOM_COLS")
-                .param("server_host", "localhost").param("server_port", "8080").param("dimensions", "")
-                .param("measures", "").contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-    }
-
-    @Test
-    public void testBIExportByNormalUser() throws Exception {
-        String project = "default";
-        String modelName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        SyncContext syncContext = new SyncContext();
-        syncContext.setProjectName(project);
-        syncContext.setModelId(modelName);
-        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
-        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL);
-        syncContext.setHost("localhost");
-        syncContext.setPort(8080);
-        syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
-        syncContext.setKylinConfig(getTestConfig());
-        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("u1", "ANALYST", Constant.ROLE_ANALYST));
-        Mockito.doReturn(syncContext).when(modelService).getSyncContext(project, modelName,
-                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.CUSTOM_COLS, "localhost", 8080);
-        Mockito.doReturn(syncModel).when(modelService).exportTDSDimensionsAndMeasuresByNormalUser(syncContext,
-                Lists.newArrayList(), Lists.newArrayList());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/bi_export").param("model", modelName)
-                .param("project", project).param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "CUSTOM_COLS")
-                .param("server_host", "localhost").param("server_port", "8080").param("dimensions", "")
-                .param("measures", "").contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        Mockito.doReturn(syncModel).when(tdsService).exportModel(syncContext);
+        Mockito.doReturn(Boolean.TRUE).when(tdsService).preCheckNameConflict(syncModel);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/validate_export").param("model", modelName)
+                .param("project", project).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
@@ -761,10 +746,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         syncContext.setPort(8080);
         syncContext.setDataflow(NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelName));
         syncContext.setKylinConfig(getTestConfig());
-        BISyncModel syncModel = BISyncTool.dumpToBISyncModel(syncContext);
-        Mockito.doReturn(syncModel).when(modelService).exportModel(project, modelName,
-                SyncContext.BI.TABLEAU_CONNECTOR_TDS, SyncContext.ModelElement.AGG_INDEX_AND_TABLE_INDEX_COL,
-                "localhost", 8080);
+        syncContext.setAdmin(true);
+        SyncModel syncModel = Mockito.mock(SyncModel.class);
+        Mockito.doReturn(syncModel).when(tdsService).exportModel(syncContext);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/export", modelName).param("project", project)
                 .param("export_as", "TABLEAU_CONNECTOR_TDS").param("element", "AGG_INDEX_AND_TABLE_INDEX_COL")
                 .param("server_host", "localhost").param("server_port", "8080").contentType(MediaType.APPLICATION_JSON)

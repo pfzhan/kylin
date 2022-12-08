@@ -20,10 +20,7 @@ package org.apache.kylin.rest.service;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -33,27 +30,28 @@ import org.apache.kylin.tool.HDFSMetadataTool;
 import org.apache.kylin.tool.MetadataTool;
 import org.springframework.stereotype.Service;
 
+import lombok.SneakyThrows;
 import lombok.val;
 
 @Service
 public class MetadataBackupService {
 
-    private ExecutorService executors = Executors.newSingleThreadExecutor();
-
     @SneakyThrows(IOException.class)
-    public void backupAll() {
+    public void backupAll(){
 
         try (SetThreadName ignored = new SetThreadName("MetadataBackupWorker")) {
             String[] args = new String[] { "-backup", "-compress", "-dir", getBackupDir() };
             backup(args);
-            executors.submit(this::rotateAuditLog);
+            rotateAuditLog();
         }
     }
 
     public void backup(String[] args) throws IOException {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        val metadataTool = new MetadataTool(kylinConfig);
+        HDFSMetadataTool.cleanBeforeBackup(KylinConfig.getInstanceFromEnv());
+        val backupConfig = kylinConfig.getMetadataBackupFromSystem() ? kylinConfig
+                : KylinConfig.createKylinConfig(kylinConfig);
+        val metadataTool = new MetadataTool(backupConfig);
         metadataTool.execute(args);
     }
 

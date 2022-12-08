@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.util.JobContextUtil;
@@ -57,7 +57,7 @@ public class ExecutableHandleUtils {
         JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, model, duration, byteSize, 0);
     }
 
-    public static List<AbstractExecutable> getNeedMergeTasks(DefaultChainedExecutableOnModel parent) {
+    public static List<AbstractExecutable> getNeedMergeTasks(DefaultExecutableOnModel parent) {
         return parent.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
                 .filter(task -> ((NSparkExecutable) task).needMergeMetadata()).collect(Collectors.toList());
     }

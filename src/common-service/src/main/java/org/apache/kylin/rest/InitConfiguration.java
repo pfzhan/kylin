@@ -19,10 +19,14 @@ package org.apache.kylin.rest;
 
 import static org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
+import org.apache.kylin.common.util.HostInfoFetcher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +37,16 @@ import lombok.val;
 @Configuration
 @ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class InitConfiguration {
+    @Autowired
+    private HostInfoFetcher hostInfoFetcher;
+
+    @PostConstruct
+    public void init() {
+        if (KylinConfig.getInstanceFromEnv().isCheckHostname() && hostInfoFetcher.getHostname().indexOf("_") != -1) {
+            throw new KylinRuntimeException("The hostname does not support containing '_' characters,"
+                    + " please modify the hostname of Kyligence Enterprise nodes.");
+        }
+    }
 
     @Bean("defaultDataSource")
     @SpringSessionDataSource

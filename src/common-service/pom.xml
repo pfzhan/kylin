@@ -32,10 +32,6 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-tool</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-second-storage-core</artifactId>
         </dependency>
         <dependency>
@@ -54,7 +50,10 @@
             <groupId>io.kyligence.saas</groupId>
             <artifactId>saas-nacos-discovery-starter</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-spark-ddl</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -123,12 +122,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-            <version>${mockito.version}</version>
         </dependency>
 
         <!-- spring aop -->
@@ -273,12 +266,6 @@
             <artifactId>spark-core_2.12</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
@@ -318,11 +305,6 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.12</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>

@@ -34,8 +34,8 @@ import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.util.JobContextUtil;
@@ -234,7 +234,7 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     
     public ExecutablePO createJob() {
         JobMetadataInvoker.setDelegate(new JobDelegate());
-        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        DefaultExecutable job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
         job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309gg");

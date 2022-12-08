@@ -26,6 +26,7 @@ import java.util.Collections;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.cube.utils.StreamingUtils;
 import org.apache.kylin.rest.constant.Constant;
@@ -91,6 +92,34 @@ public class OpenStreamingJobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetStreamingJobList() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs")
+                .contentType(MediaType.APPLICATION_JSON).param("model_name", StringUtils.EMPTY)
+                .param("model_names", StringUtils.EMPTY).param("job_types", StringUtils.EMPTY)
+                .param("statuses", "testStatuses").param("project", StringUtils.EMPTY).param("page_offset", "0")
+                .param("page_size", "10").param("sort_by", "last_modified").param("reverse", "true")
+                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs")
+                .contentType(MediaType.APPLICATION_JSON).param("model_name", StringUtils.EMPTY)
+                .param("model_names", StringUtils.EMPTY).param("job_types", "testJobTypes")
+                .param("statuses", JobStatusEnum.RUNNING.name()).param("project", StringUtils.EMPTY).param("page_offset", "0")
+                .param("page_size", "10").param("sort_by", "last_modified").param("reverse", "true")
+                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs")
+                .contentType(MediaType.APPLICATION_JSON).param("model_name", StringUtils.EMPTY)
+                .param("model_names", StringUtils.EMPTY).param("job_types", StringUtils.EMPTY)
+                .param("statuses", JobStatusEnum.RUNNING.name()).param("project", StringUtils.EMPTY).param("page_offset", "0")
+                .param("page_size", "10").param("sort_by", "last_modified").param("reverse", "true")
+                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs")
+                .contentType(MediaType.APPLICATION_JSON).param("model_name", StringUtils.EMPTY)
+                .param("model_names", StringUtils.EMPTY).param("job_types", StringUtils.EMPTY)
+                .param("statuses", JobStatusEnum.RUNNING.name()).param("project", "UT_PROJECT").param("page_offset", "0")
+                .param("page_size", "10").param("sort_by", "last_modified").param("reverse", "true")
+                .accept(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
         val mockRequestBuilder = MockMvcRequestBuilders.get("/api/streaming_jobs")
                 .contentType(MediaType.APPLICATION_JSON).param("model_name", StringUtils.EMPTY)
                 .param("model_names", StringUtils.EMPTY).param("job_types", StringUtils.EMPTY)

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -33,8 +35,10 @@ import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.rest.controller.BaseController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ExecutableResponse;
+import org.apache.kylin.rest.service.JobService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,9 +56,14 @@ import io.swagger.annotations.ApiOperation;
 public class JobControllerV2 extends BaseController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";
+    private static final String STEP_ID_ARG_NAME = "stepId";
 
     @Autowired
     private JobInfoService jobInfoService;
+
+    @Autowired
+    @Qualifier("jobService")
+    private JobService jobService;
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -77,12 +86,19 @@ public class JobControllerV2 extends BaseController {
             @RequestParam(value = "status", required = false, defaultValue = "") Integer[] status,
             @RequestParam(value = "timeFilter") Integer timeFilter,
             @RequestParam(value = "jobName", required = false) String jobName,
-            @RequestParam(value = "projectName") String project,
+            @RequestParam(value = "projectName", required = false) String project,
             @RequestParam(value = "key", required = false) String key,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
+            @RequestParam(value = "sortby", required = false) String sortby, //param for 3x
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        // 3x default last_modify
+        if (!StringUtils.isEmpty(sortby) && !"last_modify".equals(sortby)) {
+            sortBy = sortby;
+        }
+        checkNonNegativeIntegerArg("pageOffset", pageOffset);
+        checkNonNegativeIntegerArg("pageSize", pageSize);
         List<String> statuses = Lists.newArrayList();
         for (Integer code : status) {
             JobStatusEnum jobStatus = JobStatusEnum.getByCode(code);
@@ -99,7 +115,39 @@ public class JobControllerV2 extends BaseController {
         List<ExecutableResponse> executables = jobInfoService.listJobs(jobFilter);
         executables = jobInfoService.addOldParams(executables);
         long count = jobInfoService.countJobs(jobFilter);
+        executables.forEach(
+                executableResponse -> executableResponse.setVersion(KylinVersion.getCurrentVersion().toString()));
         Map<String, Object> result = getDataResponse("jobs", executables, (int)count, pageOffset, pageSize);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
+    }
+    
+    @ApiOperation(value = "getJob", tags = { "DW" })
+    @GetMapping(value = "/{jobId}")
+    @ResponseBody
+    public EnvelopeResponse<ExecutableResponse> getJob(@PathVariable(value = "jobId") String jobId) {
+        checkRequiredArg(JOB_ID_ARG_NAME, jobId);
+        ExecutableResponse jobInstance = jobInfoService.getJobInstance(jobId);
+        List<ExecutableResponse> executables = Lists.newArrayList(jobInstance);
+        executables = jobInfoService.addOldParams(executables);
+        if (executables != null && executables.size() != 0) {
+            jobInstance = executables.get(0);
+        }
+        if (jobInstance != null) {
+            jobInstance.setVersion(KylinVersion.getCurrentVersion().toString());
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInstance, "");
+    }
+
+    @ApiOperation(value = "getJobOutput", tags = { "DW" })
+    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, Object>> getJobOutput(@PathVariable("job_id") String jobId,
+            @PathVariable("step_id") String stepId) {
+        String project = jobInfoService.getProjectByJobId(jobId);
+        checkProjectName(project);
+        Map<String, Object> result = jobService.getStepOutput(project, jobId, stepId);
+        result.put(JOB_ID_ARG_NAME, jobId);
+        result.put(STEP_ID_ARG_NAME, stepId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 }

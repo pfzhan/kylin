@@ -20,19 +20,20 @@ package org.apache.kylin.query.routing;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.model.NDataModel;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -100,6 +101,31 @@ public class CandidateSortTest {
             val model3 = mockCandidate("model0003", "modelC", 4, 4);
             sort(model1, model2, model3).assertFirst(model1);
         }
+
+        {
+            val model1 = mockCandidate("model0001", "modelA", 1, 1);
+            val model2 = mockEmptyCandidate("model0002", "modelB", 1);
+            sort(model1, model2).assertFirst(model1);
+        }
+
+        {
+            val model1 = mockStreamingCandidate("model0001", "modelA", 1, 1);
+            val model2 = mockEmptyCandidate("model0002", "modelB", 1);
+            sort(model1, model2).assertFirst(model1);
+        }
+
+        {
+            val model1 = mockHybridCandidate("model0001", "modelA", 1, 1, 2);
+            val model2 = mockEmptyCandidate("model0002", "modelB", 1);
+            sort(model1, model2).assertFirst(model1);
+        }
+
+        {
+            val model1 = mockCandidate("model0001", "modelA", 1, 3);
+            val model2 = mockStreamingCandidate("model0002", "modelB", 1, 2);
+            val model3 = mockHybridCandidate("model0003", "modelC", 1, 4, 2);
+            sort(model1, model2, model3).assertFirst(model2);
+        }
     }
 
     private interface SortedCandidate {
@@ -120,6 +146,39 @@ public class CandidateSortTest {
         candidate.realization = mockRealization(modelId, modelName, modelCost);
         val cap = new CapabilityResult();
         cap.setSelectedCandidate(() -> candidateCost);
+        cap.cost = (int) cap.getSelectedCandidate().getCost();
+        candidate.setCapability(cap);
+        return candidate;
+    }
+
+    private Candidate mockStreamingCandidate(String modelId, String modelName, int modelCost, double candidateCost) {
+        val candidate = new Candidate();
+        candidate.realization = mockRealization(modelId, modelName, modelCost);
+        val cap = new CapabilityResult();
+        cap.setSelectedStreamingCandidate(() -> candidateCost);
+        cap.cost = (int) cap.getSelectedStreamingCandidate().getCost();
+        candidate.setCapability(cap);
+        return candidate;
+    }
+
+    private Candidate mockHybridCandidate(String modelId, String modelName, int modelCost, double candidateCost,
+            double streamingCandidateCost) {
+        val candidate = new Candidate();
+        candidate.realization = mockRealization(modelId, modelName, modelCost);
+        val cap = new CapabilityResult();
+        cap.setSelectedCandidate(() -> candidateCost);
+        cap.setSelectedStreamingCandidate(() -> streamingCandidateCost);
+        cap.cost = (int) Math.min(cap.getSelectedCandidate().getCost(), cap.getSelectedStreamingCandidate().getCost());
+        candidate.setCapability(cap);
+        return candidate;
+    }
+
+    private Candidate mockEmptyCandidate(String modelId, String modelName, int modelCost) {
+        val candidate = new Candidate();
+        candidate.realization = mockRealization(modelId, modelName, modelCost);
+        val cap = new CapabilityResult();
+        cap.setSelectedCandidate(NLayoutCandidate.EMPTY);
+        cap.setSelectedStreamingCandidate(NLayoutCandidate.EMPTY);
         candidate.setCapability(cap);
         return candidate;
     }
@@ -127,13 +186,14 @@ public class CandidateSortTest {
     private IRealization mockRealization(String modelId, String modelName, int cost) {
         return new IRealization() {
             @Override
-            public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments) {
+            public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments,
+                    Map<String, Set<Long>> secondStorageSegmentLayoutMap) {
                 return null;
             }
 
             @Override
             public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments,
-                    List<NDataSegment> prunedStreamingSegments) {
+                    List<NDataSegment> prunedStreamingSegments, Map<String, Set<Long>> secondStorageSegmentLayoutMap) {
                 return null;
             }
 
@@ -157,11 +217,6 @@ public class CandidateSortTest {
 
             @Override
             public Set<TblColRef> getAllColumns() {
-                return null;
-            }
-
-            @Override
-            public Set<ColumnDesc> getAllColumnDescs() {
                 return null;
             }
 

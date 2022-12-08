@@ -31,7 +31,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <properties>
-        <kafka.version>2.1.1</kafka.version>
         <scala.binary.version>2.12</scala.binary.version>
         <sonar.sources>src/main/java,src/main/scala</sonar.sources>
     </properties>

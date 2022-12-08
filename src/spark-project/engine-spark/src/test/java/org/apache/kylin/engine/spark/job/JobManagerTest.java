@@ -93,6 +93,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         this.createTestMetadata();
         config = getTestConfig();
 
+        config.setProperty("kylin.job.check-quota-storage-enabled", "false");
         JobContextUtil.cleanUp();
         JobContextUtil.getJobContextForTest(config);
 
@@ -369,7 +370,6 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQuotaLimitReached() throws Exception {
         thrown.expect(KylinException.class);
-        JobContextUtil.cleanUp();
         JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
         jobContext.setProjectReachQuotaLimit(PROJECT, true);
         JobParam param = new JobParam(Sets.newHashSet(), null, null, "ADMIn", Sets.newHashSet(), null);

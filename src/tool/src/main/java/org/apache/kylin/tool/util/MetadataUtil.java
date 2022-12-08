@@ -164,7 +164,7 @@ public class MetadataUtil {
             return;
         }
         // dump metadata
-        ResourceStore.dumpResourceMaps(config, tmpDir, dumpMap);
+        ResourceStore.dumpResourceMaps(tmpDir, dumpMap);
         // copy metadata to target metaUrl
         dstMetadataStore.uploadFromFile(tmpDir);
         // clean up

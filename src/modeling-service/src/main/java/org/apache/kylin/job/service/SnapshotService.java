@@ -26,12 +26,12 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_MANAGEM
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 import static org.apache.kylin.rest.constant.SnapshotStatus.BROKEN;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -46,7 +46,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.exception.code.ErrorCodeServer;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -103,9 +102,13 @@ import lombok.val;
 @Component("snapshotService")
 public class SnapshotService extends BasicService implements SnapshotSupporter {
 
-    private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
     private static final List<String> SNAPSHOT_JOB_TYPES = Lists.newArrayList(SNAPSHOT_BUILD.name(),
             SNAPSHOT_REFRESH.name());
+    private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+    public static final String IS_REFRESH = "isRefresh";
+    public static final String PRIORITY = "priority";
+    public static final String YARN_QUEUE = "yarnQueue";
+    public static final String TAG = "tag";
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -116,76 +119,70 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, SNAPSHOT_JOB_TYPES, tables);
     }
 
-    private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables){
+    private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables) {
         List<String> tableIds = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
         return fetchAllRunningSnapshotTasks(project, tableIds);
     }
 
-    public JobInfoResponse buildSnapshots(String project, Set<String> buildDatabases,
-            Set<String> needBuildSnapshotTables, Map<String, SnapshotRequest.TableOption> options, boolean isRefresh,
-            int priority, String yarnQueue, Object tag) {
-        if (buildDatabases.isEmpty()) {
-            return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority, yarnQueue, tag);
+    public JobInfoResponse buildSnapshots(SnapshotRequest snapshotsRequest, boolean isRefresh) {
+        if (snapshotsRequest.getDatabases().isEmpty()) {
+            return buildSnapshots(snapshotsRequest, isRefresh, snapshotsRequest.getTables());
         }
 
-        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-        val databases = buildDatabases.stream().map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
-        val databasesNotExist = databases.stream().filter(database -> !tableManager.listDatabases().contains(database))
+        Set<String> dbs = snapshotsRequest.getDatabases().stream().map(db -> db.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toSet());
-        if (!databasesNotExist.isEmpty()) {
+        Map<String, List<TableDesc>> dbToTablesMap = getManager(NTableMetadataManager.class,
+                snapshotsRequest.getProject()).dbToTablesMap(getConfig().streamingEnabled());
+
+        // check db
+        Set<String> nonExisted = dbs.stream().filter(db -> !dbToTablesMap.containsKey(db)).collect(Collectors.toSet());
+        if (!nonExisted.isEmpty()) {
             throw new KylinException(DATABASE_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getDatabaseNotExist(), StringUtils.join(databasesNotExist, ", ")));
+                    MsgPicker.getMsg().getDatabaseNotExist(), StringUtils.join(nonExisted, ", ")));
         }
-        Set<TableDesc> tablesOfDatabases = tableManager.listAllTables().stream()
-                .filter(tableDesc -> databases.contains(tableDesc.getDatabase())).collect(Collectors.toSet());
 
-        tablesOfDatabases = skipLoadedTable(tablesOfDatabases, project);
-        tablesOfDatabases = tablesOfDatabases.stream().filter(this::isAuthorizedTableAndColumn)
-                .collect(Collectors.toSet());
+        // filter tables need loading
+        List<JobInfo> runningSnapshotTasks = fetchAllRunningSnapshotTasks(snapshotsRequest.getProject(), (List<String>) null);
 
-        needBuildSnapshotTables
-                .addAll(tablesOfDatabases.stream().map(TableDesc::getIdentity).collect(Collectors.toSet()));
-
-        return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority, yarnQueue, tag);
+        Set<String> tables = dbToTablesMap.entrySet().stream() //
+                .filter(entry -> dbs.contains(entry.getKey())) //
+                .map(Map.Entry::getValue).flatMap(List::stream) //
+                .filter(table -> !hasLoadedSnapshot(table, runningSnapshotTasks)) //
+                .filter(this::isAuthorizedTableAndColumn) //
+                .map(TableDesc::getIdentity).collect(Collectors.toSet());
+        snapshotsRequest.getTables().addAll(tables);
+        return buildSnapshots(snapshotsRequest, isRefresh, snapshotsRequest.getTables());
     }
 
-    private Set<TableDesc> skipLoadedTable(Set<TableDesc> tablesOfDatabases, String project) {
-        List<JobInfo> executables = fetchAllRunningSnapshotTasks(project, tablesOfDatabases);
-
-        return tablesOfDatabases.stream().filter(table -> !hasLoadedSnapshot(table, executables))
-                .collect(Collectors.toSet());
-    }
-
-    @SneakyThrows
-    public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables,
-            Map<String, SnapshotRequest.TableOption> options, boolean isRefresh, int priority, String yarnQueue,
-            Object tag) {
+    /**
+     * Only use to automatic refresh snapshot
+     */
+    public JobInfoResponse autoRefreshSnapshots(SnapshotRequest snapshotsRequest, boolean isRefresh) {
+        val project = snapshotsRequest.getProject();
+        val needBuildSnapshotTables = snapshotsRequest.getTables();
         checkSnapshotManualManagement(project);
-        aclEvaluate.checkProjectOperationPermission(project);
         Set<TableDesc> tables = checkAndGetTable(project, needBuildSnapshotTables);
-        checkTablePermission(tables);
         if (isRefresh) {
             checkTableSnapshotExist(project, checkAndGetTable(project, needBuildSnapshotTables));
         }
-        checkOptions(tables, options);
+        checkOptions(tables, snapshotsRequest.getOptions());
+        return buildSnapshotsInner(snapshotsRequest, isRefresh, needBuildSnapshotTables, tables);
+    }
 
+    @SneakyThrows
+    public JobInfoResponse buildSnapshotsInner(SnapshotRequest snapshotsRequest, boolean isRefresh,
+                                               Set<String> needBuildSnapshotTables, Set<TableDesc> tables) {
+        val project = snapshotsRequest.getProject();
+        val options = snapshotsRequest.getOptions();
         List<String> invalidSnapshotsToBuild = new ArrayList<>();
 
-        for (Map.Entry<String, SnapshotRequest.TableOption> entry : options.entrySet()) {
-            Set<String> partitionToBuild = entry.getValue().getPartitionsToBuild();
-            if (partitionToBuild != null && partitionToBuild.isEmpty()) {
-                invalidSnapshotsToBuild.add(entry.getKey());
-            }
-        }
-        if (!invalidSnapshotsToBuild.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER,
-                    MsgPicker.getMsg().getPartitionsToBuildCannotBeEmpty(invalidSnapshotsToBuild));
-        }
+        invalidSnapshotsToBuild(options, invalidSnapshotsToBuild);
 
         Map<String, SnapshotRequest.TableOption> finalOptions = Maps.newHashMap();
 
         List<String> jobIds = new ArrayList<>();
 
+        //double check for fail fast
         checkRunningSnapshotTask(project, needBuildSnapshotTables);
         for (TableDesc tableDesc : tables) {
             SnapshotRequest.TableOption option = decideBuildOption(tableDesc, options.get(tableDesc.getIdentity()));
@@ -200,10 +197,10 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             JobParam jobParam = new JobParam()
                     .withProject(project)
                     .withTable(tableDesc.getTableAlias())
-                    .withPriority(priority)
-                    .withYarnQueue(yarnQueue)
+                    .withPriority(snapshotsRequest.getPriority())
+                    .withYarnQueue(snapshotsRequest.getYarnQueue())
                     .withJobTypeEnum(jobType)
-                    .withTag(tag)
+                    .withTag(snapshotsRequest.getTag())
                     .withOwner(BasicService.getUsername())
                     .addExtParams(NBatchConstants.P_INCREMENTAL_BUILD, String.valueOf(option.isIncrementalBuild()))
                     .addExtParams(NBatchConstants.P_SELECTED_PARTITION_COL, option.getPartitionCol())
@@ -226,6 +223,51 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         }
         String jobName = isRefresh ? SNAPSHOT_REFRESH.toString() : SNAPSHOT_BUILD.toString();
         return JobInfoResponse.of(jobIds, jobName);
+    }
+
+    private void updateTableDesc(String project, Set<TableDesc> tables,
+                                 Map<String, SnapshotRequest.TableOption> finalOptions) {
+        NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
+        for (TableDesc tableDesc : tables) {
+            SnapshotRequest.TableOption option = finalOptions.get(tableDesc.getIdentity());
+            if (tableDesc.isSnapshotHasBroken()
+                    || !StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
+                TableDesc newTable = tableManager.copyForWrite(tableDesc);
+                newTable.setSnapshotHasBroken(false);
+                if (!StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
+                    newTable.setSelectedSnapshotPartitionCol(option.getPartitionCol());
+                }
+                tableManager.updateTableDesc(newTable);
+            }
+        }
+    }
+
+    private static void invalidSnapshotsToBuild(Map<String, SnapshotRequest.TableOption> options,
+                                                List<String> invalidSnapshotsToBuild) {
+        for (Map.Entry<String, SnapshotRequest.TableOption> entry : options.entrySet()) {
+            Set<String> partitionToBuild = entry.getValue().getPartitionsToBuild();
+            if (partitionToBuild != null && partitionToBuild.isEmpty()) {
+                invalidSnapshotsToBuild.add(entry.getKey());
+            }
+        }
+        if (!invalidSnapshotsToBuild.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    MsgPicker.getMsg().getPartitionsToBuildCannotBeEmpty(invalidSnapshotsToBuild));
+        }
+    }
+
+    public JobInfoResponse buildSnapshots(SnapshotRequest snapshotsRequest, boolean isRefresh,
+                                          Set<String> needBuildSnapshotTables) {
+        val project = snapshotsRequest.getProject();
+        checkSnapshotManualManagement(project);
+        Set<TableDesc> tables = checkAndGetTable(project, needBuildSnapshotTables);
+        aclEvaluate.checkProjectOperationPermission(project);
+        checkTablePermission(tables);
+        if (isRefresh) {
+            checkTableSnapshotExist(project, checkAndGetTable(project, needBuildSnapshotTables));
+        }
+        checkOptions(tables, snapshotsRequest.getOptions());
+        return buildSnapshotsInner(snapshotsRequest, isRefresh, needBuildSnapshotTables, tables);
     }
 
     private void checkOptions(Set<TableDesc> tables, Map<String, SnapshotRequest.TableOption> options) {
@@ -386,19 +428,21 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             }
         }
         if (!notFoundTables.isEmpty()) {
-            throw new KylinException(TABLE_NOT_EXIST, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getTableNotFound(), StringUtils.join(notFoundTables, "', '")));
+            throw new KylinException(TABLE_NOT_EXIST, String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(),
+                    StringUtils.join(notFoundTables, "', '")));
         }
         return tables;
     }
 
     @Override
     public List<SnapshotInfoResponse> getProjectSnapshots(String project, String table,
-            Set<SnapshotStatus> statusFilter, Set<Boolean> partitionFilter, String sortBy, boolean isReversed) {
+                                                          Set<SnapshotStatus> statusFilter, Set<Boolean> partitionFilter, String sortBy, boolean isReversed) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
-
+//        val execManager = NExecutableManager.getInstance(getConfig(), project);
+//        List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
+//                SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
         if (table == null)
             table = "";
 
@@ -412,7 +456,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         final String finalDatabase = database;
 
         Set<String> groups = getCurrentUserGroups();
-        boolean canUseACLGreenChannel = AclPermissionUtil.canUseACLGreenChannel(project, groups, true);
+        boolean canUseACLGreenChannel = AclPermissionUtil.canUseACLGreenChannel(project, groups);
         Set<String> authorizedTables = new HashSet<>();
         if (!canUseACLGreenChannel) {
             authorizedTables = getAuthorizedTables(project, getManager(AclTCRManager.class, project));
@@ -448,8 +492,9 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         List<SnapshotInfoResponse> response = new ArrayList<>();
         tablesLeft.forEach(tableDesc -> {
+            TableExtDesc tableExtDesc = nTableMetadataManager.getOrCreateTableExt(tableDesc);
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
-            response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getSnapshotTotalRows(), countPair.getFirst(),
+            response.add(new SnapshotInfoResponse(tableDesc, tableExtDesc, tableDesc.getSnapshotTotalRows(), countPair.getFirst(),
                     countPair.getSecond(), getSnapshotJobStatus(tableDesc, executables),
                     getForbiddenColumns(tableDesc)));
         });
@@ -494,12 +539,13 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         String project = tableDesc.getProject();
         Set<String> forbiddenColumns = Sets.newHashSet();
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, true)) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
             return forbiddenColumns;
         }
 
         String username = AclPermissionUtil.getCurrentUsername();
-        AclTCRDigest userAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, username, true);
+        AclTCRDigest userAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, username, 
+                true);
         Set<String> allColumns = userAuth.getColumns();
         AclTCRDigest groupAuth;
         for (val group : groups) {
@@ -513,10 +559,6 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         forbiddenColumns.removeAll(allColumns);
         return forbiddenColumns;
-    }
-
-    private boolean hasSnapshotOrRunningJob(TableDesc tableDesc, List<JobInfo> executables) {
-        return StringUtils.isNotEmpty(tableDesc.getLastSnapshotPath()) || hasRunningJob(tableDesc, executables);
     }
 
     private SnapshotStatus getSnapshotJobStatus(TableDesc tableDesc, List<JobInfo> executables) {
@@ -548,12 +590,13 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     private boolean isAuthorizedTableAndColumn(TableDesc originTable) {
         String project = originTable.getProject();
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, true)) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
             return true;
         }
 
         String username = AclPermissionUtil.getCurrentUsername();
-        AclTCRDigest userAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, username, true);
+        AclTCRDigest userAuth = getManager(AclTCRManager.class, project).getAuthTablesAndColumns(project, username,
+                true);
         Set<String> allTables = userAuth.getTables();
         Set<String> allColumns = userAuth.getColumns();
         AclTCRDigest groupAuth;
@@ -585,7 +628,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private boolean matchTablePattern(TableDesc tableDesc, String tablePattern, String databasePattern,
-            String databaseTarget) {
+                                      String databaseTarget) {
         if (StringUtils.isEmpty(tablePattern)) {
             return true;
         }
@@ -601,9 +644,6 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     public NInitTablesResponse getTables(String project, String tablePattern, int offset, int limit) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
-        NInitTablesResponse response = new NInitTablesResponse();
-        NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
-        Set<String> databases = nTableMetadataManager.listDatabases();
 
         String expectedDatabase = null;
         if (tablePattern.contains(".")) {
@@ -611,49 +651,51 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             tablePattern = tablePattern.split("\\.", 2)[1].trim();
         }
 
-        final String finalTable = tablePattern;
-        final String finalDatabase = expectedDatabase;
-        for (String database : databases) {
-            if (expectedDatabase != null && !expectedDatabase.equalsIgnoreCase(database)) {
-                continue;
-            }
-            List<TableDesc> tables = nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
-                if (StringUtils.isEmpty(database)) {
-                    return true;
-                }
-                return tableDesc.getDatabase().equalsIgnoreCase(database);
-            }).filter(tableDesc -> matchTablePattern(tableDesc, finalTable, finalDatabase, database))
-                    .filter(this::isAuthorizedTableAndColumn).filter(NTableMetadataManager::isTableAccessible)
+        // some final variables to filter tables
+        String finalTable = tablePattern;
+        String finalDatabase = expectedDatabase;
+        String finalExpectedDatabase = expectedDatabase;
+        boolean streamingEnabled = getConfig().streamingEnabled();
+        List<JobInfo> jobInfoList = fetchAllRunningSnapshotTasks(project, (List<String>) null);
+        NInitTablesResponse response = new NInitTablesResponse();
+        getManager(NTableMetadataManager.class, project).dbToTablesMap(streamingEnabled).forEach((db, tableList) -> {
+            /* If there is no expected database, return a page of table in every database,
+             * otherwise, only return a page of table in the specified database.
+             */
+            if (finalExpectedDatabase != null && !db.equalsIgnoreCase(finalExpectedDatabase))
+                return;
+
+            List<TableDesc> tables = tableList.stream()
+                    .filter(tableDesc -> matchTablePattern(tableDesc, finalTable, finalDatabase, db))
+                    .filter(this::isAuthorizedTableAndColumn) //
+                    .filter(table -> table.isAccessible(streamingEnabled)) //
                     .sorted(tableService::compareTableDesc).collect(Collectors.toList());
 
-            int tableSize = tables.size();
-            List<TableDesc> tablePage = PagingUtil.cutPage(tables, offset, limit);
-
-            List<JobInfo> executables = fetchAllRunningSnapshotTasks(project, tablePage.stream()
-                    .map(TableDesc::getIdentity).collect(Collectors.toList()));
-
-            if (!tablePage.isEmpty()) {
-                List<TableNameResponse> tableResponse = tablePage.stream().map(tableDesc -> {
-                    val resp = new TableNameResponse();
-                    resp.setTableName(tableDesc.getName());
-                    resp.setLoaded(hasLoadedSnapshot(tableDesc, executables));
-                    return resp;
-                }).collect(Collectors.toList());
-
-                response.putDatabase(database, tableSize, tableResponse);
+            int size = tables.size();
+            List<TableDesc> pageList = PagingUtil.cutPage(tables, offset, limit);
+            if (!pageList.isEmpty()) {
+                List<TableNameResponse> tableResponse = pageList.stream()
+                        .map(table -> new TableNameResponse(table.getName(), hasLoadedSnapshot(table, jobInfoList)))
+                        .collect(Collectors.toList());
+                response.putDatabase(db, size, tableResponse);
             }
-        }
+        });
 
         return response;
     }
 
     private boolean hasLoadedSnapshot(TableDesc tableDesc, List<JobInfo> executables) {
-        return tableDesc.isSnapshotHasBroken() || hasSnapshotOrRunningJob(tableDesc, executables);
+        return tableDesc.isSnapshotHasBroken() || StringUtils.isNotEmpty(tableDesc.getLastSnapshotPath())
+                || hasRunningJob(tableDesc, executables);
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, String tablePattern) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
+//        val execManager = NExecutableManager.getInstance(getConfig(), project);
+//        List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
+//                SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
+//        aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         if (tablePattern == null) {
             tablePattern = "";
@@ -718,7 +760,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private void checkTableAndCol(String project, Map<String, String> table2PartCol) {
         if (table2PartCol.isEmpty()) {
-            throw new KylinException(ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "table_partition_col");
+            throw new KylinException(REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY, "table_partition_col");
         }
         Set<TableDesc> tables = checkAndGetTable(project, table2PartCol.keySet());
         checkTablePermission(tables);
@@ -738,7 +780,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     public List<SnapshotColResponse> getSnapshotCol(String project, Set<String> tables, Set<String> databases,
-            String tablePattern, boolean includeExistSnapshot) {
+                                                    String tablePattern, boolean includeExistSnapshot) {
         return getSnapshotCol(project, tables, databases, tablePattern, includeExistSnapshot, true);
     }
 
@@ -766,15 +808,14 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                 .map(TableDesc::getIdentity).collect(Collectors.toList()));
 
         return allTables.stream().filter(table -> includeExistSnapshot || !hasLoadedSnapshot(table, executables)
-                || (!excludeBroken && table.isSnapshotHasBroken())).filter(this::isAuthorizedTableAndColumn)
+                        || (!excludeBroken && table.isSnapshotHasBroken())).filter(this::isAuthorizedTableAndColumn)
                 .map(SnapshotColResponse::from).collect(Collectors.toList());
     }
 
-    public SnapshotColResponse reloadPartitionCol(String project, String table) throws Exception {
+    public SnapshotColResponse reloadPartitionCol(String project, String table) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
-        TableDesc newTableDesc = tableService.extractTableMeta(Arrays.asList(table).toArray(new String[0]), project)
-                .get(0).getFirst();
+        TableDesc newTableDesc = tableService.extractTableMeta(new String[] { table }, project).get(0).getFirst();
         newTableDesc.init(project);
         return SnapshotColResponse.from(newTableDesc);
     }
@@ -785,10 +826,10 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         Set<TableDesc> tableDescSet = checkAndGetTable(project, tablesAndCol.keySet());
         checkTablePermission(tableDescSet);
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
-        for (String table : tablesAndCol.keySet()) {
+        tablesAndCol.forEach((table, v) -> {
             TableDesc tableDesc = tableManager.getTableDesc(table);
             SnapshotPartitionsResponse response = new SnapshotPartitionsResponse();
-            List<String> readyPartitions = tableDesc.getReadyPartitions().stream().collect(Collectors.toList());
+            List<String> readyPartitions = Lists.newArrayList(tableDesc.getReadyPartitions());
             readyPartitions.sort(String::compareTo);
             response.setReadyPartitions(readyPartitions);
             ISourceMetadataExplorer explr = SourceFactory.getSource(tableDesc).getSourceMetadataExplorer();
@@ -796,16 +837,16 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             if (tableDesc.getPartitionColumn() == null
                     || !tableDesc.getPartitionColumn().equalsIgnoreCase(userSelectPartitionCol)) {
                 responses.put(tableDesc.getDatabase() + "." + tableDesc.getName(), null);
-                continue;
+                return;
             }
             Set<String> allPartitions = explr.getTablePartitions(tableDesc.getDatabase(), tableDesc.getName(),
                     tableDesc.getProject(), tableDesc.getPartitionColumn());
             allPartitions.removeAll(tableDesc.getReadyPartitions());
-            List<String> notReadyPartitions = allPartitions.stream().collect(Collectors.toList());
+            List<String> notReadyPartitions = Lists.newArrayList(allPartitions);
             notReadyPartitions.sort(String::compareTo);
             response.setNotReadyPartitions(notReadyPartitions);
             responses.put(tableDesc.getDatabase() + "." + tableDesc.getName(), response);
-        }
+        });
         return responses;
 
     }

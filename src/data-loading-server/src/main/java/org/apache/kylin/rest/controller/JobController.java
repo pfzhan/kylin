@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -36,6 +37,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.service.JobInfoService;
@@ -341,5 +343,71 @@ public class JobController extends BaseController {
     @ResponseBody
     public void destroyJobProcess(@RequestParam("project") String project) {
         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).destroyAllProcess();
+    }
+
+    @ApiOperation(value = "startProfile", tags = {"DW"}, notes = "")
+    @GetMapping(value = "/profile/start_project")
+    @ResponseBody
+    public EnvelopeResponse<String> profile(
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "step_id") String jobStepId,
+            @RequestParam(value = "params", defaultValue = "start,event=cpu", required = false) String params,
+            HttpServletRequest request) {
+        jobService.setResponseLanguage(request);
+        checkProjectName(project);
+        jobService.startProfileByProject(project, jobStepId, params);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "dumpProfile", tags = {"DW"}, notes = "")
+    @GetMapping(value = "/profile/dump_project")
+    @ResponseBody
+    public EnvelopeResponse<String> stopProfile(
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "step_id") String jobStepId,
+            @RequestParam(value = "params", defaultValue = "flamegraph", required = false) String params,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        jobService.setResponseLanguage(request);
+        checkProjectName(project);
+        Pair<InputStream, String> jobOutputAndDownloadFile = new Pair<>();
+        jobService.dumpProfileByProject(project, jobStepId, params, jobOutputAndDownloadFile);
+        if (jobOutputAndDownloadFile.getFirst() == null || jobOutputAndDownloadFile.getSecond() == null) {
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "dump profile for ut");
+        }
+        setDownloadResponse(jobOutputAndDownloadFile.getFirst(), jobOutputAndDownloadFile.getSecond(),
+                MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "startProfileByYarnAppId", tags = {"DW"}, notes = "")
+    @GetMapping(value = "/profile/start_appid")
+    @ResponseBody
+    public EnvelopeResponse<String> profileByYarnAppId(
+            @RequestParam(value = "app_id") String yarnAppId,
+            @RequestParam(value = "params", defaultValue = "start,event=cpu", required = false) String params,
+            HttpServletRequest request) {
+        jobService.setResponseLanguage(request);
+        jobService.startProfileByYarnAppId(yarnAppId, params);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "dumpProfile", tags = {"DW"}, notes = "")
+    @GetMapping(value = "/profile/dump_appid")
+    @ResponseBody
+    public EnvelopeResponse<String> stopProfileByYarnAppId(
+            @RequestParam(value = "app_id") String yarnAppId,
+            @RequestParam(value = "params", defaultValue = "flamegraph", required = false) String params,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        jobService.setResponseLanguage(request);
+        Pair<InputStream, String> jobOutputAndDownloadFile = new Pair<>();
+        jobService.dumpProfileByYarnAppId(yarnAppId, params, jobOutputAndDownloadFile);
+        if (jobOutputAndDownloadFile.getFirst() == null || jobOutputAndDownloadFile.getSecond() == null) {
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "dump profile for ut");
+        }
+        setDownloadResponse(jobOutputAndDownloadFile.getFirst(), jobOutputAndDownloadFile.getSecond(),
+                MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

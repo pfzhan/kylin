@@ -18,10 +18,12 @@
 
 package org.apache.kylin.rest.response;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -32,13 +34,13 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NSparkSnapshotJob;
-import org.apache.kylin.job.execution.NTableSamplingJob;
+import org.apache.kylin.job.execution.JobSchedulerModeEnum;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import com.clearspring.analytics.util.Lists;
@@ -47,7 +49,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -104,8 +110,42 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private Object tag;
     @JsonProperty("snapshot_data_range")
     private String snapshotDataRange;
+    @JsonProperty("job_scheduler_mode")
+    private JobSchedulerModeEnum jobSchedulerMode;
+    @JsonProperty("segments")
+    private List<SegmentResponse> segments;
     private static final String SNAPSHOT_FULL_RANGE = "FULL";
     private static final String SNAPSHOT_INC_RANGE = "INC";
+
+    @JsonProperty("version")
+    protected String version;
+
+    @JsonProperty("related_segment")
+    public String getRelatedSegment() {
+        return CollectionUtils.isEmpty(targetSegments) ? "" : String.join(",", targetSegments);
+    }
+
+    @JsonProperty("progress")
+    public double getProgress() {
+        int completedStepCount = 0;
+
+        for (ExecutableStepResponse step : this.getSteps()) {
+            if (step.getStatus().equals(JobStatusEnum.FINISHED)) {
+                completedStepCount++;
+            }
+        }
+        if (steps.isEmpty()) {
+            return 0.0;
+        }
+        return 100.0 * completedStepCount / steps.size();
+    }
+
+    public List<ExecutableStepResponse> getSteps() {
+        if (steps == null) {
+            steps = Collections.emptyList();
+        }
+        return steps;
+    }
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
         Output output = abstractExecutable.getOutput(executablePO);
@@ -127,6 +167,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setDiscardSafety(abstractExecutable.safetyIfDiscard());
         executableResponse.setTotalDuration(executableResponse.getWaitTime() + executableResponse.getDuration());
         executableResponse.setTag(abstractExecutable.getTag());
+        executableResponse.setJobSchedulerMode(abstractExecutable.getJobSchedulerMode());
         return executableResponse;
     }
 
@@ -321,5 +362,16 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
 
         @JsonProperty("mr_waiting")
         private long mrWaiting;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SegmentResponse {
+        @JsonProperty("id")
+        private String id; // Sequence ID within NDataflow
+        @JsonProperty("status_to_display")
+        private SegmentStatusEnumToDisplay statusToDisplay;
     }
 }

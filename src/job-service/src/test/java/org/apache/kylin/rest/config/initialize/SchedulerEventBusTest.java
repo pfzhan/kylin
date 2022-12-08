@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
@@ -136,7 +136,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultExecutable job = new DefaultExecutable();
         job.setProject(PROJECT);
         job.setTargetSubject(df.getModel().getUuid());
         job.setJobType(JobTypeEnum.INC_BUILD);
@@ -172,7 +172,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultExecutable job = new DefaultExecutable();
         job.setProject(PROJECT);
         job.setJobType(JobTypeEnum.INC_BUILD);
         job.setTargetSubject(df.getModel().getUuid());
@@ -205,7 +205,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        DefaultExecutable job = new DefaultExecutable();
         job.setProject(PROJECT);
         job.setJobType(JobTypeEnum.INC_BUILD);
         job.setTargetSubject(df.getModel().getUuid());
@@ -256,6 +256,9 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         val listener = new EpochChangedListener();
         ReflectionTestUtils.setField(listener, "userService", Mockito.spy(UserService.class));
         ReflectionTestUtils.setField(listener, "env", Mockito.spy(Environment.class));
+        val userAclService = Mockito.spy(UserAclService.class);
+        ReflectionTestUtils.setField(listener, "userAclService", userAclService);
+        Mockito.doNothing().when(userAclService).syncAdminUserAcl();
 
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         prjMgr.createProject("test_epoch", "ADMIN", "", null);

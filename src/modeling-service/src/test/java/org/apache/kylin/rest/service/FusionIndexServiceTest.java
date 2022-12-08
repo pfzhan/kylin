@@ -27,11 +27,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.AggIndexResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.IndexEntity.Range;
@@ -40,9 +36,14 @@ import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.CreateTableIndexRequest;
 import org.apache.kylin.rest.request.UpdateRuleBasedCuboidRequest;
+import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.FusionRuleDataResult;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -92,11 +93,15 @@ public class FusionIndexServiceTest extends SourceTestCase {
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        JobContextUtil.cleanUp();
     }
 
     private UpdateRuleBasedCuboidRequest createUpdateRuleRequest(String project, String modelId,

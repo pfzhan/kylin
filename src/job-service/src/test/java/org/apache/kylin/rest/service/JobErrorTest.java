@@ -50,9 +50,6 @@ import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
-import org.apache.kylin.job.execution.stage.NStageForBuild;
-import org.apache.kylin.job.execution.stage.NStageForMerge;
-import org.apache.kylin.job.execution.stage.NStageForSnapshot;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -79,6 +76,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
+import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
+import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import lombok.val;
 import lombok.var;
 

@@ -22,13 +22,13 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NSparkCubingJob;
-import org.apache.kylin.job.execution.NSparkMergingJob;
-import org.apache.kylin.job.execution.NSparkSnapshotJob;
-import org.apache.kylin.job.execution.NTableSamplingJob;
-import org.apache.kylin.job.execution.step.NSparkCubingStep;
 import org.apache.kylin.job.util.ExecutableParaUtil;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import lombok.val;
 
 public class ExecutableUtils {

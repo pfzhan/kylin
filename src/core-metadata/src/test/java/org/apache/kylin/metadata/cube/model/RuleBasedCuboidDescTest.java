@@ -17,17 +17,16 @@
  */
 package org.apache.kylin.metadata.cube.model;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.cube.CubeTestUtils;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.hamcrest.CoreMatchers;
@@ -35,13 +34,14 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import lombok.val;
-import lombok.var;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
@@ -856,6 +856,78 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(colOrders
                 .contains(Lists.<Integer> newArrayList(1, 2, 3, 4, 5, 6, 100000, 100001, 100002, 100003, 100004, 100005,
                         100007, 100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016)));
+    }
+
+    @Test
+    public void testGenCuboidWithUpdateBaseCuboid() throws IOException {
+        val indexPlanManager = getIndexPlanManager();
+        var newPlan = getTmpTestIndexPlan("/ncude_rule_based.json");
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan.getRuleBasedIndex().setSchedulerVersion(2);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        RuleBasedIndex ruleBasedIndex = newPlan.getRuleBasedIndex();
+        Assert.assertEquals(2, ruleBasedIndex.getSchedulerVersion());
+        Assert.assertTrue(ruleBasedIndex.getBaseLayoutEnabled());
+        Assert.assertEquals(12, newPlan.getAllLayouts().size());
+        IndexPlan indexPlan = updateBaseCuboid("false");
+        ruleBasedIndex = indexPlan.getRuleBasedIndex();
+        Assert.assertEquals(2, ruleBasedIndex.getSchedulerVersion());
+        Assert.assertTrue(ruleBasedIndex.getBaseLayoutEnabled());
+        Assert.assertEquals(2, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(150000, indexPlan.getNextAggregationIndexId());
+        indexPlan = updateBaseCuboid("true");
+        Assert.assertEquals(3, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(150000, indexPlan.getNextAggregationIndexId());
+    }
+
+    private IndexPlan updateBaseCuboid(String baseCuboid) {
+        val indexPlanManager = getIndexPlanManager();
+        getTestConfig().setProperty("kylin.cube.aggrgroup.is-base-cuboid-always-valid", baseCuboid);
+        return indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
+            val newRule = new RuleBasedIndex();
+            newRule.setSchedulerVersion(2);
+            newRule.setBaseLayoutEnabled(true);
+            newRule.setIndexPlan(copyForWrite);
+            newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
+            try {
+                val group1 = JsonUtil.readValue("{\n" //
+                        + "        \"includes\": [3,1],\n" //
+                        + "        \"measures\": [100000, 100001],\n" //
+                        + "        \"select_rule\": {\n" //
+                        + "          \"hierarchy_dims\": [],\n" //
+                        + "          \"mandatory_dims\": [],\n" //
+                        + "          \"joint_dims\": [], \n" //
+                        + "          \"dim_cap\": 1 }\n" //
+                        + "}", NAggregationGroup.class);
+                newRule.setAggregationGroups(Arrays.asList(group1));
+                copyForWrite.setRuleBasedIndex(newRule);
+            } catch (IOException e) {
+                log.error("Something wrong happened when update this IndexPlan.", e);
+            }
+        });
+    }
+
+    @Test
+    public void testCalculateDimSortedList() throws Exception {
+
+        NAggregationGroup aggregationGroup1 = new NAggregationGroup();
+        aggregationGroup1.setIncludes(new Integer[] { 5, 18 });
+        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        SelectRule selectRule1 = new SelectRule();
+        selectRule1.setMandatoryDims(new Integer[] {});
+        aggregationGroup1.setSelectRule(selectRule1);
+
+        NAggregationGroup aggregationGroup2 = new NAggregationGroup();
+        aggregationGroup2.setIncludes(new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18 });
+        aggregationGroup2.setMeasures(new Integer[] { 10000 });
+        SelectRule selectRule2 = new SelectRule();
+        selectRule2.setMandatoryDims(new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18 });
+        aggregationGroup2.setSelectRule(selectRule2);
+
+        RuleBasedIndex ruleBasedIndex = new RuleBasedIndex();
+        List<Integer> lists = ReflectionTestUtils.invokeMethod(ruleBasedIndex,"recomputeSortedDimensions", Lists.newArrayList(aggregationGroup1, aggregationGroup2));
+        Assert.assertEquals("[1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18]", lists.toString());
     }
 
     private NIndexPlanManager getIndexPlanManager() {

@@ -37,7 +37,11 @@ public class SucceedTestExecutable extends BaseTestExecutable {
 
     @Override
     protected ExecuteResult doWork(JobContext context) {
-        Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};
+        Map<String, String> info = new HashMap<String, String>() {
+            {
+                put("runningStatus", "inRunning");
+            }
+        };
         updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, info, null, null);
         try {
             Thread.sleep(1000);

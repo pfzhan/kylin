@@ -28,12 +28,13 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.favorite.QueryHistoryIdOffset;
-import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 
 public class QueryHistoryOffsetTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");

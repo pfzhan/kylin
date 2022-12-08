@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -52,10 +53,13 @@ import org.apache.kylin.common.persistence.transaction.MessageSynchronization;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.BackupRequest;
 import org.apache.kylin.rest.request.DiagProgressRequest;
@@ -90,7 +94,7 @@ public class SystemService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    private final String MODEL_CONFIG_BLOCK_LIST = "kylin.index.rule-scheduler-data";
+    private static final String MODEL_CONFIG_BLOCK_LIST = "kylin.index.rule-scheduler-data";
 
     @Data
     @NoArgsConstructor
@@ -140,6 +144,7 @@ public class SystemService extends BasicService {
         return args.toArray(new String[0]);
     }
 
+    //    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId,
             String queryId, String project) {
         File exportFile = KylinConfigBase.getDiagFileName();
@@ -245,15 +250,34 @@ public class SystemService extends BasicService {
     }
 
     public String dumpLocalQueryDiagPackage(String queryId, String project) {
-        if (!KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
-            aclEvaluate.checkIsGlobalAdmin();
-        }
+        aclEvaluate.checkProjectQueryPermission(project);
         return dumpLocalDiagPackage(null, null, null, queryId, project);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) {
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String project) {
+        if (StringUtils.isEmpty(jobId)) {
+            aclEvaluate.checkIsGlobalAdmin();
+        } else {
+            if (StringUtils.isEmpty(project)) {
+                project = getProjectByJobId(jobId);
+            }
+            checkDiagPermission(project);
+        }
         return dumpLocalDiagPackage(startTime, endTime, jobId, null, null);
+    }
+
+
+    private String getProjectByJobId(String jobId) {
+        val projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().stream()
+                .map(ProjectInstance::getName).collect(Collectors.toList());
+        for (String project : projects) {
+            AbstractExecutable job = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getJob(jobId);
+            if (job != null) {
+                return project;
+            }
+        }
+        return null;
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -290,7 +314,7 @@ public class SystemService extends BasicService {
         diagMap.invalidate(uuid);
     }
 
-    public String getDiagPackagePath(String uuid) {
+    public String getDiagPackagePath(String uuid, String project) {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
             throw new RuntimeException(exception.getError());
@@ -306,7 +330,7 @@ public class SystemService extends BasicService {
         }
         if (QUERY != diagInfo.getDiagType()
                 || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
-            aclEvaluate.checkIsGlobalAdmin();
+            checkDiagPermission(project);
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
@@ -336,7 +360,7 @@ public class SystemService extends BasicService {
         return null;
     }
 
-    public EnvelopeResponse<DiagStatusResponse> getExtractorStatus(String uuid) {
+    public EnvelopeResponse<DiagStatusResponse> getExtractorStatus(String uuid, String project) {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
             exception.setUuid(uuid);
@@ -349,7 +373,7 @@ public class SystemService extends BasicService {
         }
         if (QUERY != diagInfo.getDiagType()
                 || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
-            aclEvaluate.checkIsGlobalAdmin();
+            checkDiagPermission(project);
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
@@ -362,6 +386,14 @@ public class SystemService extends BasicService {
         }
         response.setDuration(endTime - diagInfo.startTime);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
+    }
+
+    private void checkDiagPermission(String project) {
+        if (StringUtils.isEmpty(project)) {
+            aclEvaluate.checkIsGlobalAdmin();
+        } else {
+            aclEvaluate.checkProjectAdminPermission(project);
+        }
     }
 
     public void updateDiagProgress(DiagProgressRequest diagProgressRequest) {

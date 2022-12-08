@@ -27,10 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.epoch.EpochManager;
-import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
-import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.response.ServerInfoResponse;
@@ -40,6 +37,9 @@ import org.springframework.http.HttpHeaders;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

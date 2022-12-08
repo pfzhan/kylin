@@ -19,6 +19,7 @@ package org.apache.kylin.rest.controller;
 
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.junit.rule.TransactionExceptedException;
 import org.apache.kylin.rest.constant.Constant;
@@ -45,7 +46,7 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     private MockMvc mockMvc;
 
     @Mock
-    private SystemService systemService;
+    private SystemService systemService = Mockito.spy(new SystemService());
 
     @InjectMocks
     private NSystemController nSystemController = Mockito.spy(new NSystemController());
@@ -69,7 +70,6 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    @Test
     public void testRollEventLog() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/system/roll_event_log").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
@@ -81,5 +81,24 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController, Mockito.times(1)).getHostname();
+    }
+
+    @Test
+    public void testSimulationInsert_TurnON() throws Exception {
+        getTestConfig().setProperty("kylin.env.unitofwork-simulation-enabled", KylinConfigBase.TRUE);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/transaction/simulation/insert_meta")
+                .contentType(MediaType.APPLICATION_JSON).param("count", "10").param("sleepSec", "1")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+        Mockito.verify(nSystemController).simulateInsertMeta(Mockito.anyInt(), Mockito.anyLong());
+    }
+
+    @Test
+    public void testSimulationInsert_TurnOff() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/transaction/simulation/insert_meta")
+                .contentType(MediaType.APPLICATION_JSON).param("count", "10").param("sleepSec", "100")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).simulateInsertMeta(Mockito.anyInt(), Mockito.anyLong());
     }
 }

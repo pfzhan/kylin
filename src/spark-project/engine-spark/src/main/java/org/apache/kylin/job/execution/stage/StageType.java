@@ -21,7 +21,6 @@ package org.apache.kylin.job.execution.stage;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.job.SegmentJob;
-import org.apache.kylin.engine.spark.job.SnapshotBuildJob;
 import org.apache.kylin.engine.spark.job.exec.BuildExec;
 import org.apache.kylin.engine.spark.job.stage.BuildParam;
 import org.apache.kylin.engine.spark.job.stage.StageExec;
@@ -47,11 +46,18 @@ import org.apache.kylin.engine.spark.job.stage.merge.partition.PartitionMergeFla
 import org.apache.kylin.engine.spark.job.stage.merge.partition.PartitionMergeIndices;
 import org.apache.kylin.engine.spark.job.stage.snapshots.SnapshotsBuild;
 import org.apache.kylin.engine.spark.job.stage.tablesampling.AnalyzerTable;
-import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
+
+import io.kyligence.kap.engine.spark.job.SnapshotBuildJob;
+import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
+import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
+import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
+import io.kyligence.kap.engine.spark.job.step.NStageForTableSampling;
+import io.kyligence.kap.engine.spark.job.step.NStageForWaitingForYarnResource;
+import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;
 
 public enum StageType {
     WAITE_FOR_RESOURCE {

@@ -27,11 +27,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.service.DTableService;
 import org.apache.kylin.job.service.TableSampleService;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.aspect.WaitForSyncBeforeRPC;
 import org.apache.kylin.rest.request.RefreshSegmentsRequest;
 import org.apache.kylin.rest.request.SamplingRequest;
@@ -111,7 +114,9 @@ public class SampleController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
-        checkParamLength("tag", request.getTag(), 1024);
+        ProjectInstance prjInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(request.getProject());
+        checkParamLength("tag", request.getTag(), prjInstance.getConfig().getJobTagMaxSize());
         checkSamplingRows(request.getRows());
         checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());

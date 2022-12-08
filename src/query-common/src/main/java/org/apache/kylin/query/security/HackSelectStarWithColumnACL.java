@@ -37,19 +37,20 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.exception.NoAuthorizedColsError;
-import org.apache.kylin.query.util.KapQueryUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.query.util.KapQueryUtil;
 
 public class HackSelectStarWithColumnACL implements KapQueryUtil.IQueryTransformer, IPushDownConverter {
 

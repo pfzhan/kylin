@@ -38,7 +38,6 @@ import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NSparkSnapshotJob;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -50,6 +49,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import lombok.val;
 
 public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {

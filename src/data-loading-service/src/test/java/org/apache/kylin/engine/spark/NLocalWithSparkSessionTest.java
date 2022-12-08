@@ -26,7 +26,6 @@ import java.util.Set;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NSparkMergingJob;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -35,6 +34,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.Before;
 import org.sparkproject.guava.collect.Sets;
+
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 
 public class NLocalWithSparkSessionTest extends NLocalWithSparkSessionTestBase {
 

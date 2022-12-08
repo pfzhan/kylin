@@ -30,7 +30,6 @@ import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NTableSamplingJob;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -39,6 +38,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import lombok.val;
 import lombok.var;
 

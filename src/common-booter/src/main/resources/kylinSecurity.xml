@@ -66,7 +66,7 @@
           class="org.springframework.security.acls.domain.ConsoleAuditLogger"/>
 
     <bean id="permissionGrantingStrategy"
-          class="org.springframework.security.acls.domain.DefaultPermissionGrantingStrategy">
+          class="org.apache.kylin.rest.security.KylinPermissionGrantingStrategy">
         <constructor-arg ref="auditLogger"/>
     </bean>
 
@@ -74,7 +74,12 @@
         <bean id="userService" class="org.apache.kylin.rest.service.LdapUserService"/>
         <bean id="userGroupService" class="org.apache.kylin.rest.service.LdapUserGroupService"/>
 
-
+        <bean id="ldapSource"
+              class="org.springframework.security.ldap.DefaultSpringSecurityContextSource">
+            <constructor-arg value="${kylin.security.ldap.connection-server}"/>
+            <property name="userDn" value="${kylin.security.ldap.connection-username}"/>
+            <property name="password" value="${kylin.security.ldap.connection-password}"/>
+        </bean>
 
         <bean id="ldapTemplate" class="org.springframework.security.ldap.SpringSecurityLdapTemplate">
             <constructor-arg index="0" ref="ldapSource"/>
@@ -248,6 +253,8 @@
             <scr:intercept-url pattern="/api/epoch/maintenance_mode" access="permitAll"/>
             <scr:intercept-url pattern="/api/health" access="permitAll"/>
             <scr:intercept-url pattern="/api/health/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/kg/health" access="permitAll"/>
+            <scr:intercept-url pattern="/api/kg/health/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/prometheus" access="permitAll"/>
             <scr:intercept-url pattern="/api/monitor/spark/prometheus" access="permitAll"/>
             <scr:intercept-url pattern="/api/monitor/alert" access="hasRole('ROLE_ADMIN')"/>
@@ -269,11 +276,33 @@
             <scr:intercept-url pattern="/api/query*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/metadata*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/**/metrics" access="permitAll"/>
+            <scr:intercept-url pattern="/api/metrics/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/logfile" access="permitAll"/>
+            <scr:intercept-url pattern="/api/httptrace" access="permitAll"/>
+            <scr:intercept-url pattern="/api/heapdump" access="permitAll"/>
+            <scr:intercept-url pattern="/api/trace" access="permitAll"/>
+            <scr:intercept-url pattern="/api/env" access="permitAll"/>
+            <scr:intercept-url pattern="/api/auditevents" access="permitAll"/>
+            <scr:intercept-url pattern="/api/refresh" access="permitAll"/>
+            <scr:intercept-url pattern="/api/flyway" access="permitAll"/>
+            <scr:intercept-url pattern="/api/scheduledtasks" access="permitAll"/>
+            <scr:intercept-url pattern="/api/beans" access="permitAll"/>
+            <scr:intercept-url pattern="/api/info" access="permitAll"/>
+            <scr:intercept-url pattern="/api/jolokia/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/liquibase" access="permitAll"/>
+            <scr:intercept-url pattern="/api/threaddump" access="permitAll"/>
+            <scr:intercept-url pattern="/api/loggers/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/mappings" access="permitAll"/>
+            <scr:intercept-url pattern="/api/dump" access="permitAll"/>
+            <scr:intercept-url pattern="/api/configprops" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/backup" access="permitAll"/>
             <scr:intercept-url pattern="/api/jobs/spark" access="permitAll"/>
             <scr:intercept-url pattern="/api/jobs/stage/status" access="permitAll"/>
             <scr:intercept-url pattern="/api/jobs/error" access="permitAll"/>
             <scr:intercept-url pattern="/api/jobs/wait_and_run_time" access="permitAll"/>
+            <scr:intercept-url pattern="/api/snapshots/source_table_stats" access="permitAll"/>
+            <scr:intercept-url pattern="/api/snapshots/auto_refresh" access="permitAll"/>
+            <scr:intercept-url pattern="/api/snapshots/view_mapping" access="permitAll"/>
             <scr:intercept-url pattern="/api/cache*/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/cubes/src/tables" access="hasAnyRole('ROLE_ANALYST')"/>
             <scr:intercept-url pattern="/api/cubes*/**" access="isAuthenticated()"/>
@@ -283,6 +312,7 @@
             <scr:intercept-url pattern="/api/admin/instance_info" access="permitAll"/>
             <scr:intercept-url pattern="/api/projects" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/info" access="permitAll"/>
+            <scr:intercept-url pattern="/api/error" access="permitAll"/>
             <scr:intercept-url pattern="/api/admin*/**" access="hasRole('ROLE_ADMIN')"/>
             <scr:intercept-url pattern="/api/**" access="isAuthenticated()"/>
 
@@ -677,7 +707,6 @@
     </beans>
 
     <beans profile="custom">
-
         <scr:authentication-manager alias="customAuthManager" erase-credentials="false">
             <scr:authentication-provider ref="customAuthProvider"/>
         </scr:authentication-manager>
