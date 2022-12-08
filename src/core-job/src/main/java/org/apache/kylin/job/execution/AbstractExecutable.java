@@ -777,7 +777,8 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         val stagesMap = task.getStagesMap();
         if (stagesMap.size() == 1) {
             for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                taskDuration = entry.getValue().stream().map(stage -> getDuration(stage.getOutput(entry.getKey(), executablePO))) //
+                taskDuration = entry.getValue().stream()
+                        .map(stage -> getStageDuration(stage.getOutput(entry.getKey()), getParent())) //
                         .mapToLong(Long::valueOf) //
                         .sum();
             }
@@ -793,6 +794,28 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return getDuration(getOutput(executablePO));
     }
 
+    public static long computeDuration(Output output) {
+        if (output.getStartTime() == 0) {
+            return 0;
+        }
+        return output.getEndTime() == 0 ? System.currentTimeMillis() - output.getStartTime()
+                : output.getEndTime() - output.getStartTime();
+    }
+
+    // just used for the stage job
+    public static long getStageDuration(Output output, AbstractExecutable parent) {
+        if (output.getDuration() != 0) {
+            var duration = output.getDuration();
+            // If the parent job is not running, the duration of the stage is no longer counted no matter what state the stage is
+            if (parent != null && parent.getStatus() == ExecutableState.RUNNING
+                    && ExecutableState.RUNNING == output.getState()) {
+                duration = duration + System.currentTimeMillis() - output.getLastRunningStartTime();
+            }
+            return duration;
+        }
+        return computeDuration(output);
+    }
+
     public static long getDuration(Output output) {
         if (output.getDuration() != 0) {
             var duration = output.getDuration();
@@ -801,11 +824,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             }
             return duration;
         }
-        if (output.getStartTime() == 0) {
-            return 0;
-        }
-        return output.getEndTime() == 0 ? System.currentTimeMillis() - output.getStartTime()
-                : output.getEndTime() - output.getStartTime();
+        return computeDuration(output);
     }
 
     public long getWaitTime() {
