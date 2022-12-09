@@ -59,6 +59,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -85,11 +86,13 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.streaming.KafkaConfigManager;
@@ -387,6 +390,13 @@ public class NBasicController {
         HashMap<String, Object> data = new HashMap<>();
         data.put(name, PagingUtil.cutPage(result, offset, limit));
         data.put("size", result.size());
+        return data;
+    }
+
+    public Map<String, Object> setCustomDataResponse(String name, Pair<List<TableDesc>, Integer> result, int offset, int limit) {
+        Map<String, Object> data = new HashMap<>();
+        data.put(name, PagingUtil.cutPage(result.getFirst(), offset, limit));
+        data.put("size", result.getSecond());
         return data;
     }
 

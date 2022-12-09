@@ -18,14 +18,15 @@
 
 package org.apache.kylin.rest.controller;
 
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.SORT_BY_FIELD_NOT_EXIST;
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SORT_BY_FIELD_NOT_EXIST;
 
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.service.SnapshotService;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.constant.SnapshotStatus;
@@ -235,8 +236,8 @@ public class SnapshotControllerTest extends NLocalFileMetadataTestCase {
         Set<SnapshotStatus> statusFilter = Sets.newHashSet();
         String sortBy = "last_modified_time";
         boolean isReversed = true;
-        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter,
-                Sets.newHashSet(), sortBy, isReversed);
+        Mockito.doAnswer(x -> Pair.newPair(null, 10)).when(snapshotService).getProjectSnapshots(project, table, statusFilter,
+                Sets.newHashSet(), sortBy, isReversed, Pair.newPair(0, 10));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project)
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -251,8 +252,8 @@ public class SnapshotControllerTest extends NLocalFileMetadataTestCase {
         Set<SnapshotStatus> statusFilter = Sets.newHashSet();
         String sortBy = "UNKNOWN";
         boolean isReversed = true;
-        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, null,
-                sortBy, isReversed);
+        Mockito.doAnswer(x -> Pair.newPair(null, 10)).when(snapshotService).getProjectSnapshots(project, table, statusFilter, null,
+                sortBy, isReversed, Pair.newPair(0, 10));
         final MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project).param("sort_by", sortBy)
                         .contentType(MediaType.APPLICATION_JSON)
