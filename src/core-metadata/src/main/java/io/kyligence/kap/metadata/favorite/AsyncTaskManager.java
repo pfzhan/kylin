@@ -18,6 +18,9 @@
 
 package io.kyligence.kap.metadata.favorite;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
@@ -28,12 +31,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class AsyncTaskManager {
@@ -105,10 +103,6 @@ public class AsyncTaskManager {
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
         if (!projectInstance.isSemiAutoMode()) {
             log.debug("Recommendation is forbidden of project({}), there's no need to clean acceleration tag", project);
-            return;
-        }
-
-        if (!EpochManager.getInstance().checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
             return;
         }
 
