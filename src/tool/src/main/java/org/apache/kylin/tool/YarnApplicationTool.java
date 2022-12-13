@@ -19,13 +19,17 @@
 package org.apache.kylin.tool;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -33,13 +37,19 @@ import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.val;
+
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
 
 public class YarnApplicationTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -96,8 +106,17 @@ public class YarnApplicationTool extends ExecutableApplication {
         }
     }
 
-    private Set<String> extract(String project, String jobId) {
-        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getYarnApplicationJobs(jobId);
+    public Set<String> extract(String project, String jobId) {
+        JobMapperFilter filter = JobMapperFilter.builder().project(project).jobId(jobId).build();
+        List<ExecutablePO> jobs = JobMetadataInvoker.getInstance().getExecutablePOsByFilter(filter);
+        if (jobs.size() == 1) {
+            String appIds = jobs.get(0).getOutput().getInfo().getOrDefault(YARN_APP_IDS, "");
+            return StringUtils.isEmpty(appIds) ? new TreeSet<>()
+                    : new TreeSet<>(Arrays.asList(appIds.split(YARN_APP_IDS_DELIMITER)));
+        } else {
+            throw new IllegalArgumentException(
+                    String.format("Job id {%s} found executable list size not equals 1.", jobId));
+        }
     }
 
     public void extractYarnLogs(File exportDir, String project, String jobId) {

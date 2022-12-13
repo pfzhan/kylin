@@ -161,11 +161,11 @@ public class QueryMetricsContext extends QueryMetrics {
             }
             querySnapshots.add(qcReal.getSnapshots());
         }
-
         queryHistoryInfo.setQuerySnapshots(querySnapshots);
         queryHistoryInfo.setCacheType(this.cacheType);
         queryHistoryInfo.setQueryMsg(this.queryMsg);
         queryHistoryInfo.setHostName(AddressUtil.getHostName());
+        queryHistoryInfo.setPort(KylinConfig.getInstanceFromEnv().getServerPort());
         this.queryHistoryInfo = queryHistoryInfo;
 
         this.queryHistoryInfo.setTraces(createTraces(context));

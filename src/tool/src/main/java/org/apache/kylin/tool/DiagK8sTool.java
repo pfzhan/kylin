@@ -107,7 +107,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportQueryHistoryOffset(null, recordTime);
         exportK8sConf(headers, exportDir, recordTime, null);
         exportK8sLog(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
-        // TODO Spark logs
+        exportSparkLog(exportDir, startTime, endTime, recordTime, null);
     }
 
     private void extractQueryDiag(File exportDir, File recordTime, String queryId, String project) throws IOException {
@@ -127,8 +127,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.QUERY);
         // TODO this will extract logs from all query pods.
         exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
-        //TODO extract SparkLogs
-
+        exportSparkLog(exportDir, startTime, endTime, recordTime, queryId);
     }
 
     private void extractJobDiag(File exportDir, File recordTime, String jobId) throws IOException {
@@ -153,8 +152,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.DATA_LOADING);
         // TODO this will extract logs from all data_loading pods.
         exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
-        //TODO extract SparkLogs
-
+        exportJobSparkLog(exportDir, recordTime, project, jobId, job);
     }
 
     private List<String> extractInstances(ExecutablePO po) {

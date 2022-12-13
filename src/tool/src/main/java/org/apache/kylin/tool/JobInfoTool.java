@@ -49,7 +49,6 @@ public class JobInfoTool {
     }
 
     public void extractFull(File dir, long startTime, long endTime) {
-
         Date startDate = new Date(startTime);
         Date endDate = new Date(endTime);
         JobMapperFilter filter = JobMapperFilter.builder().timeRange(Arrays.asList(startDate, endDate)).build();

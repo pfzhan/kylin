@@ -20,13 +20,15 @@ package org.apache.kylin.query.util
 
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.kylin.common.util.{AddressUtil, HadoopUtil}
-import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.common.{KapConfig, KylinConfig, KylinConfigBase}
 import org.slf4j.LoggerFactory
 
 object ExtractFactory {
   def create: ILogExtractor = {
     if (KapConfig.wrap(KylinConfig.getInstanceFromEnv).isCloud) {
       CloudLogExtractor
+    } else if (KylinConfig.getInstanceFromEnv.getMicroServerMode != null) {
+      K8sLogExtractor
     } else {
       HadoopLogExtractor
     }
@@ -36,7 +38,7 @@ object ExtractFactory {
 trait ILogExtractor {
   val ROLL_LOG_DIR_NAME_PREFIX = "eventlog_v2_"
 
-  def getValidSparderApps(startTime: Long, endTime: Long): scala.List[FileStatus] = {
+  def getValidSparderApps(startTime: Long, endTime: Long, host: String): scala.List[FileStatus] = {
     val logDir = getSparderEvenLogDir
     val fs = HadoopUtil.getFileSystem(logDir)
     HadoopUtil.getFileSystem(logDir).listStatus(new Path(logDir)).toList
@@ -84,5 +86,49 @@ object HadoopLogExtractor extends ILogExtractor {
         log.error("Check sparder appId time range failed.", e)
     }
     valid
+  }
+}
+
+object K8sLogExtractor extends ILogExtractor {
+  private val log = LoggerFactory.getLogger(K8sLogExtractor.getClass)
+
+  override def filterApps(fileStatus: FileStatus, startTime: Long, endTime: Long, fs: FileSystem): Boolean = {
+    var valid = false
+    try {
+      val fileInfo = fileStatus.getPath.getName.split("#")
+      val fileStatuses: Array[FileStatus] = fs.listStatus(new Path(fileStatus.getPath.toUri))
+      if (!fileStatuses.isEmpty) {
+        val maxModifyTime = fileStatuses.map(f => f.getModificationTime).max
+        valid = fileInfo.length == 2 && fileInfo(1).toLong <= endTime && maxModifyTime >= startTime
+      }
+    } catch {
+      case e: Exception =>
+        log.error("Check sparder appId time range failed.", e)
+    }
+    valid
+  }
+
+  def getServiceSparderEventLogDir(service: String): String = {
+    KapConfig.wrap(KylinConfig.getInstanceFromEnv).getSparkConf.get("spark.eventLog.dir") + "/" + service
+  }
+
+  override def getSparderEvenLogDir(): String = {
+    val service = KylinConfig.getInstanceFromEnv.getApplicationConfig(KylinConfigBase.SERVER_NAME_STRING)
+    getServiceSparderEventLogDir(service) + "/" + AddressUtil.getLocalServerInfo
+  }
+
+  override def getValidSparderApps(startTime: Long, endTime: Long, host: String): scala.List[FileStatus] = {
+    // TODO batter way to get query service name
+    val logDir = getServiceSparderEventLogDir("yinglong-query-booter")
+    val fs = HadoopUtil.getFileSystem(logDir)
+    fs.listStatus(new Path(logDir))
+      .flatMap(status => {
+        if (host != null && !host.equals(status.getPath.getName)) {
+          Array[FileStatus]()
+        } else {
+          fs.listStatus(status.getPath)
+        }
+      }).toList
+      .filter(fileStatus => filterApps(fileStatus, startTime, endTime, fs))
   }
 }

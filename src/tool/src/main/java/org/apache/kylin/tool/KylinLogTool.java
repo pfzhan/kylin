@@ -803,10 +803,10 @@ public class KylinLogTool {
      * otherwise it always increases.
      */
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
-                                              Map<String, String> sparderConf, ILogExtractor extractTool) {
+                                              Map<String, String> sparderConf, ILogExtractor extractTool, String host) {
         val sparkLogsDir = new File(exportDir, "sparder_history");
         val fs = HadoopUtil.getFileSystem(extractTool.getSparderEvenLogDir());
-        val validApps = extractTool.getValidSparderApps(startTime, endTime);
+        val validApps = extractTool.getValidSparderApps(startTime, endTime, host);
         JavaConversions.asJavaCollection(validApps).forEach(app -> {
             try {
                 if (!sparkLogsDir.exists()) {

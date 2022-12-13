@@ -26,7 +26,9 @@ import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CONF;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.FAVORITE_RULE;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.HADOOP_CONF;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.HADOOP_ENV;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_EVENTLOGS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_INFO;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_TMP;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JSTACK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.KG_LOGS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.LOG;
@@ -60,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -67,6 +70,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -75,8 +80,15 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.common.util.ZipFileUtils;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.query.util.ExtractFactory;
 import org.apache.kylin.query.util.ILogExtractor;
+import org.apache.kylin.rest.cluster.ClusterManager;
+import org.apache.kylin.rest.response.ServerInfoResponse;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.tool.constant.DiagSubTaskEnum;
 import org.apache.kylin.tool.constant.SensitiveConfigKeysConstant;
 import org.apache.kylin.tool.constant.StageEnum;
@@ -327,6 +339,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     protected void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime, String queryId) {
+        QueryHistory query = new QueryDiagInfoTool().getQueryByQueryId(queryId);
+        String hostName = query == null ? null : AddressUtil.getServerInfo(
+                query.getQueryHistoryInfo().getHostName(), query.getQueryHistoryInfo().getPort());
+
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
             recordTaskStartTime(SPARK_LOGS);
@@ -344,22 +360,41 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         Future sparderHistoryTask = executorService.submit(() -> {
             recordTaskStartTime(SPARDER_HISTORY);
             ILogExtractor extractTool = ExtractFactory.create();
-            tryRollUpEventLog();
+            tryRollUpEventLog(query);
             KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
-                    extractTool);
+                    extractTool, hostName);
             recordTaskExecutorTimeToFile(SPARDER_HISTORY, recordTime);
         });
 
         scheduleTimeoutTask(sparderHistoryTask, SPARDER_HISTORY);
     }
 
-    public void tryRollUpEventLog() {
+    public void tryRollUpEventLog(QueryHistory queryHistory) {
         int retry = 3;
-        int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
-        RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
-        boolean eventLogSuccess = false;
-        while (retry-- > 0 && !eventLogSuccess) {
-            eventLogSuccess = restClient.rollUpEventLog();
+        List<RestClient> restClients = Lists.newArrayList();
+        if (KylinConfig.getInstanceFromEnv().getMicroServerMode() != null && queryHistory == null) {
+            ClusterManager clusterManager = SpringContext.getApplicationContext().getBean(ClusterManager.class);
+            for (ServerInfoResponse queryServer : clusterManager.getQueryServers()) {
+                RestClient restClient = new RestClient(queryServer.getHost());
+                restClients.add(restClient);
+            }
+        } else if (queryHistory != null) {
+            RestClient restClient = new RestClient(queryHistory.getHostName());
+            restClients.add(restClient);
+        } else {
+            int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
+            RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
+            restClients.add(restClient);
+        }
+
+        while (retry-- > 0 && !restClients.isEmpty()) {
+            List<RestClient> successClient = Lists.newArrayList();
+            for (RestClient restClient : restClients) {
+                if (restClient.rollUpEventLog()) {
+                    successClient.add(restClient);
+                }
+            }
+            restClients.removeAll(successClient);
         }
     }
 
@@ -912,6 +947,46 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     public long getDefaultEndTime() {
         return DateTime.now().plusDays(1).minus(1).withTimeAtStartOfDay().getMillis();
+    }
+
+    public void exportJobSparkLog(File exportDir, final File recordTime, String project, String jobId,
+                                   ExecutablePO job) {
+        // job spark log
+        Future sparkLogTask = executorService.submit(() -> {
+            recordTaskStartTime(SPARK_LOGS);
+            KylinLogTool.extractSparkLog(exportDir, project, jobId);
+            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
+        });
+
+        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
+
+        // extract job step eventLogs
+        Future eventLogTask = executorService.submit(() -> {
+            try {
+                if (ClassUtil.forName(job.getType(), AbstractExecutable.class)
+                        .newInstance() instanceof DefaultExecutable) {
+                    recordTaskStartTime(JOB_EVENTLOGS);
+                    YarnApplicationTool yarnApplicationTool = new YarnApplicationTool();
+                    val appIds = yarnApplicationTool.extract(project, jobId);
+                    Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
+                    KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
+                    recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
+                }
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                logger.error("Class <{}> not found or cannot be created.", job.getType(), e);
+            }
+        });
+
+        scheduleTimeoutTask(eventLogTask, JOB_EVENTLOGS);
+
+        // job tmp
+        Future jobTmpTask = executorService.submit(() -> {
+            recordTaskStartTime(JOB_TMP);
+            KylinLogTool.extractJobTmp(exportDir, project, jobId);
+            recordTaskExecutorTimeToFile(JOB_TMP, recordTime);
+        });
+
+        scheduleTimeoutTask(jobTmpTask, JOB_TMP);
     }
 }
 

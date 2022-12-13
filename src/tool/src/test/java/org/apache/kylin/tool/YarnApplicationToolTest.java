@@ -35,6 +35,7 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.tool.util.JobMetadataWriter;
 import org.junit.After;
 import org.junit.Assert;
@@ -64,7 +65,8 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         createTestMetadata();
         prepareData();
-
+        JobMetadataInvoker.setDelegate(new AbstractInfoExtractorToolTest.JobDelegate());
+        JobContextUtil.cleanUp();
     }
 
     @After

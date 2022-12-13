@@ -18,18 +18,13 @@
 package org.apache.kylin.tool;
 
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
-import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_EVENTLOGS;
-import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_TMP;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SOURCE_TABLE_STATS;
-import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.YARN;
 
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -37,12 +32,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -175,7 +168,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         exportConf(exportDir, recordTime, includeConf, includeBin);
 
-        exportSparkLog(exportDir, recordTime, project, jobId, job);
+        exportJobSparkLog(exportDir, recordTime, project, jobId, job);
         exportCandidateLog(exportDir, recordTime, project, startTime, endTime);
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
@@ -230,44 +223,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         scheduleTimeoutTask(candidateLogTask, CANDIDATE_LOG);
     }
 
-    private void exportSparkLog(File exportDir, final File recordTime, String project, String jobId,
-            ExecutablePO job) {
-        // job spark log
-        val sparkLogTask = executorService.submit(() -> {
-            recordTaskStartTime(SPARK_LOGS);
-            KylinLogTool.extractSparkLog(exportDir, project, jobId);
-            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
-        });
-
-        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
-
-        // extract job step eventLogs
-        Future eventLogTask = executorService.submit(() -> {
-            try {
-                if (ClassUtil.forName(job.getType(), AbstractExecutable.class)
-                        .newInstance() instanceof DefaultExecutable) {
-                    recordTaskStartTime(JOB_EVENTLOGS);
-                    val appIds = ExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
-                    Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
-                    KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
-                    recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
-                }
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-                logger.error("Class <{}> not found or cannot be created.", job.getType(), e);
-            }
-        });
-
-        scheduleTimeoutTask(eventLogTask, JOB_EVENTLOGS);
-
-        // job tmp
-        val jobTmpTask = executorService.submit(() -> {
-            recordTaskStartTime(JOB_TMP);
-            KylinLogTool.extractJobTmp(exportDir, project, jobId);
-            recordTaskExecutorTimeToFile(JOB_TMP, recordTime);
-        });
-
-        scheduleTimeoutTask(jobTmpTask, JOB_TMP);
-    }
 
     @VisibleForTesting
     public ExecutablePO getJobByJobId(String jobId) {

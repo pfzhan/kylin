@@ -61,6 +61,8 @@ public class QueryHistoryInfo implements Serializable {
     private long sourceResultCount = 0L;
     @JsonProperty("host_name")
     private String hostName;
+    @JsonProperty("port")
+    private String port;
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;

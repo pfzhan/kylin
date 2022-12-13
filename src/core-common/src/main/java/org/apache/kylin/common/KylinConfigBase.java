@@ -122,7 +122,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     private static final String METRICS = "_metrics/";
 
-    private static final String SERVER_NAME_STRING = "spring.application.name";
+    public static final String SERVER_NAME_STRING = "spring.application.name";
 
     protected static final Map<String, String> STATIC_SYSTEM_ENV = new ConcurrentHashMap<>(System.getenv());
 

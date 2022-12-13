@@ -83,6 +83,11 @@ public class AddressUtil {
         return host.replaceAll("[^(_a-zA-Z0-9)]", "");
     }
 
+    public static String getServerInfo(String hostName, String port) {
+        String host = hostName + "_" + port;
+        return host.replaceAll("[^(_a-zA-Z0-9)]", "");
+    }
+
     public static String getLocalHostExactAddress() {
         val localIpAddress = KylinConfig.getInstanceFromEnv().getServerIpAddress();
         if (StringUtils.isNotBlank(localIpAddress)) {
