@@ -66,7 +66,7 @@ public interface ModelMetadataRPC extends ModelMetadataContract {
 
     @PostMapping(value = "/get_model_id_by_fuzzy_name")
     List<String> getModelNamesByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
-            @RequestParam("project") String project);
+            @RequestParam(value="project", required = false) String project);
 
     @PostMapping(value = "/get_model_name_by_id")
     String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project);

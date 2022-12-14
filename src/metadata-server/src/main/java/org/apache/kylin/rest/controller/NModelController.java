@@ -735,7 +735,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/feign/get_model_id_by_fuzzy_name")
     @ResponseBody
     public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
-            @RequestParam("project") String project) {
+            @RequestParam(value="project", required = false) String project) {
         return modelService.getModelNamesByFuzzyName(fuzzyName, project);
     }
 

@@ -67,6 +67,6 @@ public class TableMetadataInvoker extends TableMetadataBaseInvoker {
     }
 
     public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {
-        return getDelegate().getTableNamesByFuzzyKey(fuzzyKey, project);
+        return getDelegate().getTableNamesByFuzzyKey(project, fuzzyKey);
     }
 }

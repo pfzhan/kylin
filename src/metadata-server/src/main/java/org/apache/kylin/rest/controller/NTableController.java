@@ -519,7 +519,7 @@ public class NTableController extends NBasicController {
 
     @GetMapping(value = "/feign/get_table_names_by_fuzzy_key")
     @ResponseBody
-    public List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project") String project,
+    public List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project", required = false) String project,
                                                 @RequestParam(value = "fuzzyKey") String fuzzyKey) {
         return tableExtService.getTableNamesByFuzzyKey(project, fuzzyKey);
     }

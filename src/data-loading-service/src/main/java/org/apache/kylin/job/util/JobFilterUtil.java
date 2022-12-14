@@ -23,8 +23,10 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.commons.lang.StringUtils;
@@ -37,6 +39,7 @@ import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableMetadataInvoker;
+import org.sparkproject.guava.collect.Lists;
 
 import com.google.common.base.Preconditions;
 
@@ -46,7 +49,7 @@ public class JobFilterUtil {
             ModelMetadataInvoker modelMetadataInvoker, TableMetadataInvoker tableMetadataInvoker) {
         Date queryStartTime = getQueryStartTime(jobFilter.getTimeFilter());
 
-        List<String> subjects = new ArrayList<>();
+        Set<String> subjects = new HashSet<>();
         if (StringUtils.isNotEmpty(jobFilter.getSubject())) {
             subjects.add(jobFilter.getSubject().trim());
         }
@@ -72,7 +75,7 @@ public class JobFilterUtil {
             orderType = "DESC";
         }
 
-        return new JobMapperFilter(jobFilter.getStatuses(), jobFilter.getJobNames(), queryStartTime, subjects, null,
+        return new JobMapperFilter(jobFilter.getStatuses(), jobFilter.getJobNames(), queryStartTime, Lists.newArrayList(subjects), null,
                 jobId, null, jobFilter.getProject(), orderByField, orderType, offset, limit,
                 JobMybatisConfig.JOB_INFO_TABLE, null);
     }

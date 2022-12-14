@@ -145,8 +145,8 @@ public class NTableMetadataManager {
     
     public List<String> getTableNamesByFuzzyKey(String fuzzyKey) {
         return srcTableCrud.listAll().stream()
-                .filter(tableDesc -> StringUtils.containsIgnoreCase(tableDesc.getName(), fuzzyKey))
-                .map(tableDesc -> tableDesc.getName()).collect(Collectors.toList());
+                .filter(tableDesc -> StringUtils.containsIgnoreCase(tableDesc.getIdentity(), fuzzyKey))
+                .map(tableDesc -> tableDesc.getIdentity()).collect(Collectors.toList());
     }
 
     /**
