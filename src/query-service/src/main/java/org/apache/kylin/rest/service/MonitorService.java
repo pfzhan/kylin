@@ -109,18 +109,22 @@ public class MonitorService extends BasicService implements ApplicationListener<
     public void onApplicationEvent(AfterMetadataReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        if (kapConfig.isMonitorEnabled()) {
-            try {
-                MonitorReporter.getInstance().startReporter();
-            } catch (Exception e) {
-                log.error("Failed to start monitor reporter!", e);
-            }
+        boolean monitorEnabled = kapConfig.isMonitorEnabled();
+        MonitorReporter monitorReporter = MonitorReporter.getInstance();
+        if (!monitorEnabled) {
+            logger.warn("Monitor reporter is not enabled!");
+            return;
         }
-        MonitorReporter.getInstance().submit(new AbstractMonitorCollectTask(
+        try {
+            monitorReporter.startReporter();
+        } catch (Exception e) {
+            log.error("Failed to start monitor reporter!", e);
+        }
+        monitorReporter.submit(new AbstractMonitorCollectTask(
                 Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY, ClusterConstant.JOB)) {
             @Override
             protected MonitorMetric collect() {
-                QueryMonitorMetric queryMonitorMetric = MonitorReporter.getInstance().createQueryMonitorMetric();
+                QueryMonitorMetric queryMonitorMetric = monitorReporter.createQueryMonitorMetric();
 
                 queryMonitorMetric.setLastResponseTime(SparkContextCanary.getInstance().getLastResponseTime());
                 queryMonitorMetric.setErrorAccumulated(SparkContextCanary.getInstance().getErrorAccumulated());
@@ -130,15 +134,14 @@ public class MonitorService extends BasicService implements ApplicationListener<
             }
         });
         if (!kylinConfig.isJobNode() && !kylinConfig.isDataLoadingNode()) {
-            return;
+            monitorReporter.submit(
+                    new AbstractMonitorCollectTask(Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
+                        @Override
+                        protected MonitorMetric collect() {
+                            return collectJobMetric();
+                        }
+                    });
         }
-        MonitorReporter.getInstance()
-                .submit(new AbstractMonitorCollectTask(Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
-                    @Override
-                    protected MonitorMetric collect() {
-                        return collectJobMetric();
-                    }
-                });
     }
 
     private JobStatusMonitorMetric collectJobMetric() {
@@ -267,7 +270,7 @@ public class MonitorService extends BasicService implements ApplicationListener<
         }
         return stringBuilder.toString();
     }
-    
+
     public void handleAlertMessage(AlertMessageRequest request) {
         log.info("handle alert message : {}", request);
         List<AlertMessageRequest.Alerts> relatedQueryLimitAlerts = request.getAlerts().stream()

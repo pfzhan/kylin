@@ -73,6 +73,7 @@ import org.apache.kylin.rest.service.ModelTdsService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.tool.bisync.SyncContext;
 import org.apache.kylin.tool.bisync.model.SyncModel;
+import org.apache.kylin.util.DataRangeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -291,7 +292,7 @@ public class OpenModelController extends NBasicController {
                     modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat());
             partitionDateFormat = modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat();
         }
-        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
+        DataRangeUtils.validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
         val dataModel = modelService.getModel(modelAlias, projectName);
         modelService.updateModelPartitionColumn(projectName, dataModel.getAlias(), modelParatitionDescRequest);
@@ -457,7 +458,7 @@ public class OpenModelController extends NBasicController {
         request.setManagementType(model.getManagementType());
         request.setCanvas(model.getCanvas());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(request.getProject(), request.getId());
-        validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
+        DataRangeUtils.validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
         modelService.validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {

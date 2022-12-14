@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.execution.DefaultExecutable;
@@ -38,8 +37,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.JobService;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.AclUtil;
-import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import lombok.val;
 
@@ -84,8 +80,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
-        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
-        ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         // init DefaultScheduler
         overwriteSystemProp("kylin.job.max-local-consumption-ratio", "10");
         //NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
@@ -164,72 +158,72 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         });
     }
 
-    @Ignore
-    @Test
-    public void testResumeJob() {
-        logger.info("SchedulerEventBusTest testResumeJob");
+//    @Ignore
+//    @Test
+//    public void testResumeJob() {
+//        logger.info("SchedulerEventBusTest testResumeJob");
+//
+//        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
+//        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
+//                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+//        DefaultExecutable job = new DefaultExecutable();
+//        job.setProject(PROJECT);
+//        job.setJobType(JobTypeEnum.INC_BUILD);
+//        job.setTargetSubject(df.getModel().getUuid());
+//        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+//        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
+//        task.setTargetSubject(df.getModel().getUuid());
+//        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+//        job.addTask(task);
+//
+//        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+//        executableManager.addJob(job);
+//
+//        readyCalledCount.set(0);
+//
+//        executableManager.updateJobOutput(job.getId(), ExecutableState.PAUSED);
+//
+//        UnitOfWork.doInTransactionWithRetry(() -> {
+//            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESUME", Lists.newArrayList());
+//            return null;
+//        }, PROJECT);
+//
+//        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> 1 == readyCalledCount.get());
+//    }
 
-        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
-        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
-                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultExecutable job = new DefaultExecutable();
-        job.setProject(PROJECT);
-        job.setJobType(JobTypeEnum.INC_BUILD);
-        job.setTargetSubject(df.getModel().getUuid());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
-        task.setTargetSubject(df.getModel().getUuid());
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-
-        val executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
-        executableManager.addJob(job);
-
-        readyCalledCount.set(0);
-
-        executableManager.updateJobOutput(job.getId(), ExecutableState.PAUSED);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            jobInfoService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESUME", Lists.newArrayList());
-            return null;
-        }, PROJECT);
-
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> 1 == readyCalledCount.get());
-    }
-
-    @Ignore
-    @Test
-    public void testRestartJob() {
-        logger.info("SchedulerEventBusTest testRestartJob");
-
-        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
-        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
-                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        DefaultExecutable job = new DefaultExecutable();
-        job.setProject(PROJECT);
-        job.setJobType(JobTypeEnum.INC_BUILD);
-        job.setTargetSubject(df.getModel().getUuid());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
-        task.setTargetSubject(df.getModel().getUuid());
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-
-        val executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
-        executableManager.addJob(job);
-
-        readyCalledCount.set(0);
-
-        executableManager.updateJobOutput(job.getId(), ExecutableState.ERROR);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            jobInfoService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESTART", Lists.newArrayList());
-            return null;
-        }, PROJECT);
-
-        await().atMost(120000, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> Assert.assertEquals(1, readyCalledCount.get()));
-    }
+//    @Ignore
+//    @Test
+//    public void testRestartJob() {
+//        logger.info("SchedulerEventBusTest testRestartJob");
+//
+//        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
+//        val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
+//                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+//        DefaultExecutable job = new DefaultExecutable();
+//        job.setProject(PROJECT);
+//        job.setJobType(JobTypeEnum.INC_BUILD);
+//        job.setTargetSubject(df.getModel().getUuid());
+//        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+//        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
+//        task.setTargetSubject(df.getModel().getUuid());
+//        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+//        job.addTask(task);
+//
+//        val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+//        executableManager.addJob(job);
+//
+//        readyCalledCount.set(0);
+//
+//        executableManager.updateJobOutput(job.getId(), ExecutableState.ERROR);
+//
+//        UnitOfWork.doInTransactionWithRetry(() -> {
+//            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESTART", Lists.newArrayList());
+//            return null;
+//        }, PROJECT);
+//
+//        await().atMost(120000, TimeUnit.MILLISECONDS)
+//                .untilAsserted(() -> Assert.assertEquals(1, readyCalledCount.get()));
+//    }
 
     /*
     @Test
