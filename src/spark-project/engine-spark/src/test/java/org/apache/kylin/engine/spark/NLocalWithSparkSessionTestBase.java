@@ -114,7 +114,9 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
 
     @AfterClass
     public static void afterClass() {
-        ss.close();
+        if (ss != null) {
+            ss.close();
+        }
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
@@ -184,29 +186,29 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
 
         if (type.isIntegerFamily())
             switch (type.getName()) {
-                case "tinyint":
-                    return DataTypes.ByteType;
-                case "smallint":
-                    return DataTypes.ShortType;
-                case "integer":
-                case "int4":
-                    return DataTypes.IntegerType;
-                default:
-                    return DataTypes.LongType;
+            case "tinyint":
+                return DataTypes.ByteType;
+            case "smallint":
+                return DataTypes.ShortType;
+            case "integer":
+            case "int4":
+                return DataTypes.IntegerType;
+            default:
+                return DataTypes.LongType;
             }
 
         if (type.isNumberFamily())
             switch (type.getName()) {
-                case "float":
-                    return DataTypes.FloatType;
-                case "double":
-                    return DataTypes.DoubleType;
-                default:
-                    if (type.getPrecision() == -1 || type.getScale() == -1) {
-                        return DataTypes.createDecimalType(19, 4);
-                    } else {
-                        return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
-                    }
+            case "float":
+                return DataTypes.FloatType;
+            case "double":
+                return DataTypes.DoubleType;
+            default:
+                if (type.getPrecision() == -1 || type.getScale() == -1) {
+                    return DataTypes.createDecimalType(19, 4);
+                } else {
+                    return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
+                }
             }
 
         if (type.isStringFamily())
