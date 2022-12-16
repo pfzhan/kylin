@@ -32,6 +32,7 @@ import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -49,6 +50,7 @@ public class HdfsCapacityMetricsTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("KE-40537")
     public void testRegisterHdfsMetrics() throws InterruptedException {
         overwriteSystemProp("kylin.storage.check-quota-enabled", "true");
         overwriteSystemProp("kylin.metrics.hdfs-periodic-calculation-enabled", "true");
