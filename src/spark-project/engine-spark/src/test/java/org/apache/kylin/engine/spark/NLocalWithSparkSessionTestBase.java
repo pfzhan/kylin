@@ -97,6 +97,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         sparkConf.set("spark.sql.parquet.mergeSchema", "true");
         sparkConf.set("spark.sql.legacy.allowNegativeScaleOfDecimal", "true");
         sparkConf.set("spark.sql.broadcastTimeout", "900");
+        sparkConf.set("spark.sql.globalTempDatabase", "KYLIN_LOGICAL_VIEW");
 
         if (!sparkConf.getOption("spark.sql.extensions").isEmpty()) {
             sparkConf.set("spark.sql.extensions",
@@ -161,7 +162,8 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         Preconditions.checkArgument(projectInstance != null);
         for (String table : projectInstance.getTables()) {
 
-            if ("DEFAULT.STREAMING_TABLE".equals(table) || "DEFAULT.TEST_SNAPSHOT_TABLE".equals(table)) {
+            if ("DEFAULT.STREAMING_TABLE".equals(table) || "DEFAULT.TEST_SNAPSHOT_TABLE".equals(table)
+             || table.contains(kylinConfig.getDDLLogicalViewDB())) {
                 continue;
             }
 
@@ -174,7 +176,6 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
             Dataset<Row> ret = sparkSession.read().schema(schema).csv(String.format(Locale.ROOT, CSV_TABLE_DIR, table));
             ret.createOrReplaceTempView(tableDesc.getName());
         }
-
     }
 
     private static DataType convertType(org.apache.kylin.metadata.datatype.DataType type) {

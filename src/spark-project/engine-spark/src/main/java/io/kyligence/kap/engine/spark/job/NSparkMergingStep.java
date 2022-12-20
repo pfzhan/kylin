@@ -19,6 +19,7 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
@@ -55,8 +56,11 @@ public class NSparkMergingStep extends NSparkExecutable {
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
+        Set<String> dumpList = new LinkedHashSet<>();
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());
-        return df.collectPrecalculationResource();
+        dumpList.addAll(df.collectPrecalculationResource());
+        dumpList.addAll(getLogicalViewMetaDumpList(config));
+        return dumpList;
     }
 
     public static class Mockup {

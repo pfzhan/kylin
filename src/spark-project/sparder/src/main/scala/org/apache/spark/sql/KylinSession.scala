@@ -41,7 +41,6 @@ import java.time.Instant
 import java.util.{Locale, UUID}
 import scala.collection.JavaConverters._
 
-
 class KylinSession(
                     @transient val sc: SparkContext,
                     @transient private val existingSharedState: Option[SharedState],
@@ -176,6 +175,7 @@ object KylinSession extends Logging {
           } else {
             conf
           }
+          initLogicalViewConfig(conf)
           val sc = SparkContext.getOrCreate(sparkConf)
           // maybe this is an existing SparkContext, update its SparkConf which maybe used
           // by SparkSession
@@ -472,6 +472,12 @@ object KylinSession extends Logging {
       case _: ClassNotFoundException | _: NoClassDefFoundError =>
         logWarning(s"Can't load Kylin external $className, use Spark default instead")
         false
+    }
+  }
+
+  def initLogicalViewConfig(sparkConf: SparkConf): Unit = {
+    if (KylinConfig.getInstanceFromEnv.isDDLLogicalViewEnabled) {
+      sparkConf.set("spark.sql.globalTempDatabase", KylinConfig.getInstanceFromEnv.getDDLLogicalViewDB)
     }
   }
 }

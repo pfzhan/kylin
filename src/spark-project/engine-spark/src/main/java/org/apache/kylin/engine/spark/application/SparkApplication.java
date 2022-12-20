@@ -79,6 +79,8 @@ import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.view.LogicalView;
+import org.apache.kylin.metadata.view.LogicalViewManager;
 import org.apache.kylin.query.pushdown.SparkSubmitter;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.SparkConf;
@@ -87,6 +89,7 @@ import org.apache.spark.application.NoRetryException;
 import org.apache.spark.launcher.SparkLauncher;
 import org.apache.spark.sql.KylinSession;
 import org.apache.spark.sql.KylinSession$;
+import org.apache.spark.sql.LogicalViewLoader;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
@@ -100,6 +103,7 @@ import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
@@ -403,6 +407,7 @@ public abstract class SparkApplication implements Application {
     }
 
     protected void extraInit() {
+        loadLogicalView();
     }
 
     public void extraDestroy() {
@@ -666,4 +671,25 @@ public abstract class SparkApplication implements Application {
                 atomicUnreachableSparkMaster);
     }
 
+    @VisibleForTesting
+    public void loadLogicalView() {
+        if (!config.isDDLLogicalViewEnabled()) {
+            return;
+        }
+        String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        String tableName = getParam(NBatchConstants.P_TABLE_NAME);
+        LogicalViewManager viewManager = LogicalViewManager.getInstance(config);
+
+        if (StringUtils.isNotBlank(dataflowId)) {
+            viewManager
+                .findLogicalViewsInModel(project, dataflowId)
+                .forEach(view -> LogicalViewLoader.loadView(view.getTableName(), true, ss));
+        }
+        if (StringUtils.isNotBlank(tableName)) {
+            LogicalView view = viewManager.findLogicalViewInProject(getProject(), tableName);
+            if (view != null) {
+                LogicalViewLoader.loadView(view.getTableName(), true, ss);
+            }
+        }
+    }
 }

@@ -46,6 +46,7 @@ import java.util.Map
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{Callable, ExecutorService}
 
+
 // scalastyle:off
 object SparderEnv extends Logging {
   @volatile
@@ -274,6 +275,9 @@ object SparderEnv extends Logging {
           val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project.getName)
           tableMetadataManager.listAllTables().forEach(tableDesc => SparderEnv.addS3Credential(tableMetadataManager.getOrCreateTableExt(tableDesc).getS3RoleCredentialInfo, spark))
         })
+      }
+      if (KylinConfig.getInstanceFromEnv.isDDLLogicalViewEnabled) {
+        LogicalViewLoader.initScheduler()
       }
     } catch {
       case throwable: Throwable =>
