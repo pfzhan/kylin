@@ -15,7 +15,7 @@
     <result column="job_duration_millis" jdbcType="BIGINT" property="jobDurationMillis" />
   </resultMap>
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="org.apache.kylin.job.domain.JobInfo">
-    <result column="job_content" jdbcType="LONGVARBINARY" property="jobContent" />
+    <result column="job_content" jdbcType="BINARY" property="jobContent" />
   </resultMap>
   <sql id="Base_Column_List">
     id, job_id, job_type, job_status, project, subject, model_id, create_time, update_time, 
@@ -35,7 +35,7 @@
     values (#{id,jdbcType=BIGINT}, #{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, 
       #{jobStatus,jdbcType=VARCHAR}, #{project,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, 
       #{modelId,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
-      #{jobDurationMillis,jdbcType=BIGINT}, #{mvcc}, #{jobContent,jdbcType=LONGVARBINARY})
+      #{jobDurationMillis,jdbcType=BIGINT}, #{mvcc}, #{jobContent,jdbcType=BINARY})
   </insert>
 
   <delete id="deleteByJobId" parameterType="java.lang.String">
@@ -125,7 +125,7 @@
         #{mvcc},
       </if>
       <if test="jobContent != null">
-        #{jobContent,jdbcType=LONGVARBINARY},
+        #{jobContent,jdbcType=BINARY},
       </if>
     </trim>
   </insert>
@@ -165,7 +165,7 @@
         job_duration_millis = #{jobDurationMillis,jdbcType=BIGINT},
       </if>
       <if test="jobContent != null">
-        job_content = #{jobContent,jdbcType=LONGVARBINARY},
+        job_content = #{jobContent,jdbcType=BINARY},
       </if>
       mvcc = mvcc + 1
     </set>
@@ -227,7 +227,7 @@
       order by ${orderByFiled}  ${orderType}
     </if>
     <if test="offset&gt;=0 and limit&gt;=0">
-      limit ${offset}, ${limit}
+      limit ${limit} offset ${offset}
     </if>
   </select>
 

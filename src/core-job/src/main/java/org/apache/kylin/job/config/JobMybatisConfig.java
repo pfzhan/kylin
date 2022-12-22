@@ -57,8 +57,14 @@ public class JobMybatisConfig implements InitializingBean {
     @Qualifier("jobDataSource")
     private DataSource dataSource;
 
+    private String database;
+
     public static String JOB_INFO_TABLE = "job_info";
     public static String JOB_LOCK_TABLE = "job_lock";
+
+    public String getDatabase() {
+        return database;
+    }
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -70,6 +76,7 @@ public class JobMybatisConfig implements InitializingBean {
         }
         JOB_INFO_TABLE = keIdentified + "_job_info";
         JOB_LOCK_TABLE = keIdentified + "_job_lock";
+        database = Database.MYSQL.databaseId;
 
         String jobInfoFile = "script/schema_job_info_mysql.sql";
         String jobLockFile = "script/schema_job_lock_mysql.sql";
@@ -86,10 +93,16 @@ public class JobMybatisConfig implements InitializingBean {
             if (driverClassName.startsWith("com.mysql")) {
                 // mysql, is default
                 log.info("driver class name = {}, is mysql", driverClassName);
+            } else if (driverClassName.startsWith("org.postgresql")) {
+                log.info("driver class name = {}, is postgresql", driverClassName);
+                jobInfoFile = "script/schema_job_info_postgresql.sql";
+                jobLockFile = "script/schema_job_lock_postgresql.sql";
+                database = Database.POSTGRESQL.databaseId;
             } else if (driverClassName.equals("org.h2.Driver")) {
                 log.info("driver class name = {}, is H2 ", driverClassName);
                 jobInfoFile = "script/schema_job_info_h2.sql";
                 jobLockFile = "script/schema_job_lock_h2.sql";
+                database = Database.H2.databaseId;
             } else {
                 String errorMsg = String.format("driver class name = %1, should add support", driverClassName);
                 log.error(errorMsg);
@@ -116,5 +129,19 @@ public class JobMybatisConfig implements InitializingBean {
         populator.addScript(new InMemoryResource(sessionScript));
         populator.setContinueOnError(false);
         DatabasePopulatorUtils.execute(populator, dataSource);
+    }
+
+    enum Database {
+        MYSQL("mysql"),
+        POSTGRESQL("postgresql"),
+        H2("h2");
+
+        String databaseId;
+
+        Database(String databaseId) {
+            this.databaseId = databaseId;
+        }
+
+
     }
 }

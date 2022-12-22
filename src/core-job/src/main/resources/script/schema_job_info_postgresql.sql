@@ -17,13 +17,18 @@
 --
 
 
-CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_lock (
-  id bigint(20) NOT NULL AUTO_INCREMENT,
-  lock_id varchar(100) NOT NULL COMMENT 'what is locked',
-  lock_node varchar(50) DEFAULT NULL COMMENT 'who locked it',
-  lock_expire_time datetime DEFAULT NULL COMMENT 'when does the lock expire',
-  create_time datetime DEFAULT CURRENT_TIMESTAMP,
-  update_time datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_lock_id (lock_id)
-) AUTO_INCREMENT=10000 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
+  id SERIAL PRIMARY KEY,
+  job_id varchar(100) UNIQUE NOT NULL,
+  job_type varchar(50) NOT NULL,
+  job_status varchar(50) NOT NULL,
+  project varchar(512) NOT NULL,
+  subject varchar(512) NOT NULL,
+  model_id varchar(512) NOT NULL,
+  mvcc bigint,
+  job_content bytea NOT NULL,
+  create_time timestamptz(3) DEFAULT CURRENT_TIMESTAMP,
+  update_time timestamptz(3) DEFAULT CURRENT_TIMESTAMP,
+  job_duration_millis bigint NOT NULL DEFAULT '0'
+);
+comment on column KE_IDENTIFIED_job_info.job_duration_millis is 'total duration milliseconds';

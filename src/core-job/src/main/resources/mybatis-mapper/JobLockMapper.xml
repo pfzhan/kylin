@@ -127,21 +127,43 @@
         lock_expire_time,
       </if>
     </trim>
-    <trim prefix="values (" suffix=")" suffixOverrides=",">
-      #{lockId,jdbcType=VARCHAR},
-      <if test="lockNode != null">
-        #{lockNode,jdbcType=VARCHAR},
-        TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
-      </if>
-    </trim>
-    on duplicate key update
-    <trim suffixOverrides=",">
-      id = id,
-      <if test="lockNode != null">
-        lock_node = CASE WHEN lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_node) ELSE lock_node END,
-        lock_expire_time = CASE WHEN lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_expire_time) ELSE lock_expire_time END,
-      </if>
-    </trim>
+
+    <if test="database == 'mysql' or database == 'h2'">
+      <trim prefix="values (" suffix=")" suffixOverrides=",">
+        #{lockId,jdbcType=VARCHAR},
+        <if test="lockNode != null">
+          #{lockNode,jdbcType=VARCHAR},
+          TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
+        </if>
+      </trim>
+      on duplicate key update
+      <trim suffixOverrides=",">
+        id = id,
+        <if test="lockNode != null">
+          lock_node = CASE WHEN lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_node) ELSE lock_node END,
+          lock_expire_time = CASE WHEN lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_expire_time) ELSE lock_expire_time END,
+        </if>
+      </trim>
+    </if>
+
+    <if test="database == 'postgresql'">
+      <trim prefix="values (" suffix=")" suffixOverrides=",">
+        #{lockId,jdbcType=VARCHAR},
+        <if test="lockNode != null">
+          #{lockNode,jdbcType=VARCHAR},
+          CURRENT_TIMESTAMP + interval '${renewalSec} second',
+        </if>
+      </trim>
+      ON CONFLICT (lock_id) DO UPDATE SET
+      <trim suffixOverrides=",">
+        id = ${jobLockTable}.id,
+        <if test="lockNode != null">
+          lock_node = CASE WHEN ${jobLockTable}.lock_expire_time IS NULL OR ${jobLockTable}.lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN excluded.lock_node ELSE ${jobLockTable}.lock_node END,
+          lock_expire_time = CASE WHEN ${jobLockTable}.lock_node = excluded.lock_node OR ${jobLockTable}.lock_expire_time IS NULL OR ${jobLockTable}.lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN excluded.lock_expire_time ELSE ${jobLockTable}.lock_expire_time END,
+        </if>
+      </trim>
+    </if>
+
   </insert>
 
   <delete id="removeLock">

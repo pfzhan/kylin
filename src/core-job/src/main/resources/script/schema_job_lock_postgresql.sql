@@ -16,14 +16,14 @@
 -- limitations under the License.
 --
 
-
 CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_lock (
-  id bigint(20) NOT NULL AUTO_INCREMENT,
-  lock_id varchar(100) NOT NULL COMMENT 'what is locked',
-  lock_node varchar(50) DEFAULT NULL COMMENT 'who locked it',
-  lock_expire_time datetime DEFAULT NULL COMMENT 'when does the lock expire',
-  create_time datetime DEFAULT CURRENT_TIMESTAMP,
-  update_time datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_lock_id (lock_id)
-) AUTO_INCREMENT=10000 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  id SERIAL PRIMARY KEY,
+  lock_id varchar(100) UNIQUE NOT NULL,
+  lock_node varchar(50) DEFAULT NULL,
+  lock_expire_time timestamptz DEFAULT NULL,
+  create_time timestamptz DEFAULT CURRENT_TIMESTAMP,
+  update_time timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+comment on column KE_IDENTIFIED_job_lock.lock_id is 'what is locked';
+comment on column KE_IDENTIFIED_job_lock.lock_node is 'who locked it';
+comment on column KE_IDENTIFIED_job_lock.lock_expire_time is 'when does the lock expire';

@@ -36,6 +36,8 @@ public class JobLock {
     // placeholder for mybatis ${}
     private String jobLockTable;
 
+    private String database;
+
     public Long getId() {
         return id;
     }
@@ -90,5 +92,13 @@ public class JobLock {
 
     public void setJobLockTable(String jobLockTable) {
         this.jobLockTable = jobLockTable;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+    public String getDatabase() {
+        return database;
     }
 }
