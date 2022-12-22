@@ -19,21 +19,17 @@
 package org.apache.kylin.rest.controller;
 
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.ASYNC_QUERY_RESULT_NOT_FOUND;
 
-import java.io.IOException;
-import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.request.AsyncQuerySQLRequest;
 import org.apache.kylin.rest.request.AsyncQuerySQLRequestV2;
 import org.apache.kylin.rest.response.AsyncQueryResponse;
 import org.apache.kylin.rest.response.AsyncQueryResponseV2;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AsyncQueryService;
+import io.swagger.annotations.ApiOperation;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,7 +41,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.annotations.ApiOperation;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.io.IOException;
+import java.util.List;
 
 
 @RestController
@@ -69,7 +68,6 @@ public class NAsyncQueryControllerV2 extends NBasicController {
         sqlRequest.setProject(asyncQuerySQLRequest.getProject());
         sqlRequest.setSql(asyncQuerySQLRequest.getSql());
         sqlRequest.setSeparator(asyncQuerySQLRequest.getSeparator());
-        sqlRequest.setIncludeHeader(asyncQuerySQLRequest.isIncludeHeader());
         sqlRequest.setFormat("csv");
         sqlRequest.setEncode("utf-8");
         sqlRequest.setFileName("result");
@@ -114,7 +112,7 @@ public class NAsyncQueryControllerV2 extends NBasicController {
     @GetMapping(value = "/async_query/{query_id:.+}/result_download")
     @ResponseBody
     public void downloadQueryResult(@PathVariable("query_id") String queryId,
-                                    @RequestParam(value = "includeHeader", required = false) Boolean includeHeader,
+                                    @RequestParam(value = "includeHeader", required = false, defaultValue = "false") boolean includeHeader,
                                     HttpServletResponse response) throws IOException {
         asyncQueryController.downloadQueryResult(queryId, includeHeader, includeHeader, null, response, searchProject(queryId));
     }
@@ -122,7 +120,7 @@ public class NAsyncQueryControllerV2 extends NBasicController {
     private String searchProject(String queryId) throws IOException {
         String project = asyncQueryService.searchQueryResultProject(queryId);
         if (project == null) {
-            throw new KylinException(ASYNC_QUERY_RESULT_NOT_FOUND);
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQueryResultNotFound());
         }
         return project;
     }

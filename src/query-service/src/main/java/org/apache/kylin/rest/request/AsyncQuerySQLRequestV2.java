@@ -18,7 +18,6 @@
 
 package org.apache.kylin.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -36,7 +35,5 @@ public class AsyncQuerySQLRequestV2 implements Serializable, ProjectInsensitiveR
     private String separator = ",";
     private Integer offset = 0;
     private Integer limit = 0;
-    @JsonProperty("include_header")
-    private boolean includeHeader;
 
 }
