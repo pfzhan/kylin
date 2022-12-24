@@ -53,6 +53,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -339,7 +341,8 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
         NDataSegment[] nDataSegments = toRemovedSegments.toArray(new NDataSegment[0]);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
-        nDataflowManager.updateDataflow(nDataflowUpdate);
+        ModelMetadataBaseInvoker.getInstance()
+                .updateDataflow(new DataFlowUpdateRequest(project, nDataflowUpdate, null, null));
         updatePartitionOnCancelJob();
     }
 
