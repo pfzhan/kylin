@@ -23,7 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.codegen.Block.BlockHelper
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, DictEncodeV3, EmptyRow, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapSubtractMonths, KylinTimestampAdd, KylinTimestampDiff, Like, Literal, PercentileDecode, PreciseCountDistinctDecode, RLike, RoundBase, SplitPart, Sum0, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, DictEncodeV3, EmptyRow, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapSubtractMonths, KylinTimestampAdd, KylinTimestampDiff, Like, Literal, PercentileDecode, PreciseCountDistinctDecode, RLike, RoundBase, KylinSplitPart, Sum0, Truncate}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udaf._
 
@@ -255,7 +255,7 @@ object KapFunctions {
     FunctionEntity(expression[KylinTimestampDiff]("TIMESTAMPDIFF")),
     FunctionEntity(expression[Truncate]("TRUNCATE")),
     FunctionEntity(expression[DictEncode]("DICTENCODE")),
-    FunctionEntity(expression[SplitPart]("split_part")),
+    FunctionEntity(expression[KylinSplitPart]("split_part")),
     FunctionEntity(expression[FloorDateTime]("floor_datetime")),
     FunctionEntity(expression[CeilDateTime]("ceil_datetime")),
     FunctionEntity(expression[ReusePreciseCountDistinct]("bitmap_or")),

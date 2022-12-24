@@ -440,7 +440,7 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
 }
 
 
-case class SplitPart(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+case class KylinSplitPart(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
   override def dataType: DataType = left.dataType
 
