@@ -315,8 +315,10 @@ public abstract class KylinConfigBase implements Serializable {
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
 
         // https://github.com/kyligence/kap/issues/12654
+        // call getOptional to replace system env
+        // otherwise, 'FileSystem#makeQualified' will prefix the path with the username, such as '/user/root'
         this.properties.put(WORKING_DIR_PROP,
-                makeQualified(new Path(this.properties.getProperty(WORKING_DIR_PROP, KYLIN_ROOT))).toString());
+                makeQualified(new Path(this.getOptional(WORKING_DIR_PROP, KYLIN_ROOT))).toString());
         if (this.properties.getProperty(DATA_WORKING_DIR_PROP) != null) {
             this.properties.put(DATA_WORKING_DIR_PROP,
                     makeQualified(new Path(this.properties.getProperty(DATA_WORKING_DIR_PROP))).toString());
