@@ -31,18 +31,15 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.JobService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -59,12 +56,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
-
-    @InjectMocks
-    private final JobService jobService = Mockito.spy(new JobService());
-
-    @InjectMocks
-    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);

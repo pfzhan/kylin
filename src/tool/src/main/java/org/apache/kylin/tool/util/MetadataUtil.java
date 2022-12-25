@@ -42,24 +42,26 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.logging.LogOutputStream;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
+import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MetadataUtil {
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
+
     private static final String EMPTY = "";
+
+    private static MetadataToolHelper metadataToolHelper = new MetadataToolHelper();
 
     private MetadataUtil() {
     }
@@ -72,10 +74,7 @@ public class MetadataUtil {
     }
 
     public static DataSource getDataSource(KylinConfig kylinConfig) throws Exception {
-        val url = kylinConfig.getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
-
-        return JdbcDataSource.getDataSource(props);
+        return metadataToolHelper.getDataSource(kylinConfig);
     }
 
     public static void createTableIfNotExist(BasicDataSource dataSource, String tableName, String tableSql,

@@ -1602,7 +1602,6 @@ public class ExecutableManager {
     }
 
     //for ut
-    @VisibleForTesting
     public void deleteJob(String jobId) {
         checkJobCanBeDeleted(fromPO(jobInfoDao.getExecutablePOByUuid(jobId)));
         jobInfoDao.dropJob(jobId);

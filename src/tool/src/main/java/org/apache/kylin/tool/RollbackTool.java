@@ -55,6 +55,7 @@ import org.apache.kylin.common.util.MetadataChecker;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegDetails;
@@ -81,6 +82,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RollbackTool extends ExecutableApplication {
 
+    private MetadataToolHelper helper = new MetadataToolHelper();
     @SuppressWarnings("static-access")
     private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
 
@@ -442,10 +444,9 @@ public class RollbackTool extends ExecutableApplication {
             if (!verifyResult.isQualified()) {
                 log.error("{} \n the metadata dir is not qualified", verifyResult.getResultMessage());
             }
-
-            MetadataTool.restore(currentResourceStore, restoreResourceStore, project, true);
+            helper.restore(currentResourceStore, restoreResourceStore, project, true);
         } catch (Exception e) {
-            log.error("restore mirror resource store failed: {} ", e);
+            log.error("restore mirror resource store failed", e);
         }
         return true;
     }
@@ -551,9 +552,9 @@ public class RollbackTool extends ExecutableApplication {
     }
 
     private String backupCurrentMetadata(KylinConfig kylinConfig) throws Exception {
-        val currentBackupFolder = LocalDateTime.now(Clock.systemDefaultZone()).format(MetadataTool.DATE_TIME_FORMATTER)
+        val currentBackupFolder = LocalDateTime.now(Clock.systemDefaultZone()).format(MetadataToolHelper.DATE_TIME_FORMATTER)
                 + "_backup";
-        MetadataTool.backup(kylinConfig, kylinConfig.getHdfsWorkingDirectory() + "_current_backup",
+        helper.backup(kylinConfig, kylinConfig.getHdfsWorkingDirectory() + "_current_backup",
                 currentBackupFolder);
         return currentBackupFolder;
     }

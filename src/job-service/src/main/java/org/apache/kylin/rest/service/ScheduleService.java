@@ -17,10 +17,10 @@
  */
 package org.apache.kylin.rest.service;
 
-
 import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 import static org.apache.kylin.common.exception.KylinException.CODE_UNDEFINED;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,10 +42,10 @@ import org.apache.kylin.common.metrics.MetricsName;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
+import org.apache.kylin.helper.MetadataToolHelper;
+import org.apache.kylin.helper.RoutineToolHelper;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.tool.routine.FastRoutineTool;
-import org.apache.kylin.tool.routine.RoutineTool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -81,6 +81,7 @@ public class ScheduleService extends BasicService {
     private long opsCronTimeout;
 
     private static final ThreadLocal<Future<?>> CURRENT_FUTURE = new ThreadLocal<>();
+    private MetadataToolHelper metadataToolHelper = new MetadataToolHelper();
 
 
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
@@ -106,17 +107,18 @@ public class ScheduleService extends BasicService {
             try (SetThreadName ignored = new SetThreadName("RoutineOpsWorker")) {
                 if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                     executeTask(() -> backupService.backupAll(), "MetadataBackup", startTime);
-                    executeTask(RoutineTool::cleanQueryHistories, "QueryHistoriesCleanup", startTime);
-                    executeTask(RoutineTool::cleanStreamingStats, "StreamingStatsCleanup", startTime);
-                    executeTask(RoutineTool::deleteRawRecItems, "RawRecItemsDeletion", startTime);
-                    executeTask(RoutineTool::cleanGlobalSourceUsage, "SourceUsageCleanup", startTime);
+                    executeTask(RoutineToolHelper::cleanQueryHistories, "QueryHistoriesCleanup", startTime);
+                    executeTask(RoutineToolHelper::cleanStreamingStats, "StreamingStatsCleanup", startTime);
+                    executeTask(RoutineToolHelper::deleteRawRecItems, "RawRecItemsDeletion", startTime);
+                    executeTask(RoutineToolHelper::cleanGlobalSourceUsage, "SourceUsageCleanup", startTime);
                     executeTask(() -> projectService.cleanupAcl(), "AclCleanup", startTime);
                 }
                 executeTask(() -> projectService.garbageCleanup(getRemainingTime(startTime)), "ProjectGarbageCleanup",
                         startTime);
                 // clean storage
                 if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
-                    executeTask(() -> newFastRoutineTool().execute(new String[] { "-c" }), "HdfsCleanup", startTime);
+                    executeTask(() -> metadataToolHelper.cleanStorage(true, Collections.emptyList(), 0, 0), "HdfsCleanup",
+                            startTime);
                 }
                 log.info("Finish to work, cost {}ms", System.currentTimeMillis() - startTime);
             }
@@ -147,10 +149,6 @@ public class ScheduleService extends BasicService {
 
     private long getRemainingTime(long startTime) {
         return opsCronTimeout - (System.currentTimeMillis() - startTime);
-    }
-
-    public FastRoutineTool newFastRoutineTool() {
-        return new FastRoutineTool();
     }
 
     public Pair<String, String> triggerAllCleanupGarbage(HttpServletRequest request) {

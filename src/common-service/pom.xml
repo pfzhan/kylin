@@ -26,13 +26,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <name>Kylin - Common Service</name>
-    <groupId>org.apache.kylin</groupId>
     <artifactId>kylin-common-service</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-tool</artifactId>
+            <artifactId>kylin-core-metadata</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-streaming</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -49,6 +52,10 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-spark-ddl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-ldap</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
@@ -151,20 +158,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <!-- spring aop -->
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
         </dependency>
 
         <!-- Spring Boot -->
