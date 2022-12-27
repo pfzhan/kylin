@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   model_id varchar(512) NOT NULL,
   mvcc bigint(10),
   job_content longblob NOT NULL,
-  create_time datetime(3) DEFAULT CURRENT_TIMESTAMP,
-  update_time datetime(3) DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  create_time datetime(3) DEFAULT CURRENT_TIMESTAMP(3),
+  update_time datetime(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   job_duration_millis bigint(10) NOT NULL DEFAULT '0' COMMENT 'total duration milliseconds',
   PRIMARY KEY (id),
   UNIQUE KEY uk_job_id (job_id)
