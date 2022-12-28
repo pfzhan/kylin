@@ -118,7 +118,7 @@ public class JobMetadataDelegateController extends NBasicController {
     @ResponseBody
     public List<JobInfo> fetchNotFinalJobsByTypes(@RequestParam("project") String project,
                                                   @RequestParam("jobTypes") List<String> jobTypes,
-                                                  @RequestParam("subjects") List<String> subjects) {
+                                                  @RequestParam(value = "subjects", required = false) List<String> subjects) {
         return jobMetadataDelegate.fetchNotFinalJobsByTypes(project, jobTypes, subjects);
     }
 
