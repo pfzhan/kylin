@@ -588,3 +588,4 @@ kylin.source.hive.databases,String,hive datasource,hive datasource,TRUE,TRUE
 kylin.smart.conf.rowkey.uhc.min-cardinality,Long,smart config1,smart config1,TRUE,TRUE
 kylin.server.store-type,String,kylin server store type,kylin server store type,TRUE,TRUE
 kylin.query.replace-dynamic-params-enabled,boolean,jdbc replace dynamic params,jdbc replace dynamic params,TRUE,TRUE
+kylin.extension.metadata.factory,string,extension metadata factory,extension metadata factory,TRUE,TRUE

@@ -579,3 +579,4 @@ kylin.server.store-type,String,kylin server store type,kylin server store type,T
 kylin.query.replace-dynamic-params-enabled,boolean,jdbc replace dynamic params,jdbc replace dynamic params,TRUE,TRUE
 kylin.extension.query.factory,string,query extension factory,query extension factory,TRUE,TRUE
 kylin.query.engine.push-down.enable-prepare-statement-with-params,boolean,push down prepare,push down prepare,TRUE,TRUE
+kylin.extension.metadata.factory,string,extension metadata factory,extension metadata factory,TRUE,TRUE
