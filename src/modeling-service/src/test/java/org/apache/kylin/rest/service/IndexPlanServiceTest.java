@@ -1265,8 +1265,8 @@ public class IndexPlanServiceTest extends SourceTestCase {
                 indexPlanService.getIndexGraph(getProject(), modelId, 100).getSegmentToComplementCount());
 
         // mark a layout tobedelete
-        indexManager.updateIndexPlan(modelId,
-                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId), Collections.emptyMap()));
+        indexManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId,
+                Sets.newHashSet(tobeDeleteLayoutId), Collections.emptyMap()));
 
         //remove tobedelete layout from seg1
         val newDf = dfManager.getDataflow(modelId);
@@ -1330,12 +1330,12 @@ public class IndexPlanServiceTest extends SourceTestCase {
     }
 
     @Test
-    public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb() throws Exception {
+    public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb() {
         testOutOfCombination(1);
     }
 
     @Test
-    public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb_WithSchedulerV2() throws Exception {
+    public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb_WithSchedulerV2() {
         testOutOfCombination(2);
     }
 
