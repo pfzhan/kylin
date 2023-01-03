@@ -33,9 +33,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.cluster.ClusterManagerFactory;
 import org.apache.kylin.cluster.IClusterManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.metadata.Epoch;
 import org.apache.kylin.common.util.Pair;
@@ -91,8 +93,7 @@ public class JobService extends BasicService implements ISmartApplicationListene
     @Autowired
     private JobInfoDao jobInfoDao;
 
-    private static final Logger logger = LoggerFactory.getLogger("schedule");
-
+    private static final Logger logger = LoggerFactory.getLogger(LogConstant.BUILD_CATEGORY);
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
     private static final String LAST_MODIFIED = "last_modified";
     private static final String CREATE_TIME = "create_time";
@@ -353,7 +354,9 @@ public class JobService extends BasicService implements ISmartApplicationListene
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof ContextClosedEvent) {
-            logger.info("Stop kyligence node, kill job on yarn for yarn cluster mode");
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+                logger.info("Stop kyligence node, kill job on yarn for yarn cluster mode");
+            }
             EpochManager epochManager = EpochManager.getInstance();
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             List<Epoch> ownedEpochs = epochManager.getOwnedEpochs();

@@ -120,7 +120,7 @@ public class OptRecV2 {
     }
 
     public void initRecommendation() {
-        log.info("Start to initialize recommendation({}/{}}", project, getUuid());
+        log.debug("Start to initialize recommendation({}/{}}", project, getUuid());
 
         NDataModel dataModel = getModel();
         if (dataModel.isBroken()) {
@@ -139,7 +139,7 @@ public class OptRecV2 {
     }
 
     public List<RawRecItem> filterExcludedRecPatterns(List<RawRecItem> rawRecItems) {
-        log.info("Start to initialize recommendation patterns({}/{}}", project, getUuid());
+        log.debug("Start to initialize recommendation patterns({}/{}}", project, getUuid());
         NDataModel dataModel = getModel();
         if (dataModel.isBroken()) {
             log.warn("Discard all related recommendations for model({}/{}) is broken.", project, uuid);

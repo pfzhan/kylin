@@ -21,6 +21,7 @@ package org.apache.kylin.job.service;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import static org.apache.kylin.job.constant.JobStatusEnum.PENDING;
 import static org.apache.kylin.job.constant.JobStatusEnum.SKIP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -729,7 +730,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableStepResponse> stages2 = subStages.get(segmentId2).getStage();
         assertEquals(1, stages2.size());
         ExecutableStepResponse logicStepResponse2 = stages2.get(0);
-        checkResponse(logicStepResponse2, logicStep.getId(), JobStatusEnum.PENDING);
+        checkResponse(logicStepResponse2, logicStep.getId(), PENDING);
         assertEquals(0, logicStepResponse2.getExecStartTime());
         assertTrue(logicStepResponse2.getExecStartTime() < System.currentTimeMillis());
 
@@ -1094,4 +1095,12 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("", executable.getRelatedSegment());
     }
 
+    @Test
+    public void testParseToExecutableStepWithStepOutputNull() {
+        AbstractExecutable task = new FiveSecondSucceedTestExecutable();
+        task.setProject("default");
+        ExecutableState jobState = ExecutableState.RUNNING;
+        ExecutableStepResponse result = jobInfoService.parseToExecutableStep(task, null, new HashMap<>(), jobState);
+        Assert.assertSame(PENDING, result.getStatus());
+    }
 }

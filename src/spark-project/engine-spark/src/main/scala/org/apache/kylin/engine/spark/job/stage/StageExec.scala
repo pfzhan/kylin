@@ -32,6 +32,8 @@ import org.apache.spark.internal.Logging
 trait StageExec extends Logging {
   protected var id: String = _
 
+  def getStageName: String
+
   def getJobContext: SparkApplication
 
   def getDataSegment: NDataSegment

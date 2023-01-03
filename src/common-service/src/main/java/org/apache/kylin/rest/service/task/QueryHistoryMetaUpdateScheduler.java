@@ -18,6 +18,8 @@
 
 package org.apache.kylin.rest.service.task;
 
+import static io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -63,8 +67,6 @@ import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import static io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
-
 @Slf4j
 public class QueryHistoryMetaUpdateScheduler {
     private ScheduledExecutorService taskScheduler;
@@ -89,7 +91,9 @@ public class QueryHistoryMetaUpdateScheduler {
             userGroupService = (IUserGroupService) SpringContext.getApplicationContext().getBean("userGroupService");
         }
         queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
-        log.debug("New QueryHistoryMetaUpdateScheduler created by project {}", project);
+        try (SetLogCategory ignored = new SetLogCategory(LogConstant.SCHEDULE_CATEGORY)) {
+            log.debug("New QueryHistoryMetaUpdateScheduler created by project {}", project);
+        }
     }
 
     public static QueryHistoryMetaUpdateScheduler getInstance(String project) {
@@ -380,7 +384,7 @@ public class QueryHistoryMetaUpdateScheduler {
 
         @Override
         public void run() {
-            try {
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.SCHEDULE_CATEGORY)) {
                 work();
             } catch (Exception e) {
                 log.warn("QueryHistory {}  process failed of project({})", name(), project, e);

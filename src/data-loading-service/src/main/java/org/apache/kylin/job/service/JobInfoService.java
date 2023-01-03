@@ -43,6 +43,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.ExceptionReason;
 import org.apache.kylin.common.exception.ExceptionResolve;
@@ -50,6 +51,7 @@ import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.JobExceptionReason;
 import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
@@ -128,7 +130,7 @@ import lombok.var;
 @Service("jobInfoService")
 public class JobInfoService extends BasicService implements JobSupporter {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobInfoService.class);
+    private static final Logger logger = LoggerFactory.getLogger(LogConstant.BUILD_CATEGORY);
 
     private static final Serializer<ExecutablePO> JOB_SERIALIZER = new JsonSerializer<>(ExecutablePO.class);
 
@@ -324,7 +326,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         // waite time in output
         Map<String, String> waiteTimeMap;
         val output = executable.getOutput(executablePO);
-        try {
+        try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
             waiteTimeMap = JsonUtil.readValueAsMap(output.getExtra().getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -618,7 +620,9 @@ public class JobInfoService extends BasicService implements JobSupporter {
         Output stepOutput = executableManager.getOutput(task.getId(), po);
 
         if (stepOutput == null) {
-            logger.warn("Cannot found output for task: id={}", task.getId());
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+                logger.warn("Cannot found output for task: id={}", task.getId());
+            }
             return result;
         }
 
@@ -669,7 +673,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     public void setExceptionResolveAndCodeAndReason(Output output, ExecutableStepResponse executableStepResponse) {
-        try {
+        try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
             val exceptionCode = getExceptionCode(output);
             executableStepResponse.setFailedResolve(ExceptionResolve.getResolve(exceptionCode));
             executableStepResponse.setFailedCode(ErrorCode.getLocalizedString(exceptionCode));
@@ -693,7 +697,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     public String getExceptionCode(Output output) {
-        try {
+        try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
             var exceptionOrExceptionMessage = output.getFailedReason();
 
             if (StringUtils.isBlank(exceptionOrExceptionMessage)) {
@@ -728,7 +732,9 @@ public class JobInfoService extends BasicService implements JobSupporter {
         result.setSequenceID(stageBase.getStepId());
 
         if (stageOutput == null) {
-            logger.warn("Cannot found output for task: id={}", stageBase.getId());
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+                logger.warn("Cannot found output for task: id={}", stageBase.getId());
+            }
             return result;
         }
         for (Map.Entry<String, String> entry : stageOutput.getExtra().entrySet()) {
@@ -932,7 +938,9 @@ public class JobInfoService extends BasicService implements JobSupporter {
                 project);
         FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
         if (!model.isFusionModel() || Objects.isNull(fusionModel)) {
-            logger.warn("model is not fusion model or fusion model is null, {}", modelId);
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+                logger.warn("model is not fusion model or fusion model is null, {}", modelId);
+            }
             return;
         }
 
