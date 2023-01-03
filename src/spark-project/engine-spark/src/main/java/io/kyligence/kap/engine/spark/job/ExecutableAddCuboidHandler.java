@@ -20,7 +20,8 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.List;
 
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
@@ -31,8 +32,6 @@ import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 
 import lombok.val;
 
@@ -60,7 +59,7 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
         MergerInfo mergerInfo = new MergerInfo(project, toBeDeletedLayoutIdsStr, modelId, jobId, errorOrPausedJobCount,
                 HandlerType.ADD_CUBOID);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
-                .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
+                .forEach(task -> mergerInfo.addTaskMergeInfo(task, SparkJobFactoryUtils.needBuildSnapshots(task)));
 
         List<NDataLayout[]> mergedLayout = MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
         List<AbstractExecutable> tasks = ExecutableHandleUtils.getNeedMergeTasks(executable);

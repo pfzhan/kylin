@@ -29,6 +29,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TempMetadataBuilder;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -49,8 +51,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -130,7 +130,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         overwriteSystemProp("kylin.engine.spark.build-job-progress-reporter", //
                 "org.apache.kylin.engine.spark.job.MockJobProgressReport");
         this.createTestMetadata();
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
         Random r = new Random(10000);
         zkTestServer = new TestingServer(r.nextInt(), true);
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());

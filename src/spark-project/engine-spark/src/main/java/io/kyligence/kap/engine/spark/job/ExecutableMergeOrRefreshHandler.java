@@ -20,7 +20,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.List;
 
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableHandler;
@@ -49,7 +49,7 @@ public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
         MergerInfo mergerInfo = new MergerInfo(project, modelId, jobId, errorOrPausedJobCount,
                 HandlerType.MERGE_OR_REFRESH);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
-                .forEach(task -> mergerInfo.addTaskMergeInfo(task, ExecutableUtils.needBuildSnapshots(task)));
+                .forEach(task -> mergerInfo.addTaskMergeInfo(task, SparkJobFactoryUtils.needBuildSnapshots(task)));
 
         List<NDataLayout[]> mergedLayout = MetadataInvoker.getInstance().mergeMetadata(project, mergerInfo);
         List<AbstractExecutable> tasks = ExecutableHandleUtils.getNeedMergeTasks(executable);

@@ -29,7 +29,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TempMetadataBuilder;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
@@ -69,8 +70,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -88,7 +87,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @BeforeClass
     public static void beforeClass() {
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
         if (Shell.MAC)
             overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 

@@ -24,11 +24,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.util.ExecutableParaUtil;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import lombok.val;
 
 public class ExecutableUtils {
@@ -59,21 +54,5 @@ public class ExecutableUtils {
 
     public static Set<Long> getPartitionIds(AbstractExecutable buildTask) {
         return ExecutableParaUtil.getPartitionIds(buildTask);
-    }
-
-    public static boolean needBuildSnapshots(AbstractExecutable buildTask) {
-        if (buildTask instanceof NSparkCubingStep) {
-            return ExecutableParaUtil.needBuildSnapshots(buildTask);
-        } else {
-            return false;
-        }
-    }
-
-    public static void initJobFactory() {
-        // register jobFactory in static function
-        new NSparkCubingJob();
-        new NSparkMergingJob();
-        new NSparkSnapshotJob();
-        new NTableSamplingJob();
     }
 }

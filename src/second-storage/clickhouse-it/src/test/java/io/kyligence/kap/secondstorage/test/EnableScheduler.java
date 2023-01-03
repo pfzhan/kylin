@@ -17,7 +17,7 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.job.util.JobContextUtil;
 
 public class EnableScheduler extends EnableLocalMeta {
@@ -30,7 +30,7 @@ public class EnableScheduler extends EnableLocalMeta {
     protected void before() throws Throwable {
         super.before();
 
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
 
         JobContextUtil.cleanUp();
         JobContextUtil.getJobContextForTest(getTestConfig());

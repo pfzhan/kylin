@@ -42,7 +42,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -154,7 +154,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));

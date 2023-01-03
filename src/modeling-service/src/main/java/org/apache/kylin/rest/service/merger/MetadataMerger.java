@@ -28,7 +28,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.MergerInfo;
@@ -47,8 +48,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import lombok.Getter;
 import lombok.val;
@@ -78,7 +77,7 @@ public abstract class MetadataMerger {
     @TestOnly
     public void merge(AbstractExecutable abstractExecutable) {
         MergerInfo.TaskMergeInfo taskMergeInfo = new MergerInfo.TaskMergeInfo(abstractExecutable,
-                ExecutableUtils.needBuildSnapshots(abstractExecutable));
+                SparkJobFactoryUtils.needBuildSnapshots(abstractExecutable));
         merge(taskMergeInfo);
     }
 

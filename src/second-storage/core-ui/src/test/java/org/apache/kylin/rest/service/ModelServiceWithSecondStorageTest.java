@@ -31,8 +31,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
@@ -180,7 +180,7 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
         }
         EventBusFactory.getInstance().register(eventListener, true);
         EventBusFactory.getInstance().register(modelBrokenListener, false);
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
 
         JobContextUtil.cleanUp();
         JobContextUtil.getJobInfoDao(getTestConfig());

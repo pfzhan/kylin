@@ -35,7 +35,7 @@ import org.apache.kylin.common.persistence.transaction.EventListenerRegistry;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.HostInfoFetcher;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.metadata.epoch.EpochOrchestrator;
 import org.apache.kylin.metadata.project.NProjectLoader;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -132,7 +132,7 @@ public class AppInitializer {
             }
             EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
 
-            ExecutableUtils.initJobFactory();
+            SparkJobFactoryUtils.initJobFactory();
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             val epochStore = EpochStore.getEpochStore(kylinConfig);

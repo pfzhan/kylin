@@ -37,7 +37,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -68,9 +70,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-
 import lombok.val;
 
 /**
@@ -98,7 +97,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         JobContextUtil.getJobContextForTest(config);
 
         jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
     }
 
     @After

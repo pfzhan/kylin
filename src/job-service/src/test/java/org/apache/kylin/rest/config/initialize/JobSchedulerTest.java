@@ -34,7 +34,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
@@ -55,9 +57,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
 import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
@@ -82,7 +81,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        ExecutableUtils.initJobFactory();
+        SparkJobFactoryUtils.initJobFactory();
         createTestMetadata();
         prepareSegment();
         // startScheduler();
