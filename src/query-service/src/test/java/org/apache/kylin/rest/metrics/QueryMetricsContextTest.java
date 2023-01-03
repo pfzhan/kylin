@@ -57,7 +57,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import lombok.val;
 
-@Ignore
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private static final String QUERY_ID = "3395dd9a-a8fb-47c0-b586-363271ca52e2";
