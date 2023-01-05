@@ -45,8 +45,8 @@ public class QuotaStorageCheckRunner implements Runnable {
 
     public QuotaStorageCheckRunner(JobContext jobContext) {
         this.jobContext = jobContext;
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
-        collector = new ProjectStorageInfoCollector(storageInfoEnumList);
+        collector = new ProjectStorageInfoCollector(
+                Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE));
     }
 
     @Override
