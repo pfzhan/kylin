@@ -91,9 +91,10 @@ public class KapPasswordResetCLITest extends LogOutputTestCase {
         val afterManager = NKylinUserManager.getInstance(config);
 
         Assert.assertFalse(pwdEncoder.matches("KYLIN", afterManager.get(user.getUsername()).getPassword()));
+        Assert.assertTrue(output.toString(Charset.defaultCharset().name()).startsWith("The metadata backup path is"));
         Assert.assertTrue(output.toString(Charset.defaultCharset().name())
-                .startsWith(StorageCleaner.ANSI_RED + "Reset password of [" + StorageCleaner.ANSI_RESET + "ADMIN"
-                        + StorageCleaner.ANSI_RED + "] succeed. The password is "));
+            .contains(StorageCleaner.ANSI_RED + "Reset password of [" + StorageCleaner.ANSI_RESET + "ADMIN"
+                + StorageCleaner.ANSI_RED + "] succeed. The password is "));
         Assert.assertTrue(output.toString(Charset.defaultCharset().name())
                 .endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
 
