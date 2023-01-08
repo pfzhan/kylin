@@ -183,7 +183,7 @@ public class JdbcUtil {
                         return true;
                     }
                 } catch (Exception e) {
-                    log.warn("get primary key from table {} failed", table, e);
+                    logger.warn("get primary key from table {} failed", table, e);
                 }
             }
         } finally {
