@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -153,8 +154,8 @@ public class ModelBrokenListener {
                 final JobParam jobParam = new JobParam(model.getId(), "ADMIN");
                 jobParam.setProject(project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
-                sourceUsageManager.licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                UnitOfWork.get().doAfterUnit(() -> sourceUsageManager.licenseCheckWrap(project,
+                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
