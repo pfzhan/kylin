@@ -68,5 +68,6 @@ public class JobDriverUIUtilTest extends NLocalFileMetadataTestCase {
 
         assert JobDriverUIUtil.getProxyUrl("project", "step").equals("/kylin/driver_ui/project/step");
 
+        mockedSparkUIUtil.close();
     }
 }

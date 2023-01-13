@@ -70,7 +70,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContext(getTestConfig());
+        JobContextUtil.getJobInfoDao(getTestConfig());
 
         prepare();
     }

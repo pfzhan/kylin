@@ -268,7 +268,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
 
     private void prepareData() throws Exception {
         getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MySQL,username=sa,password=");
         final List<RawResource> metadata = JsonUtil
                 .readValue(Paths.get(DATA_DIR, "ke_metadata_test.json").toFile(), new TypeReference<List<JsonNode>>() {
                 }).stream().map(x -> {

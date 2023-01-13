@@ -191,6 +191,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
     
     private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
 
+    private final TimeZone defaultTimeZone = TimeZone.getDefault();
+
     @Before
     public void setup() {
         super.setup();
@@ -261,6 +263,10 @@ public class ModelServiceBuildTest extends SourceTestCase {
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
         JobContextUtil.cleanUp();
+
+        if (!TimeZone.getDefault().equals(defaultTimeZone)) {
+            TimeZone.setDefault(defaultTimeZone);
+        }
     }
 
     @Test
