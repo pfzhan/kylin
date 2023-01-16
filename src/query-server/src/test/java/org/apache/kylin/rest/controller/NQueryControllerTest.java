@@ -42,11 +42,13 @@ import org.apache.kylin.metadata.query.NativeQueryRealization;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryHistoryRequest;
+import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
+import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.service.QueryCacheManager;
 import org.apache.kylin.rest.service.QueryHistoryService;
@@ -93,6 +95,8 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     private TableService tableService;
     @InjectMocks
     private NQueryController nQueryController = Mockito.spy(new NQueryController());
+    @Mock
+    private ClusterManager clusterManager;
 
     private static final String APPLICATION_PUBLIC_JSON = HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
@@ -627,5 +631,16 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
+    }
+
+    public void testGetServers() throws Exception {
+        ServerInfoResponse response = new ServerInfoResponse();
+        response.setHost("172.168.1.1");
+        response.setMode("ALL");
+        List<ServerInfoResponse> result = Lists.newArrayList(response);
+        Mockito.when(clusterManager.getServers()).thenReturn(result);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/servers")
+                        .param("ext", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 }
