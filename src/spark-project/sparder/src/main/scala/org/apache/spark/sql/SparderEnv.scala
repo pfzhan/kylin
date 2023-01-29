@@ -23,7 +23,7 @@ import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException, ServerErrorCode}
 import org.apache.kylin.common.msg.MsgPicker
 import org.apache.kylin.common.util.{DefaultHostInfoFetcher, FileSystemUtil, HadoopUtil}
-import org.apache.kylin.common.{KylinConfig, QueryContext}
+import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model.{NTableMetadataManager, TableExtDesc}
 import org.apache.kylin.metadata.project.NProjectManager
 import org.apache.kylin.query.runtime.plan.QueryToExecutionIDCache
@@ -33,7 +33,7 @@ import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
+import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy, RewriteInferFiltersFromConstraints}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.hive.ReplaceLocationRule
 import org.apache.spark.sql.udf.UdfManager
@@ -232,29 +232,16 @@ object SparderEnv extends Logging {
           SparkSession.builder
             .master("local")
             .appName("sparder-local-sql-context")
-            .withExtensions { ext =>
-              ext.injectPlannerStrategy(_ => KylinSourceStrategy)
-              ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
-              ext.injectPostHocResolutionRule(ReplaceLocationRule)
-              ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
-            }
             .enableHiveSupport()
             .getOrCreateKylinSession()
         case _ =>
           SparkSession.builder
             .appName(appName)
             .master("yarn")
-            //if user defined other master in kylin.properties,
-            // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
-            .withExtensions { ext =>
-              ext.injectPlannerStrategy(_ => KylinSourceStrategy)
-              ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
-              ext.injectPostHocResolutionRule(ReplaceLocationRule)
-              ext.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
-            }
             .enableHiveSupport()
             .getOrCreateKylinSession()
       }
+      injectExtensions(sparkSession.extensions)
       spark = sparkSession
       logInfo("Spark context started successfully with stack trace:")
       logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
@@ -307,6 +294,16 @@ object SparderEnv extends Logging {
           None
       }
       _containerSchedulerManager.foreach(_.start())
+    }
+  }
+
+  def injectExtensions(sse: SparkSessionExtensions): Unit = {
+    sse.injectPlannerStrategy(_ => KylinSourceStrategy)
+    sse.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+    sse.injectPostHocResolutionRule(ReplaceLocationRule)
+    sse.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
+    if (KapConfig.getInstanceFromEnv.isConstraintPropagationEnabled) {
+      sse.injectOptimizerRule(_ => RewriteInferFiltersFromConstraints)
     }
   }
 
