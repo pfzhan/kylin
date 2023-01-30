@@ -589,3 +589,6 @@ kylin.smart.conf.rowkey.uhc.min-cardinality,Long,smart config1,smart config1,TRU
 kylin.server.store-type,String,kylin server store type,kylin server store type,TRUE,TRUE
 kylin.query.replace-dynamic-params-enabled,boolean,jdbc replace dynamic params,jdbc replace dynamic params,TRUE,TRUE
 kylin.extension.metadata.factory,string,extension metadata factory,extension metadata factory,TRUE,TRUE
+kylin.task.upload-gc-log-enabled,boolean,是否上传GC日志,whether upload gc log,TRUE,TRUE
+kylin.task.gc-log-upload-interval-minutes,Int,上传GC日志任务的运行周期,Run cycle of uploading GC log task,TRUE,TRUE
+kylin.task.upload-jstack-dump-enabled,boolean,是否上传jstack日志,whether upload jstack log,TRUE,TRUE

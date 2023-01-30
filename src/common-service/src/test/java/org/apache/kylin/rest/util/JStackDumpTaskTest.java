@@ -22,6 +22,10 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -37,6 +41,7 @@ public class JStackDumpTaskTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
+        getTestConfig().setProperty("kylin.task.upload-jstack-dump-enabled", "true");
     }
 
     @After
@@ -52,5 +57,10 @@ public class JStackDumpTaskTest extends NLocalFileMetadataTestCase {
         JStackDumpTask task = new JStackDumpTask(mainDir);
         task.run();
         Assert.assertTrue(Arrays.stream(mainDir.listFiles()).anyMatch(x -> x.getName().contains("jstack.timed.log")));
+        Path logsOnWorkingDir = new Path(getTestConfig().getHdfsWorkingDirectory(),
+                "_logs/" + AddressUtil.getHostName());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Assert.assertTrue(Arrays.stream(fs.listStatus(logsOnWorkingDir))
+                .allMatch(x -> x.getPath().getName().contains("jstack.timed.log")));
     }
 }

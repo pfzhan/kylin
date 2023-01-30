@@ -32,6 +32,7 @@ import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JOB_TMP;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.JSTACK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.KG_LOGS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.LOG;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.LOG_ON_WORKING_DIR;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.METADATA;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.QUERY_HISTORY_OFFSET;
@@ -821,14 +822,24 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(confTask, SYSTEM_USAGE);
     }
     
-    protected void exportK8sLog(File exportDir, Long startTime, Long endTime, List<String> instances, File recordTime) {
+    protected void exportLogFromLoki(File exportDir, Long startTime, Long endTime, List<String> instances, File recordTime) {
         Future<?> logTask = executorService.submit(() -> {
             recordTaskStartTime(LOG);
-            KylinLogTool.extractK8sKylinLog(exportDir, startTime, endTime, instances);
+            KylinLogTool.extractKylinLogFromLoki(exportDir, startTime, endTime, instances);
             recordTaskExecutorTimeToFile(LOG, recordTime);
         });
 
         scheduleTimeoutTask(logTask, LOG);
+    }
+
+    protected void exportLogFromWorkingDir(File exportDir, List<String> instances, File recordTime) {
+        Future<?> logTask = executorService.submit(() -> {
+            recordTaskStartTime(LOG_ON_WORKING_DIR);
+            KylinLogTool.extractLogFromWorkingDir(exportDir, instances);
+            recordTaskExecutorTimeToFile(LOG_ON_WORKING_DIR, recordTime);
+        });
+
+        scheduleTimeoutTask(logTask, LOG_ON_WORKING_DIR);
     }
 
     protected void exportK8sConf(HttpHeaders headers, File exportDir, final File recordTime, String serverId) {

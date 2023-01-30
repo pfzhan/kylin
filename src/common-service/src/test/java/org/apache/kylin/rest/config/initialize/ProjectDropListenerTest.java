@@ -59,7 +59,7 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,username=sa,password=");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 

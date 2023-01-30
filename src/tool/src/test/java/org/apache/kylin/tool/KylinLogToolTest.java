@@ -17,9 +17,13 @@
  */
 package org.apache.kylin.tool;
 
+import static org.apache.kylin.common.util.TestUtils.writeToFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -600,5 +604,35 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         FileUtils.deleteQuietly(new File(hdfsPath));
         Assert.assertTrue(new File(mainDir, String.format("job_tmp/%s", zipFile)).exists());
+    }
+
+    @Test
+    public void testExtractLogFromWorkingDir() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        String hdfsPath = getTestConfig().getHdfsWorkingDirectory();
+        String normPath = hdfsPath.startsWith("file://") ? hdfsPath.substring(7) : hdfsPath;
+
+        File remoteFile = new File(normPath, "_logs/yl-common-001");
+        File commonJStack = new File(remoteFile, "jstack.1666");
+        File commonGC = new File(remoteFile, "kylin.gc.pid" + ToolUtil.getKylinPid() + ".0");
+        FileUtils.forceMkdir(remoteFile);
+        writeToFile(commonJStack);
+        writeToFile(commonGC);
+
+        File remoteFile2 = new File(normPath, "_logs/yl-query-001");
+        File queryJStack = new File(remoteFile2, "jstack.1667");
+        File queryGC = new File(remoteFile2, "kylin.gc.pid" + ToolUtil.getKylinPid() + ".3");
+        FileUtils.forceMkdir(remoteFile2);
+        writeToFile(queryJStack);
+        writeToFile(queryGC);
+
+        KylinLogTool.extractLogFromWorkingDir(mainDir, Arrays.asList("yl-common-001"));
+        Assert.assertTrue(commonJStack.exists() && commonGC.exists());
+
+        FileUtils.cleanDirectory(mainDir);
+        KylinLogTool.extractLogFromWorkingDir(mainDir, Collections.emptyList());
+        Assert.assertTrue(commonJStack.exists() && commonGC.exists() && queryGC.exists() && queryJStack.exists());
     }
 }

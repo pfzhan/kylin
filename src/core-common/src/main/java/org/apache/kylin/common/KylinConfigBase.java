@@ -2859,6 +2859,18 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.server.renew-batch-size", "10"));
     }
 
+    public boolean isUploadGCLogToWorkingDirEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.task.upload-gc-log-enabled", FALSE));
+    }
+
+    public long getGCLogUploadTaskPeriod() {
+        return Long.parseLong(getOptional("kylin.task.gc-log-upload-interval-minutes", "10"));
+    }
+
+    public boolean isUploadJstackDumpToWorkingDirEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.task.upload-jstack-dump-enabled", FALSE));
+    }
+
     public boolean getJStackDumpTaskEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.task.jstack-dump-enabled", TRUE));
     }

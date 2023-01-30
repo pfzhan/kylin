@@ -53,6 +53,7 @@ import org.apache.kylin.rest.config.initialize.SparderStartEvent;
 import org.apache.kylin.rest.config.initialize.TableSchemaChangeListener;
 import org.apache.kylin.rest.config.initialize.UserAclListener;
 import org.apache.kylin.rest.service.CommonQueryCacheSupporter;
+import org.apache.kylin.rest.util.GCLogUploadTask;
 import org.apache.kylin.rest.util.JStackDumpTask;
 import org.apache.kylin.streaming.jobs.StreamingJobListener;
 import org.apache.kylin.tool.daemon.KapGuardianHATask;
@@ -187,6 +188,10 @@ public class AppInitializer {
         if (kylinConfig.getJStackDumpTaskEnabled()) {
             taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
                     kylinConfig.getJStackDumpTaskPeriod() * Constant.MINUTE);
+        }
+        if (kylinConfig.isUploadGCLogToWorkingDirEnabled()) {
+            taskScheduler.scheduleAtFixedRate(new GCLogUploadTask(),
+                    kylinConfig.getGCLogUploadTaskPeriod() * Constant.MINUTE);
         }
         if (kylinConfig.isGuardianEnabled() && kylinConfig.isGuardianHAEnabled()) {
             log.info("Guardian Process ha is enabled, start check scheduler");

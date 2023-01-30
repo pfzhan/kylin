@@ -88,7 +88,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     private void createUnexpiredJob(String jobId) {
         long survivalTime = getTestConfig().getExecutableSurvivalTimeThreshold();
-        createJob(jobId, System.currentTimeMillis() - survivalTime + 2000);
+        createJob(jobId, System.currentTimeMillis() - survivalTime + 5000);
     }
 
     private void createJob(String jobId, long createTime) {

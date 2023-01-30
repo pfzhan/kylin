@@ -51,7 +51,7 @@ import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 
 @MetadataInfo(onlyProps = true)
-@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=")
+@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,username=sa,password=")
 public class JdbcMetadataStoreTest {
 
     public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;

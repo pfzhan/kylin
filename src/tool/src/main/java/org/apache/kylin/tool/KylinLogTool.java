@@ -665,7 +665,26 @@ public class KylinLogTool {
         }
     }
 
-    public static void extractK8sKylinLog(File exportDir, Long startTime, Long endTime, List<String> instances) {
+    public static void extractLogFromWorkingDir(File exportDir, List<String> instances) {
+        File destLogDir = new File(exportDir, "logs");
+        try {
+            FileUtils.forceMkdir(destLogDir);
+            Path remotePath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(), "_logs");
+            if (instances.isEmpty()) {
+                HadoopUtil.downloadFileFromHdfsWithoutError(remotePath, destLogDir);
+            } else {
+                for (String instance : instances) {
+                    File toFile = new File(destLogDir, instance);
+                    FileUtils.forceMkdir(toFile);
+                    HadoopUtil.downloadFileFromHdfsWithoutError(new Path(remotePath, instance), toFile);
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to extract JStack and GC log.", e);
+        }
+    }
+
+    public static void extractKylinLogFromLoki(File exportDir, Long startTime, Long endTime, List<String> instances) {
         File destLogDir = new File(exportDir, "logs");
         long startTimeInSec = startTime / 1000;
         long endTImeInSec = endTime / 1000;
@@ -679,17 +698,17 @@ public class KylinLogTool {
             tags.put("app", "yinglong");
 
             if (instances.isEmpty()) {
-                extractK8sKylinLogByServerIds(tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
+                extractKylinLogFromLokiByServerIds(tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
             } else {
-                extractK8sKylinLogByInstance(instances, tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
+                extractKylinLogFromLokiByInstance(instances, tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
         }
     }
     
-    public static void extractK8sKylinLogByServerIds(Map<String, String> tags, RestClient restClient,
-            long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
+    public static void extractKylinLogFromLokiByServerIds(Map<String, String> tags, RestClient restClient,
+                                                          long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
         for (String serverId : NacosClusterManager.SERVER_IDS) {
             logger.info("Extract logs for {}", serverId);
             tags.put("component", serverId.replace("yinglong", "yl"));
@@ -700,8 +719,8 @@ public class KylinLogTool {
         }
     }
 
-    public static void extractK8sKylinLogByInstance(List<String> instances, Map<String, String> tags,
-            RestClient restClient, long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
+    public static void extractKylinLogFromLokiByInstance(List<String> instances, Map<String, String> tags,
+                                                         RestClient restClient, long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
         for (String instance : instances) {
             logger.info("Extract logs for {}", instance);
             tags.put("instance", instance);

@@ -106,7 +106,8 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportAsyncTask(null, recordTime);
         exportQueryHistoryOffset(null, recordTime);
         exportK8sConf(headers, exportDir, recordTime, null);
-        exportK8sLog(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
+        exportLogFromLoki(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
+        exportLogFromWorkingDir(exportDir, Collections.emptyList(), recordTime);
         exportSparkLog(exportDir, startTime, endTime, recordTime, null);
     }
 
@@ -125,8 +126,8 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportAuditLog(exportDir, recordTime, startTime, endTime);
         exportQueryHistoryOffset(project, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.QUERY);
-        // TODO this will extract logs from all query pods.
-        exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
+        exportLogFromLoki(exportDir, startTime, endTime, instances, recordTime);
+        exportLogFromWorkingDir(exportDir, instances, recordTime);
         exportSparkLog(exportDir, startTime, endTime, recordTime, queryId);
     }
 
@@ -150,8 +151,8 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         }
         exportJobInfo(project, jobId, recordTime);
         exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.DATA_LOADING);
-        // TODO this will extract logs from all data_loading pods.
-        exportK8sLog(exportDir, startTime, endTime, instances, recordTime);
+        exportLogFromLoki(exportDir, startTime, endTime, instances, recordTime);
+        exportLogFromWorkingDir(exportDir, instances, recordTime);
         exportJobSparkLog(exportDir, recordTime, project, jobId, job);
     }
 

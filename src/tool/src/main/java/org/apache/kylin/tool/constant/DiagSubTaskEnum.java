@@ -39,6 +39,7 @@ public enum DiagSubTaskEnum {
     SPARDER_HISTORY, //
     KG_LOGS, //
     LOG, //
+    LOG_ON_WORKING_DIR, //
     JOB_TMP, //
     JOB_EVENTLOGS, //
     YARN, //

@@ -562,7 +562,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropProject() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,DATABASE_TO_UPPER=FALSE,username=sa,password=");
         val project = "project12";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);
@@ -583,7 +583,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropStreamingProject() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,DATABASE_TO_UPPER=FALSE,username=sa,password=");
         val project = "project13";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);
@@ -649,7 +649,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropProjectWithAllJobsBeenKilled() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,DATABASE_TO_UPPER=FALSE,username=sa,password=");
         val project = "project13";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);
@@ -683,7 +683,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropProjectWithoutAllJobsBeenKilled() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,DATABASE_TO_UPPER=FALSE,username=sa,password=");
         val project = "project13";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);

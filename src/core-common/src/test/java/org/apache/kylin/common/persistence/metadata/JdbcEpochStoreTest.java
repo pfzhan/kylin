@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
 
 import lombok.val;
 
-@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=")
+@OverwriteProp(key = "kylin.metadata.url", value = "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MYSQL,username=sa,password=")
 final class JdbcEpochStoreTest extends AbstractEpochStoreTest {
 
     @BeforeEach

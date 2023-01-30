@@ -34,11 +34,13 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.ProcessUtils;
 import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.query.util.ExtractFactory;
 import org.apache.spark.sql.SparderEnv;
 
@@ -63,12 +65,16 @@ public class ToolUtil {
         File pidFile = new File(getKylinHome(), "pid");
         if (pidFile.exists()) {
             try {
-                return FileUtils.readFileToString(pidFile);
+                return FileUtils.readFileToString(pidFile).trim();
             } catch (IOException e) {
                 throw new RuntimeException("Error reading KYLIN PID file.", e);
             }
         }
-        throw new RuntimeException("Cannot find KYLIN PID file.");
+        String pid = ProcessUtils.getCurrentId("0");
+        if (!pid.equals("0")) {
+            return pid;
+        }
+        throw new KylinRuntimeException("Cannot find KYLIN PID.");
     }
 
     public static String getKylinHome() {

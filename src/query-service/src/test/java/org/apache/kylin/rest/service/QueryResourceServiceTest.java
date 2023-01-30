@@ -27,6 +27,7 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -35,7 +36,9 @@ import org.mockito.MockitoAnnotations;
 
 import lombok.val;
 import lombok.var;
+import net.jcip.annotations.NotThreadSafe;
 
+@NotThreadSafe
 public class QueryResourceServiceTest extends NLocalFileMetadataTestCase {
 
     private SparkSession ss;
@@ -46,6 +49,15 @@ public class QueryResourceServiceTest extends NLocalFileMetadataTestCase {
     private ExecutorAllocationClient client;
 
     private ContainerSchedulerManager containerSchedulerManager;
+
+    @BeforeClass
+    public static void beforeClass() {
+        if (SparderEnv.isSparkAvailable()) {
+            SparderEnv.getSparkSession().close();
+        }
+        SparkSession.clearActiveSession();
+        SparkSession.clearDefaultSession();
+    }
 
     @Before
     public void setUp() throws Exception {
