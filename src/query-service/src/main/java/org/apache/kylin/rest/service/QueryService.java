@@ -74,6 +74,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.JsonUtil;
@@ -128,7 +129,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.RawSql;
 import org.apache.kylin.query.util.RawSqlParser;
 import org.apache.kylin.query.util.TokenMgrError;
-import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.AppConfig;
 import org.apache.kylin.rest.model.Query;
@@ -356,26 +356,29 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
         }
     }
 
-    @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
         aclEvaluate.checkProjectQueryPermission(project);
-        Message msg = MsgPicker.getMsg();
-        val record = getSavedQueries(creator, project);
-        List<Query> currentQueries = record.getQueries();
-        if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
-            throw new KylinException(SAVE_QUERY_FAILED,
-                    String.format(Locale.ROOT, msg.getDuplicateQueryName(), query.getName()));
-
-        currentQueries.add(query);
-        getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            Message msg = MsgPicker.getMsg();
+            val record = getSavedQueries(creator, project);
+            List<Query> currentQueries = record.getQueries();
+            if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
+                throw new KylinException(SAVE_QUERY_FAILED,
+                        String.format(Locale.ROOT, msg.getDuplicateQueryName(), query.getName()));
+            currentQueries.add(query);
+            getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+            return null;
+        }, project);
     }
 
-    @Transaction(project = 1)
     public void removeSavedQuery(final String creator, final String project, final String id) throws IOException {
         aclEvaluate.checkProjectQueryPermission(project);
-        val record = getSavedQueries(creator, project);
-        record.setQueries(record.getQueries().stream().filter(q -> !q.getId().equals(id)).collect(Collectors.toList()));
-        getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val record = getSavedQueries(creator, project);
+            record.setQueries(record.getQueries().stream().filter(q -> !q.getId().equals(id)).collect(Collectors.toList()));
+            getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+            return null;
+        }, project);
     }
 
     public QueryRecord getSavedQueries(final String creator, final String project) throws IOException {

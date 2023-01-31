@@ -1215,8 +1215,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         try {
             queryService.saveQuery("admin", "default", query);
         } catch (Exception ex) {
-            Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertEquals("Query named \"test\" already exists. Please check and try again.", ex.getMessage());
+            Assert.assertEquals(KylinException.class, ex.getCause().getClass());
+            Assert.assertEquals("Query named \"test\" already exists. Please check and try again.",
+                    ex.getCause().getMessage());
         }
 
         queryRecord = queryService.getSavedQueries("admin", "default");
