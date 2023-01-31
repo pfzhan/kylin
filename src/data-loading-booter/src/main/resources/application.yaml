@@ -34,13 +34,32 @@ server:
 
 management:
   endpoint:
+    health:
+      enabled: true
+      show-details: always
     prometheus:
       enabled: true
   endpoints:
     web:
       base-path: "/api"
       exposure:
-        include: prometheus
+        include: prometheus,health
+
+  health:
+    defaults:
+      enabled: false
+    metaStore:
+      enabled: true
+    sparkSqlContext:
+      enabled: true
+    fileSystem:
+      enabled: true
+    sparkContext:
+      enabled: true
+    diskspace:
+      enabled: true
+    refresh:
+      enabled: true
 
 spring:
   http:
