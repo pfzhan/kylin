@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <name>Kylin - Metadata Feign Api</name>
+    <name>Kylin - Metadata Feign API</name>
     <artifactId>kylin-metadata-feign-api</artifactId>
     <dependencies>
         <dependency>

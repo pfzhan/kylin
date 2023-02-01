@@ -50,8 +50,9 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
     private static final Option OPTION_JOB_ID = OptionBuilder.getInstance().withArgName("job").hasArg().isRequired(false)
             .withDescription("specify the Job ID to extract information. ").create("job");
 
-    public DiagK8sTool(HttpHeaders headers) {
+    public DiagK8sTool(HttpHeaders headers, String diagPackageType) {
         super();
+        setPackageType(diagPackageType);
         this.headers = headers;
         options.addOption(OPTION_QUERY_ID);
         options.addOption(OPTION_PROJECT);
@@ -143,7 +144,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         long endTime = job.getOutput().getEndTime() != 0 ? job.getOutput().getEndTime() : System.currentTimeMillis();
         List<String> instances = extractInstances(job);
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
-        
+
         dumpMetadata(exportDir, recordTime);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
         if (StringUtils.isNotEmpty(modelId)) {

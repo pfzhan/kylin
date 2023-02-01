@@ -182,7 +182,8 @@ public class SystemService extends BasicService {
         Future<?> task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
-                new DiagK8sTool(headers).execute(arguments);
+                val packageType = diagPackageType.toString().toLowerCase();
+                new DiagK8sTool(headers, packageType).execute(arguments);
 
                 DiagInfo diagInfo = diagMap.getIfPresent(uuid);
                 if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {

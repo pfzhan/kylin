@@ -10,6 +10,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>Kylin - Spark DDL Plugin</name>
     <artifactId>kylin-spark-ddl</artifactId>
     <dependencies>
         <dependency>
