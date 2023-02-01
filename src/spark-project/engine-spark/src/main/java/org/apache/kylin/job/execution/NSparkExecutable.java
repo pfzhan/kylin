@@ -63,6 +63,7 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.apache.parquet.Strings;
+import org.apache.spark.sql.KylinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -691,7 +692,18 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         // Rewrite extra classpath.
         rewriteExtraClasspath(kylinConf, sparkConf);
 
+        // Rewrite k8s conf.
+        rewriteConfOfKubernetes(sparkConf);
+
         return Collections.unmodifiableMap(sparkConf);
+    }
+
+    private void rewriteConfOfKubernetes(Map<String, String> sparkConf) {
+        if (sparkConf.get(SPARK_MASTER).startsWith("k8s")) {
+            val podNamePrefix = KylinSession.generateExecutorPodNamePrefixForK8s("");
+            logger.info("Spark job run on k8s, generated executorPodNamePrefix is {}", podNamePrefix);
+            sparkConf.putIfAbsent("spark.kubernetes.executor.podNamePrefix", podNamePrefix);
+        }
     }
 
     private void rewriteTZenv(KylinConfig kylinConf, Map<String, String> sparkConf) {

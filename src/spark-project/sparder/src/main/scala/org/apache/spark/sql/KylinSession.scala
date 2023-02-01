@@ -37,6 +37,8 @@ import org.springframework.expression.spel.standard.SpelExpressionParser
 import java.io._
 import java.net.URI
 import java.nio.file.Paths
+import java.time.Instant
+import java.util.{Locale, UUID}
 import scala.collection.JavaConverters._
 
 
@@ -238,16 +240,21 @@ object KylinSession extends Logging {
         sparkConf.set("hive.metastore.sasl.enabled", "true")
       }
 
-      // job node init with spark local mode, ignore the spark.master
-      val isLocalMode = sparkConf.get("spark.master").startsWith("local")
       kapConfig.getSparkConf.asScala.foreach{
         case (k, v) =>
           sparkConf.set(k, v)
       }
-      kapConfig.getSparkConf.asScala.filterKeys(isLocalMode && !"spark.master".equals(_)).foreach {
-        case (k, v) =>
-          sparkConf.set(k, v)
+
+      // the length of the `podNamePrefix` needs to be less than or equal to 47
+      sparkConf.get("spark.master") match {
+        case v if v.startsWith("k8s") =>
+          val appName = sparkConf.get("spark.app.name", "")
+          val podNamePrefix = generateExecutorPodNamePrefixForK8s(appName)
+          logInfo(s"Sparder run on k8s, generated executorPodNamePrefix is $podNamePrefix")
+          sparkConf.setIfMissing("spark.kubernetes.executor.podNamePrefix", podNamePrefix)
+        case _ =>
       }
+
       val instances = sparkConf.get("spark.executor.instances").toInt
       val cores = sparkConf.get("spark.executor.cores").toInt
       val sparkCores = instances * cores
@@ -394,6 +401,15 @@ object KylinSession extends Logging {
       }
     }
     extensions
+  }
+
+  def generateExecutorPodNamePrefixForK8s(appName: String): String = {
+    val appNameLength = appName.length
+    if (appNameLength > 0 && appNameLength <= 47) {
+      appName
+    } else {
+      s"sparder-${UUID.randomUUID().toString.replaceAll("-", "")}"
+    }
   }
 
   def applyFairSchedulerConfig(kapConfig: KapConfig, confFileDirPath: String, sparkConf: SparkConf): Unit = {
