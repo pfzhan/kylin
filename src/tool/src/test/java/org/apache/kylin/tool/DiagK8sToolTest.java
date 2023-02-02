@@ -60,7 +60,7 @@ class DiagK8sToolTest {
         File mainDir = new File(temporaryFolder, testInfo.getDisplayName());
         FileUtils.forceMkdir(mainDir);
 
-        DiagK8sTool tool = new DiagK8sTool(new HttpHeaders());
+        DiagK8sTool tool = new DiagK8sTool(new HttpHeaders(), "full");
         tool.execute(new String[] { "-destDir", mainDir.getAbsolutePath() });
 
         File diagFile = mainDir.listFiles()[0].listFiles()[0];
@@ -97,7 +97,7 @@ class DiagK8sToolTest {
         File mainDir = new File(temporaryFolder, testInfo.getDisplayName());
         FileUtils.forceMkdir(mainDir);
 
-        DiagK8sTool tool = new DiagK8sTool(new HttpHeaders());
+        DiagK8sTool tool = new DiagK8sTool(new HttpHeaders(), "query");
         tool.execute(new String[] { "-project", "default", "-query", queryId, "-destDir", mainDir.getAbsolutePath() });
 
         File diagFile = mainDir.listFiles()[0].listFiles()[0];
@@ -133,7 +133,7 @@ class DiagK8sToolTest {
             File mainDir = new File(temporaryFolder, testInfo.getDisplayName());
             FileUtils.forceMkdir(mainDir);
 
-            DiagK8sTool tool = new DiagK8sTool(new HttpHeaders());
+            DiagK8sTool tool = new DiagK8sTool(new HttpHeaders(), "job");
             tool.execute(new String[] { "-job", job.getId(), "-destDir", mainDir.getAbsolutePath() });
 
             File diagFile = mainDir.listFiles()[0].listFiles()[0];
