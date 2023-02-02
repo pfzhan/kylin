@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PAR
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 import static org.apache.kylin.rest.constant.SnapshotStatus.BROKEN;
+import static org.apache.kylin.rest.util.TableUtils.calculateTableSize;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,7 +54,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.exception.JobSubmissionException;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
@@ -99,32 +100,6 @@ import com.google.common.collect.Sets;
 
 import lombok.SneakyThrows;
 import lombok.val;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_MANAGEMENT_NOT_ENABLED;
-import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_CHECK_FAIL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.REQUEST_PARAMETER_EMPTY_OR_VALUE_EMPTY;
-import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
-import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
-import static org.apache.kylin.rest.constant.SnapshotStatus.BROKEN;
-import static org.apache.kylin.rest.util.TableUtils.calculateTableSize;
 
 @Component("snapshotService")
 public class SnapshotService extends BasicService implements SnapshotSupporter {
@@ -144,7 +119,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private List<JobInfo> fetchAllRunningSnapshotTasksByTableIds(String project, Set<String> tableIds) {
         return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, SNAPSHOT_JOB_TYPES,
-                Lists.newArrayList(tableIds));
+                null == tableIds ? null : Lists.newArrayList(tableIds));
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables) {

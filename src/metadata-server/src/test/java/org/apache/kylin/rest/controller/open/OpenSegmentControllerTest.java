@@ -72,12 +72,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.modules.junit4.PowerMockRunnerDelegate;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -92,7 +96,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(PowerMockRunner.class)
+@PowerMockRunnerDelegate(JUnit4.class)
+@PrepareForTest({ KylinConfig.class, NProjectManager.class })
+@PowerMockIgnore({ "javax.management.*", "javax.script.*", "org.apache.hadoop.*", "javax.security.*", "java.security.*",
+        "com.sun.security.*" })
 public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
@@ -548,24 +556,27 @@ public class OpenSegmentControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckProjectMLP() {
-        try (MockedStatic<KylinConfig> kylinConfigMockedStatic = Mockito.mockStatic(KylinConfig.class);
-             MockedStatic<NProjectManager> nProjectManagerMockedStatic = Mockito.mockStatic(NProjectManager.class)) {
-            kylinConfigMockedStatic.when(KylinConfig::getInstanceFromEnv).thenReturn(Mockito.mock(KylinConfig.class));
-            NProjectManager projectManager = Mockito.mock(NProjectManager.class);
-            nProjectManagerMockedStatic.when(() -> NProjectManager.getInstance(Mockito.any())).thenReturn(projectManager);
-            ProjectInstance projectInstance = Mockito.mock(ProjectInstance.class);
-            when(projectManager.getProject(anyString())).thenReturn(projectInstance);
-            KylinConfigExt kylinConfigExt = Mockito.mock(KylinConfigExt.class);
-            when(projectInstance.getName()).thenReturn("TEST_PROJECT_NAME");
-            when(projectInstance.getConfig()).thenReturn(kylinConfigExt);
-            when(kylinConfigExt.isMultiPartitionEnabled()).thenReturn(false);
-            try {
-                ReflectionTestUtils.invokeMethod(openSegmentController, "checkProjectMLP", "SOME_PROJECT");
-                Assert.fail();
-            } catch (Exception e) {
-                Assert.assertTrue(e instanceof KylinException);
-                Assert.assertEquals(PROJECT_MULTI_PARTITION_DISABLE.getCodeMsg("TEST_PROJECT_NAME"), e.getLocalizedMessage());
-            }
+        PowerMockito.mockStatic(KylinConfig.class);
+        PowerMockito.mockStatic(NProjectManager.class);
+
+        KylinConfig kylinConfig = Mockito.mock(KylinConfig.class);
+        PowerMockito.when(KylinConfig.getInstanceFromEnv()).thenReturn(kylinConfig);
+
+        NProjectManager projectManager = Mockito.mock(NProjectManager.class);
+        PowerMockito.when(NProjectManager.getInstance(Mockito.any())).thenReturn(projectManager);
+
+        ProjectInstance projectInstance = Mockito.mock(ProjectInstance.class);
+        when(projectManager.getProject(anyString())).thenReturn(projectInstance);
+        KylinConfigExt kylinConfigExt = Mockito.mock(KylinConfigExt.class);
+        when(projectInstance.getName()).thenReturn("TEST_PROJECT_NAME");
+        when(projectInstance.getConfig()).thenReturn(kylinConfigExt);
+        when(kylinConfigExt.isMultiPartitionEnabled()).thenReturn(false);
+        try {
+            ReflectionTestUtils.invokeMethod(openSegmentController, "checkProjectMLP", "SOME_PROJECT");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(PROJECT_MULTI_PARTITION_DISABLE.getCodeMsg("TEST_PROJECT_NAME"), e.getLocalizedMessage());
         }
     }
 

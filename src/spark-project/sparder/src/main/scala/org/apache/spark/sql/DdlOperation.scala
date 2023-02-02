@@ -24,7 +24,7 @@ import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, Se
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
 import org.apache.spark.sql.execution.command._
-import org.apache.spark.sql.execution.datasources.v2.{CreateNamespaceExec, DropNamespaceExec}
+import org.apache.spark.sql.execution.datasources.v2.{CreateNamespaceExec, DropNamespaceExec, ShowCreateTableExec}
 import org.apache.spark.sql.execution.{CommandExecutionMode, CommandResultExec, QueryExecution, SparkPlan}
 import org.apache.spark.sql.types.StructField
 
@@ -123,9 +123,14 @@ object DdlOperation extends Logging {
     val logicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(sql)
     val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan,
       CommandExecutionMode.SKIP)
-    stripRootCommandResult(queryExecution.executedPlan) match {
-      case ExecutedCommandExec(show: ShowCreateTableCommand) => collectDDL(show.table, sql)
-      case ExecutedCommandExec(show: ShowCreateTableAsSerdeCommand) => collectDDL(show.table, sql)
+    val show = stripRootCommandResult(queryExecution.executedPlan)
+    if (show.isInstanceOf[ShowCreateTableExec]) {
+      collectDDL(TableIdentifier(table, Some(database)), sql)
+    } else {
+      show match {
+        case ExecutedCommandExec(show: ShowCreateTableCommand) => collectDDL(show.table, sql)
+        case ExecutedCommandExec(show: ShowCreateTableAsSerdeCommand) => collectDDL(show.table, sql)
+      }
     }
   }
 

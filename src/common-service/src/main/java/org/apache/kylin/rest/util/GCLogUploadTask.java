@@ -27,7 +27,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.tool.util.ToolUtil;
-import org.bouncycastle.util.Arrays;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +69,7 @@ public class GCLogUploadTask implements Runnable {
 
             File[] gcLogs = logDir.listFiles(((dir, name) -> name.startsWith(gcLogPrefix)));
             FileStatus[] remoteGClogs = fs.listStatus(remoteDir, path -> path.getName().startsWith(gcLogPrefix));
-            if (Arrays.isNullOrEmpty(gcLogs)) {
+            if (null == gcLogs || gcLogs.length == 0) {
                 log.error(UPLOAD_ERROR + " Cannot find GC log for pid: " + ToolUtil.getKylinPid());
                 return;
             }

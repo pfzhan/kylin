@@ -41,12 +41,10 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.ViewRequest;
 import org.apache.kylin.rest.response.LoadTableResponse;
 import org.apache.kylin.rest.response.LogicalViewResponse;
-
 import org.apache.spark.sql.LogicalViewLoader;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.common.SparkDDLTestUtils;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;

@@ -30,6 +30,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Unsafe;
@@ -91,6 +92,12 @@ public class MetadataTool extends ExecutableApplication {
         this.options = initOptions();
     }
 
+    public static void backup(KylinConfig kylinConfig) throws IOException {
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
+        val backupTool = new MetadataTool(kylinConfig);
+        backupTool.execute(args);
+    }
 
     public static void restore(KylinConfig kylinConfig, String folder) throws IOException {
         restore(kylinConfig, folder, true);

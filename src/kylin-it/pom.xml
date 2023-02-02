@@ -10,7 +10,6 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Kylin - IT</name>
     <artifactId>kylin-it</artifactId>
     <name>Kylin - Integration Test</name>
 
