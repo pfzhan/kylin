@@ -1260,6 +1260,10 @@ public class CnMessage extends Message {
         return "无法上线该模型。若需上线，请将配置项 “kylin.model.offline“ 设为 false。";
     }
 
+    @Override
+    public String getSnapshotTableOptionError() {
+        return "options 参数中的 “%s” 不在需要创建的快照表中，请修改后重新创建.";
+    }
     // multi level partition mapping
     @Override
     public String getMultiPartitionMappingReqeustNotValid() {

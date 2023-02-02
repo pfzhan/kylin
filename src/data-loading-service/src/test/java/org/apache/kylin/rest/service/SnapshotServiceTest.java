@@ -416,6 +416,52 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testBuildSnapshotByPartitionWithInvalidOptionsTable() {
+        enableSnapshotManualManagement();
+        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
+        final String table2 = "DEFAULT.TEST_ACCOUNT";
+        String partitionCol = "CAL_DT";
+
+        tableService = Mockito.mock(TableService.class);
+        ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
+        NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc tableDesc = tbgr.copyForWrite(tbgr.getTableDesc(table1));
+        tableDesc.setSourceType(1);
+        tableDesc.setPartitionColumn(partitionCol);
+
+        Mockito.when(tableService.extractTableMeta(Arrays.asList(table1).toArray(new String[0]), PROJECT))
+                .thenReturn(Arrays.asList(Pair.newPair(tableDesc, null)));
+
+        Set<String> tables = Sets.newHashSet(table1);
+        Set<String> databases = Sets.newHashSet();
+        Map<String, SnapshotRequest.TableOption> options = Maps.newHashMap();
+
+        SnapshotRequest.TableOption option1 = new SnapshotRequest.TableOption();
+        option1.setPartitionCol(partitionCol);
+        option1.setIncrementalBuild(true);
+        option1.setPartitionsToBuild(Sets.newHashSet());
+
+        SnapshotRequest.TableOption option2 = new SnapshotRequest.TableOption();
+        option2.setPartitionCol(partitionCol);
+        option2.setIncrementalBuild(true);
+        option2.setPartitionsToBuild(Sets.newHashSet());
+
+        options.put(table1, option1);
+        options.put(table2, option2);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "DEFAULT.TEST_ACCOUNT in the options parameter is not in the snapshot tables to be created, please modify it and recreate it");
+        var request = new SnapshotRequest();
+        request.setProject(PROJECT);
+        request.setDatabases(databases);
+        request.setTables(tables);
+        request.setPriority(3);
+        request.setOptions(options);
+        snapshotService.buildSnapshots(request, false);
+    }
+
+    @Test
     public void testSamplingKillAnExistingNonFinalJob() throws Exception {
         enableSnapshotManualManagement();
         // initialize a sampling job and assert the status of it
