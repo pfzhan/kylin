@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Resource;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -84,7 +84,7 @@ public class JobResourceService {
             }
         }
         if (!jobs.isEmpty()) {
-            log.info("adjustJobResource jobs={}", StringUtil.join(jobs, ","));
+            log.info("adjustJobResource jobs={}", StringUtils.join(jobs, ","));
             jobInfoService.batchUpdateJobStatus(jobs, null, JobActionEnum.PAUSE.name(), Lists.newArrayList());
             jobInfoService.batchUpdateJobStatus(jobs, null, JobActionEnum.RESUME.name(), Lists.newArrayList());
         }
