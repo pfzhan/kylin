@@ -67,16 +67,19 @@ public class NTableSamplingJob extends DefaultExecutableOnTable {
         NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 param.getProject());
         TableDesc tableDesc = tblMgr.getTableDesc(param.getTable());
-        return internalCreate(tableDesc, param.getProject(), param.getSubmitter(), param.getRow());
+        return internalCreate(tableDesc, param.getProject(), param.getSubmitter(), param.getRow(), param.getJobId());
     }
 
     public static NTableSamplingJob internalCreate(TableDesc tableDesc, String project, String submitter, int rows) {
+        return internalCreate(tableDesc, project, submitter, rows, RandomUtil.randomUUIDStr());
+    }
+    public static NTableSamplingJob internalCreate(TableDesc tableDesc, String project, String submitter, int rows, String jobId) {
         Preconditions.checkArgument(tableDesc != null, //
                 "Create table sampling job failed for table not exist!");
 
         log.info("start creating a table sampling job on table {}", tableDesc.getIdentity());
         NTableSamplingJob job = new NTableSamplingJob();
-        job.setId(RandomUtil.randomUUIDStr());
+        job.setId(jobId);
         job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
         job.setProject(project);
         job.setJobType(JobTypeEnum.TABLE_SAMPLING);
