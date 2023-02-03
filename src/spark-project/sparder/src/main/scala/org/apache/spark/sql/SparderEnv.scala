@@ -46,7 +46,6 @@ import java.util.Map
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{Callable, ExecutorService}
 
-
 // scalastyle:off
 object SparderEnv extends Logging {
   @volatile
@@ -226,7 +225,8 @@ object SparderEnv extends Logging {
       val appName = "sparder-" + UserGroupInformation.getCurrentUser.getShortUserName + "-" + hostInfoFetcher.getHostname
 
       val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
-        ("true").equals(System.getProperty("spark.local"))
+        "true".equals(System.getenv("SPARK_LOCAL")) ||
+        "true".equals(System.getProperty("spark.local"))
       val sparkSession = isLocalMode match {
         case true =>
           SparkSession.builder
