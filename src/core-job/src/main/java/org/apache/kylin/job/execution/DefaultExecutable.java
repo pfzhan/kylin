@@ -36,6 +36,7 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.scheduler.JobFinishedNotifier;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobIssueEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.ExecuteRuntimeException;
 import org.apache.kylin.job.exception.JobStoppedException;
@@ -316,6 +317,11 @@ public class DefaultExecutable extends AbstractExecutable implements ChainedExec
     private long getJobEndTime() {
         return subTasks.stream().map(AbstractExecutable::getEndTime).filter(t -> t != 0)
                 .max(Comparator.comparingLong(t -> t)).orElse(System.currentTimeMillis());
+    }
+
+    @Override
+    public long getWaitTime(ExecutablePO po) {
+        return subTasks.stream().map(task -> task.getWaitTime(po)).mapToLong(Long::longValue).sum();
     }
 
     @Override
