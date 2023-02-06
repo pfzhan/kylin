@@ -78,9 +78,8 @@ public class ResourceGroupManager {
         if (UnitOfWork.GLOBAL_UNIT.equals(project)) {
             return true;
         }
-        return getResourceGroup().getResourceGroupMappingInfoList()
-                .stream()
-                .anyMatch(mapping -> project.equals(mapping.getProject()));
+        return getResourceGroup().getResourceGroupMappingInfoList().stream()
+                .anyMatch(mapping -> project.equalsIgnoreCase(mapping.getProject()));
     }
 
     public boolean isResourceGroupEnabled() {
@@ -122,7 +121,7 @@ public class ResourceGroupManager {
                 .filter(instance -> instance.getInstance().equals(server)).map(KylinInstance::getResourceGroupId)
                 .findFirst().orElse(null);
         return resourceGroup.getResourceGroupMappingInfoList().stream()
-                .filter(mappingInfo -> mappingInfo.getProject().equals(epochTarget))
+                .filter(mappingInfo -> mappingInfo.getProject().equalsIgnoreCase(epochTarget))
                 .filter(mappingInfo -> mappingInfo.getRequestType() == RequestTypeEnum.BUILD)
                 .anyMatch(mappingInfo -> mappingInfo.getResourceGroupId().equals(epochServerResourceGroupId));
     }
