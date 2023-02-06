@@ -52,7 +52,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;

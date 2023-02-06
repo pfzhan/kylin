@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.metadata.favorite;
+package org.apache.kylin.metadata.asynctask;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,12 +33,16 @@ import lombok.Setter;
 @NoArgsConstructor
 @EqualsAndHashCode
 public class AbstractAsyncTask {
-    private int id;
 
-    private String project;
+    private int id;
 
     @JsonProperty("task_type")
     private String taskType;
+
+    @JsonProperty("task_key")
+    private String taskKey;
+
+    private String project;
 
     @JsonProperty("task_attributes")
     protected TaskAttributes taskAttributes;
@@ -53,7 +58,8 @@ public class AbstractAsyncTask {
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
-    @JsonSubTypes({ @JsonSubTypes.Type(AsyncAccelerationTask.AccelerationTaskAttributes.class) })
+    @JsonSubTypes({ @JsonSubTypes.Type(AsyncAccelerationTask.AccelerationTaskAttributes.class),
+            @JsonSubTypes.Type(MetadataRestoreTask.MetadataRestoreTaskAttributes.class) })
     @NoArgsConstructor
     public static class TaskAttributes {
     }

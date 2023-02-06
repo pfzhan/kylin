@@ -20,6 +20,7 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.util.Map;
 
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.common.annotation.Clarification;
 import org.apache.kylin.common.util.JsonUtil;
 

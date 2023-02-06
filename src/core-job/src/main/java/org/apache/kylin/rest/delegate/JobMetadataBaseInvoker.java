@@ -133,6 +133,10 @@ public class JobMetadataBaseInvoker {
         return jobMetadataBaseDelegate.fetchNotFinalJobsByTypes(project, jobNames, subjects);
     }
 
+    public void restoreJobInfo(List<JobInfo> jobInfos, String project, boolean afterTruncate) {
+        jobMetadataBaseDelegate.restoreJobInfo(jobInfos, project, afterTruncate);
+    }
+
     public void deleteJobByIdList(String project, List<String> jobIds) {
         jobMetadataBaseDelegate.deleteJobByIdList(project, jobIds);
     }

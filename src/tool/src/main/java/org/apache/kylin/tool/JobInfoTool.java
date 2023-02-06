@@ -17,16 +17,28 @@
  */
 package org.apache.kylin.tool;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.sql.Date;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
+import com.google.common.collect.Lists;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
@@ -39,13 +51,45 @@ import org.slf4j.LoggerFactory;
 
 public class JobInfoTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
+    private static final String JOB_INFO_DIR = "job_info";
+    private static final String ZIP_SUFFIX = ".zip";
 
-    public void backup() {
-        // TODO
+    public static void backup(String dir, String project) throws IOException {
+        extractToHDFS(dir + "/" + JOB_INFO_DIR, project);
     }
 
-    public void restore() {
-        // TODO
+    public static void restore(String dir, boolean afterTruncate) throws IOException {
+        Path path = new Path(dir + "/" + JOB_INFO_DIR);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        for (FileStatus fileStatus : fs.listStatus(path)) {
+            String fileName = fileStatus.getPath().getName();
+            String project = fileName.substring(0, fileName.indexOf("."));
+            restoreProject(dir, project, afterTruncate);
+        }
+    }
+
+    public static void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Path path = new Path(dir + "/" + JOB_INFO_DIR + "/" + project + ZIP_SUFFIX);
+        List<JobInfo> jobInfos = Lists.newArrayList();
+        try(ZipInputStream zis = new ZipInputStream(fs.open(path));
+            BufferedReader br = new BufferedReader(new InputStreamReader(zis))) {
+            while (zis.getNextEntry() != null) {
+                String value = br.readLine();
+                JobInfoHelper jobInfo = JsonUtil.readValue(value, JobInfoHelper.class);
+                jobInfo.setJobContent();
+                jobInfos.add(jobInfo);
+            }
+        }
+        JobMetadataInvoker.getInstance().restoreJobInfo(jobInfos, project, afterTruncate);
+    }
+
+    public void extractFull(File dir) {
+        JobMapperFilter filter = JobMapperFilter.builder().build();
+        List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+        for (JobInfo job : jobs) {
+            saveJobToFile(job, dir);
+        }
     }
 
     public void extractFull(File dir, long startTime, long endTime) {
@@ -95,8 +139,28 @@ public class JobInfoTool {
         }
     }
 
+    public static void extractToHDFS(String dir, String project) throws IOException {
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        String filePathStr = dir + "/" + project + ZIP_SUFFIX;
+        try (FSDataOutputStream fos = fs.create(new Path(filePathStr));
+             ZipOutputStream zos = new ZipOutputStream(fos);
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, Charset.defaultCharset()))) {
+            JobMapperFilter filter = JobMapperFilter.builder().project(project).build();
+            List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+            for (JobInfo job : jobs) {
+                zos.putNextEntry(new ZipEntry(job.getJobId() + ".json"));
+                String value = JsonUtil.writeValueAsString(new JobInfoHelper(job));
+                bw.write(value);
+                bw.flush();
+            }
+        }
+    }
+
     static class JobInfoHelper extends JobInfo {
-        private final ExecutablePO jobContentJson;
+        private ExecutablePO jobContentJson;
+
+        public JobInfoHelper() {
+        }
 
         public JobInfoHelper(JobInfo jobInfo) {
             this.setId(jobInfo.getId());
@@ -116,6 +180,10 @@ public class JobInfoTool {
 
         public ExecutablePO getJobContentJson() {
             return jobContentJson;
+        }
+
+        public void setJobContent() {
+            this.setJobContent(JobInfoUtil.serializeExecutablePO(jobContentJson));
         }
     }
 }

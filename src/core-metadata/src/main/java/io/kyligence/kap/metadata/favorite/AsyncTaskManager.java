@@ -18,12 +18,14 @@
 
 package io.kyligence.kap.metadata.favorite;
 
-import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.metadata.asynctask.MetadataRestoreTask;
 import org.apache.kylin.metadata.favorite.AsyncTaskStore;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -37,7 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 public class AsyncTaskManager {
 
     public static final String ASYNC_ACCELERATION_TASK = "async_acceleration_task";
-    public static final List<String> ALL_TASK_TYPES = Collections.singletonList(ASYNC_ACCELERATION_TASK);
+    public static final String METADATA_RECOVER_TASK = "metadata_recover_task";
+    public static final List<String> ALL_TASK_TYPES = Lists.newArrayList(ASYNC_ACCELERATION_TASK,
+            METADATA_RECOVER_TASK);
 
     private final AsyncTaskStore asyncTaskStore;
     private final String project;
@@ -55,13 +59,28 @@ public class AsyncTaskManager {
         return asyncTaskStore.getTransactionManager();
     }
 
-    public void save(AsyncAccelerationTask asyncTask) {
+    public void save(AbstractAsyncTask asyncTask) {
         if (asyncTask.getTaskType().equalsIgnoreCase(ASYNC_ACCELERATION_TASK)) {
-            saveOrUpdate(asyncTask);
+            saveOrUpdateAsyncAccelerationTask(asyncTask);
+        } else if (asyncTask.getTaskType().equalsIgnoreCase(METADATA_RECOVER_TASK)) {
+            saveOrUpdateMetadataRestoreTask(asyncTask);
         }
     }
 
-    private void saveOrUpdate(AbstractAsyncTask asyncTask) {
+    private void saveOrUpdateMetadataRestoreTask(AbstractAsyncTask asyncTask) {
+        AbstractAsyncTask asyncTask1 = get(asyncTask.getTaskType(), asyncTask.getTaskKey());
+        if (asyncTask1 == null) {
+            asyncTask.setCreateTime(System.currentTimeMillis());
+            asyncTask.setUpdateTime(asyncTask.getCreateTime());
+            asyncTaskStore.save(asyncTask);
+        } else {
+            asyncTask.setUpdateTime(System.currentTimeMillis());
+            asyncTaskStore.update(asyncTask);
+        }
+    }
+
+    private void saveOrUpdateAsyncAccelerationTask(AbstractAsyncTask asyncTask) {
+        asyncTask.setTaskKey(project);
         if (asyncTask.getId() == 0) {
             asyncTask.setProject(project);
             asyncTask.setCreateTime(System.currentTimeMillis());
@@ -74,15 +93,33 @@ public class AsyncTaskManager {
     }
 
     public AbstractAsyncTask get(String taskType) {
-        if (!taskType.equalsIgnoreCase(ASYNC_ACCELERATION_TASK)) {
+       return get(taskType, project);
+    }
+
+    public AbstractAsyncTask get(String taskType, String taskKey) {
+        if (!taskType.equalsIgnoreCase(ASYNC_ACCELERATION_TASK) && !taskType.equalsIgnoreCase(METADATA_RECOVER_TASK)) {
             throw new IllegalArgumentException("TaskType " + taskType + "is not supported!");
         }
-        AbstractAsyncTask syncTask = asyncTaskStore.queryByType(project, ASYNC_ACCELERATION_TASK);
-        if (syncTask == null) {
-            return new AsyncAccelerationTask(false, Maps.newHashMap(), ASYNC_ACCELERATION_TASK);
-        } else {
-            return AsyncAccelerationTask.copyFromAbstractTask(syncTask);
+        AbstractAsyncTask asyncTask = asyncTaskStore.queryByTypeAndKey(taskType, taskKey);
+        switch(taskType) {
+            case ASYNC_ACCELERATION_TASK:
+                if (asyncTask == null) {
+                    return new AsyncAccelerationTask(false, Maps.newHashMap(), ASYNC_ACCELERATION_TASK);
+                } else {
+                    return AsyncAccelerationTask.copyFromAbstractTask(asyncTask);
+                }
+            case METADATA_RECOVER_TASK:
+                return MetadataRestoreTask.copyFromAbstractTask(asyncTask);
+            default:
+                return asyncTask;
         }
+    }
+
+    public List<AbstractAsyncTask> getAllAsyncTaskByType(String taskType) {
+        if (!taskType.equalsIgnoreCase(ASYNC_ACCELERATION_TASK) && !taskType.equalsIgnoreCase(METADATA_RECOVER_TASK)) {
+            throw new IllegalArgumentException("TaskType " + taskType + "is not supported!");
+        }
+        return asyncTaskStore.queryByType(taskType);
     }
 
     public static void resetAccelerationTagMap(String project) {

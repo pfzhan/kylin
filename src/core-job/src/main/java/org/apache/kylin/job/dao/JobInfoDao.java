@@ -31,6 +31,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.config.JobMybatisConfig;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -40,6 +41,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
@@ -212,5 +214,24 @@ public class JobInfoDao {
     
     public List<JobLock> fetchAllJobLock() {
         return jobLockMapper.fetchAll();
+    }
+
+    public void restoreJobInfo(List<JobInfo> jobInfos, String project, boolean afterTruncate) {
+        JdbcUtil.withTxAndRetry(JobContextUtil.getTransactionManager(KylinConfig.getInstanceFromEnv()), () -> {
+            if (afterTruncate) {
+                jobInfoMapper.deleteByProject(project);
+            }
+            for (JobInfo jobInfo : jobInfos) {
+                JobInfo currentJobInfo = jobInfoMapper.selectByJobId(jobInfo.getJobId());
+                jobInfo.setJobInfoTable(JobMybatisConfig.JOB_INFO_TABLE);
+                if (currentJobInfo == null) {
+                    jobInfoMapper.insert(jobInfo);
+                } else {
+                    jobInfo.setMvcc(currentJobInfo.getMvcc());
+                    jobInfoMapper.updateByJobIdSelective(jobInfo);
+                }
+            }
+            return null;
+        });
     }
 }

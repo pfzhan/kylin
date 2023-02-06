@@ -103,6 +103,18 @@ public class QueryHistoryIdOffsetStore {
         }
     }
 
+    public void updateWithoutCheckMvcc(QueryHistoryIdOffset offset) {
+        QueryHistoryIdOffsetMapper mapper = sqlSessionTemplate.getMapper(QueryHistoryIdOffsetMapper.class);
+        UpdateStatementProvider updateStatement = getUpdateWithoutCheckMvccProvider(offset);
+        int rows = mapper.update(updateStatement);
+        if (rows > 0) {
+            log.debug("Update one query history offset for project ({})", offset.getProject());
+        } else {
+            throw new KylinException(FAILED_UPDATE_METADATA, String.format(Locale.ROOT,
+                    "Failed to update query history project for project (%s)", offset.getProject()));
+        }
+    }
+
     public QueryHistoryIdOffset queryByProject(String project, String type) {
         QueryHistoryIdOffsetMapper mapper = sqlSessionTemplate.getMapper(QueryHistoryIdOffsetMapper.class);
         SelectStatementProvider statementProvider = getSelectByProjectStatementProvider(project, type);
@@ -144,6 +156,15 @@ public class QueryHistoryIdOffsetStore {
                 .set(table.mvcc).equalTo(offset.getMvcc() + 1) //
                 .where(table.id, SqlBuilder.isEqualTo(offset::getId)) //
                 .and(table.mvcc, SqlBuilder.isEqualTo(offset::getMvcc)) //
+                .build().render(RenderingStrategies.MYBATIS3);
+    }
+
+    UpdateStatementProvider getUpdateWithoutCheckMvccProvider(QueryHistoryIdOffset offset) {
+        return SqlBuilder.update(table)//
+                .set(table.offset).equalTo(offset::getOffset) //
+                .set(table.updateTime).equalTo(offset::getUpdateTime) //
+                .set(table.mvcc).equalTo(offset.getMvcc() + 1) //
+                .where(table.id, SqlBuilder.isEqualTo(offset::getId)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 

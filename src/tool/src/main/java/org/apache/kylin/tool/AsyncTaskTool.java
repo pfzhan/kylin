@@ -33,7 +33,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 
 public class AsyncTaskTool {

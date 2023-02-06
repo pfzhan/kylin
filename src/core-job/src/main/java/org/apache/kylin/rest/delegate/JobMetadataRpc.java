@@ -97,6 +97,10 @@ public interface JobMetadataRpc extends JobMetadataContract {
     @PostMapping(value = "get_exec_by_filter")
     List<ExecutablePO> getExecutablePOsByFilter(@RequestBody JobMapperFilter filter);
 
+    @PostMapping(value = "restore_job_info")
+    void restoreJobInfo(@RequestBody List<JobInfo> jobInfos, @RequestParam("project") String project,
+                        @RequestParam("afterTruncate") boolean afterTruncate);
+
     @PostMapping(value = "delete_job_by_ids")
     void deleteJobByIdList(@RequestParam("project") String project, @RequestParam("jobIdList") List<String> jobIdList);
 

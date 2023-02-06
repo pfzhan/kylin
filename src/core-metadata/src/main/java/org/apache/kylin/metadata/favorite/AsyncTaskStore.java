@@ -45,7 +45,7 @@ import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import lombok.Getter;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -104,15 +104,15 @@ public class AsyncTaskStore {
         }
     }
 
-    public List<AbstractAsyncTask> queryByProject(String project) {
+    public List<AbstractAsyncTask> queryByType(String taskType) {
         AsyncTaskMapper mapper = sqlSessionTemplate.getMapper(AsyncTaskMapper.class);
-        SelectStatementProvider statementProvider = getSelectByProjectStatementProvider(project);
+        SelectStatementProvider statementProvider = getSelectByTaskTypeStatementProvider(taskType);
         return mapper.selectMany(statementProvider);
     }
 
-    public AbstractAsyncTask queryByType(String project, String taskType) {
+    public AbstractAsyncTask queryByTypeAndKey(String taskKey, String taskType) {
         AsyncTaskMapper mapper = sqlSessionTemplate.getMapper(AsyncTaskMapper.class);
-        SelectStatementProvider statementProvider = getSelectByTypeStatementProvider(project, taskType);
+        SelectStatementProvider statementProvider = getSelectByTypeAndKeyStatementProvider(taskKey, taskType);
         return mapper.selectOne(statementProvider);
     }
 
@@ -138,6 +138,7 @@ public class AsyncTaskStore {
         return provider.map(table.project).toProperty("project") //
                 .map(table.taskAttributes).toProperty("taskAttributes") //
                 .map(table.taskType).toProperty("taskType") //
+                .map(table.taskKey).toProperty("taskKey") //
                 .map(table.updateTime).toProperty("updateTime") //
                 .map(table.createTime).toProperty("createTime") //
                 .map(table.mvcc).toProperty("mvcc") //
@@ -149,6 +150,7 @@ public class AsyncTaskStore {
         return SqlBuilder.update(table) //
                 .set(table.taskAttributes).equalTo(task::getTaskAttributes) //
                 .set(table.taskType).equalTo(task::getTaskType) //
+                .set(table.taskKey).equalTo(task::getTaskKey)
                 .set(table.updateTime).equalTo(task::getUpdateTime) //
                 .set(table.mvcc).equalTo(task.getMvcc() + 1) //
                 .where(table.id, isEqualTo(task::getId)) //
@@ -156,17 +158,17 @@ public class AsyncTaskStore {
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
-    SelectStatementProvider getSelectByProjectStatementProvider(String project) {
+    SelectStatementProvider getSelectByTaskTypeStatementProvider(String taskType) {
         return select(getSelectFields(table)) //
                 .from(table) //
-                .where(table.project, isEqualTo(project)) //
+                .where(table.taskType, isEqualTo(taskType)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
-    SelectStatementProvider getSelectByTypeStatementProvider(String project, String taskType) {
+    SelectStatementProvider getSelectByTypeAndKeyStatementProvider(String taskType, String taskKey) {
         return select(getSelectFields(table)) //
                 .from(table) //
-                .where(table.project, isEqualTo(project)) //
+                .where(table.taskKey, isEqualTo(taskKey)) //
                 .and(table.taskType, isEqualTo(taskType)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
@@ -175,6 +177,7 @@ public class AsyncTaskStore {
         return BasicColumn.columnList(//
                 taskTable.id, //
                 taskTable.project, //
+                taskTable.taskKey,
                 taskTable.taskAttributes, //
                 taskTable.taskType, //
                 taskTable.updateTime, //

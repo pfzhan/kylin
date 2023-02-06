@@ -33,7 +33,7 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType;
 public class QueryHistoryIdOffsetManager {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryIdOffsetManager.class);
-    public static List<OffsetType> ALL_OFFSET_TYPE = Arrays.asList(OffsetType.META, OffsetType.META);
+    public static List<OffsetType> ALL_OFFSET_TYPE = Arrays.asList(OffsetType.META, OffsetType.ACCELERATE);
 
     private final QueryHistoryIdOffsetStore jdbcIdOffsetStore;
     private final String project;
@@ -60,6 +60,19 @@ public class QueryHistoryIdOffsetManager {
         } else {
             idOffset.setUpdateTime(System.currentTimeMillis());
             jdbcIdOffsetStore.update(idOffset);
+        }
+    }
+
+    public void updateWithoutMvccCheck(QueryHistoryIdOffset idOffset) {
+        QueryHistoryIdOffset offset = jdbcIdOffsetStore.queryByProject(this.project, idOffset.getType());
+        if (offset == null) {
+            idOffset.setProject(project);
+            idOffset.setCreateTime(System.currentTimeMillis());
+            idOffset.setUpdateTime(idOffset.getCreateTime());
+            jdbcIdOffsetStore.save(idOffset);
+        } else if (idOffset.getOffset() != offset.getOffset()){
+            idOffset.setUpdateTime(System.currentTimeMillis());
+            jdbcIdOffsetStore.updateWithoutCheckMvcc(idOffset);
         }
     }
 

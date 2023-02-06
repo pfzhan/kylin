@@ -188,6 +188,13 @@ public class JobMetadataDelegateController extends NBasicController {
         return jobMetadataDelegate.getExecutablePOsByFilter(filter);
     }
 
+    @PostMapping(value = "/feign/restore_job_info")
+    @ResponseBody
+    public void restoreJobInfo(@RequestBody List<JobInfo> jobInfos, @RequestParam("project") String project,
+                               @RequestParam("afterTruncate") boolean afterTruncate) {
+        jobMetadataDelegate.restoreJobInfo(jobInfos, project, afterTruncate);
+    }
+
     @PostMapping(value = "/feign/discard_job")
     @ResponseBody
     public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId) {

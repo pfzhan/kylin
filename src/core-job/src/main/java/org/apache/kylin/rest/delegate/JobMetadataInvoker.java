@@ -183,6 +183,11 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     }
 
     @Override
+    public void restoreJobInfo(List<JobInfo> jobInfos, String project, boolean afterTruncate) {
+        getDelegate().restoreJobInfo(jobInfos, project, afterTruncate);
+    }
+
+    @Override
     public void discardJob(String project, String jobId) {
         getDelegate().discardJob(project, jobId);
     }

@@ -185,6 +185,10 @@ public class JobMetadataBaseDelegate {
         }
     }
 
+    public void restoreJobInfo(List<JobInfo> jobInfos, String project, boolean afterTruncate) {
+        JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv()).restoreJobInfo(jobInfos, project, afterTruncate);
+    }
+
     public void deleteJobByIdList(String project, List<String> jobIdList) {
         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).deleteJobByIdList(jobIdList);
     }

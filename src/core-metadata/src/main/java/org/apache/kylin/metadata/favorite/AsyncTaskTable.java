@@ -35,7 +35,7 @@ import org.mybatis.dynamic.sql.SqlTable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 
 public class AsyncTaskTable extends SqlTable {
 
@@ -44,6 +44,7 @@ public class AsyncTaskTable extends SqlTable {
     public final SqlColumn<AbstractAsyncTask.TaskAttributes> taskAttributes = column("task_attributes",
             JDBCType.VARCHAR, TaskHandler.class.getName());
     public final SqlColumn<String> taskType = column("task_type", JDBCType.VARCHAR);
+    public final SqlColumn<String> taskKey = column("task_key", JDBCType.VARCHAR);
     public final SqlColumn<Long> updateTime = column("update_time", JDBCType.BIGINT);
     public final SqlColumn<Long> createTime = column("create_time", JDBCType.BIGINT);
     public final SqlColumn<Long> mvcc = column("mvcc", JDBCType.BIGINT);

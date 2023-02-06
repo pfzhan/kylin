@@ -17,16 +17,28 @@
  */
 package org.apache.kylin.tool;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
+import com.clearspring.analytics.util.Lists;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -38,13 +50,46 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 
 public class QueryHistoryOffsetTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
+    private static final String QUERY_HISTORY_DIR = "query_history_id_offset";
+    private static final String ZIP_SUFFIX = ".zip";
 
-    public void backup() {
-        // TODO
+    public static void backup(String dir, String project) throws IOException {
+        extractToHDFS(dir + "/" + QUERY_HISTORY_DIR, project);
     }
 
-    public void restore() {
-        // TODO
+    public static void restore(String dir, boolean isTruncate) throws IOException {
+        Path path = new Path(dir + "/" + QUERY_HISTORY_DIR);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        for (FileStatus fileStatus : fs.listStatus(path)) {
+            String fileName = fileStatus.getPath().getName();
+            String project = fileName.substring(0, fileName.indexOf("."));
+            restoreProject(dir, project, isTruncate);
+        }
+    }
+
+    public static void restoreProject(String dir, String project, boolean isTruncate) throws IOException {
+        Path path = new Path(dir + "/" + QUERY_HISTORY_DIR + "/" + project + ZIP_SUFFIX);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        List<QueryHistoryIdOffset> offsets = Lists.newArrayList();
+        QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
+        try(ZipInputStream zis = new ZipInputStream(fs.open(path));
+            BufferedReader br = new BufferedReader(new InputStreamReader(zis))) {
+            while (zis.getNextEntry() != null) {
+                String value = br.readLine();
+                QueryHistoryIdOffset offset = JsonUtil.readValue(value, QueryHistoryIdOffset.class);
+                offset.setProject(project);
+                offsets.add(offset);
+            }
+        }
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            if (isTruncate) {
+                manager.delete();
+            }
+            for (QueryHistoryIdOffset offset : offsets) {
+                manager.updateWithoutMvccCheck(offset);
+            }
+            return null;
+        });
     }
 
     public void extractFull(File dir) throws IOException {
@@ -68,6 +113,23 @@ public class QueryHistoryOffsetTool {
                 } catch (Exception e) {
                     logger.error("Write error, id is {}", offset.getId(), e);
                 }
+            }
+        }
+    }
+
+    public static void extractToHDFS(String dir, String project) throws IOException {
+        QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        String filePathStr = dir + "/" + project + ZIP_SUFFIX;
+        try (FSDataOutputStream fos = fs.create(new Path(filePathStr));
+             ZipOutputStream zos = new ZipOutputStream(fos);
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, Charset.defaultCharset()))) {
+            for (QueryHistoryIdOffset.OffsetType type : QueryHistoryIdOffsetManager.ALL_OFFSET_TYPE) {
+                QueryHistoryIdOffset offset = manager.get(type);
+                String pathStr = offset.getId() + "_" + type.getName() + ".json";
+                zos.putNextEntry(new ZipEntry(pathStr));
+                bw.write(JsonUtil.writeValueAsString(offset));
+                bw.flush();
             }
         }
     }

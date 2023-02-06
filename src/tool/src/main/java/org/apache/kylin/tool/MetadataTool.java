@@ -128,23 +128,50 @@ public class MetadataTool extends ExecutableApplication {
         initOptions();
     }
 
-    public static void backup(KylinConfig kylinConfig) throws IOException {
+    public static String backup(KylinConfig kylinConfig) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
         val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
+        return backupTool.backupPath;
     }
 
-    public static void backup(KylinConfig kylinConfig, String dir, String folder) throws IOException {
+    public static String backup(KylinConfig kylinConfig, String dir, String folder) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         String[] args = new String[] { "-backup", "-compress", "-dir", dir, "-folder", folder };
         val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
+        return backupTool.backupPath;
+    }
+
+    public static String backup(KylinConfig kylinConfig, String dir, String folder, String project) throws IOException {
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        String[] args = new String[] { "-backup", "-compress", "-dir", dir, "-folder", folder, "-project", project};
+        val backupTool = new MetadataTool(kylinConfig);
+        backupTool.execute(args);
+        return backupTool.backupPath;
     }
 
     public static void restore(KylinConfig kylinConfig, String folder) throws IOException {
+        restore(kylinConfig, folder, true);
+    }
+
+    public static void restore(KylinConfig kylinConfig, String folder, boolean afterTruncate) throws IOException {
         val tool = new MetadataTool(kylinConfig);
-        tool.execute(new String[] { "-restore", "-dir", folder, "--after-truncate" });
+        if (afterTruncate) {
+            tool.execute(new String[] { "-restore", "-dir", folder, "--after-truncate" });
+        } else {
+            tool.execute(new String[] { "-restore", "-dir", folder});
+        }
+    }
+
+    public static void restore(KylinConfig kylinConfig, String folder, boolean afterTruncate, String project) {
+        val tool = new MetadataTool(kylinConfig);
+        if (afterTruncate) {
+            tool.execute(new String[] { "-restore", "-dir", folder, "-project", project, "--after-truncate" });
+        } else {
+            tool.execute(new String[] { "-restore", "-dir", folder, "-project", project});
+        }
     }
 
     public static void main(String[] args) {
@@ -462,7 +489,6 @@ public class MetadataTool extends ExecutableApplication {
         }
         restore(resourceStore, restoreResourceStore, project, delete);
         backup(kylinConfig);
-
     }
 
     String getMetadataUrl(String rootPath, boolean compressed) {

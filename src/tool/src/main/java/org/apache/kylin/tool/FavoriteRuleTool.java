@@ -17,16 +17,28 @@
  */
 package org.apache.kylin.tool;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
+import com.google.common.collect.Lists;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -38,13 +50,47 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 
 public class FavoriteRuleTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
+    private static final String FAVORITE_RULE_DIR = "favorite_rule";
+    private static final String ZIP_SUFFIX = ".zip";
 
-    public void backup() {
-        // TODO
+    public static void backup(String dir, String project) throws IOException {
+        extractToHDFS(dir + "/" + FAVORITE_RULE_DIR, project);
     }
 
-    public void restore() {
-        // TODO
+    public static void restore(String dir, boolean afterTruncate) throws IOException {
+        Path path = new Path(dir + "/" + FAVORITE_RULE_DIR);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        for (FileStatus fileStatus : fs.listStatus(path)) {
+            String fileName = fileStatus.getPath().getName();
+            String project = fileName.substring(0, fileName.indexOf("."));
+            restoreProject(dir, project, afterTruncate);
+        }
+    }
+
+    public static void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Path path = new Path(dir + "/" + FAVORITE_RULE_DIR + "/" + project + ZIP_SUFFIX);
+        FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
+        List<FavoriteRule> rules = Lists.newArrayList();
+        try(ZipInputStream zis = new ZipInputStream(fs.open(path));
+            BufferedReader br = new BufferedReader(new InputStreamReader(zis))) {
+            while (zis.getNextEntry() != null) {
+                String value = br.readLine();
+                FavoriteRule rule = JsonUtil.readValue(value, FavoriteRule.class);
+                rules.add(rule);
+            }
+        }
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            if (afterTruncate) {
+                for (FavoriteRule favoriteRule : manager.listAll()) {
+                    manager.delete(favoriteRule);
+                }
+            }
+            for (FavoriteRule rule : rules) {
+                manager.updateRule(rule);
+            }
+            return null;
+        });
     }
 
     public void extractFull(File dir) throws IOException {
@@ -67,6 +113,21 @@ public class FavoriteRuleTool {
                 } catch (Exception e) {
                     logger.error("Write error, id is {}", line.getId(), e);
                 }
+            }
+        }
+    }
+
+    public static void extractToHDFS(String dir, String project) throws IOException {
+        FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        String filePathStr = dir + "/" + project + ZIP_SUFFIX;
+        try (FSDataOutputStream fos = fs.create(new Path(filePathStr));
+                        ZipOutputStream zos = new ZipOutputStream(fos);
+                        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, Charset.defaultCharset()))) {
+            for (FavoriteRule line : manager.getAll()) {
+                zos.putNextEntry(new ZipEntry(line.getId() + ".json"));
+                bw.write(JsonUtil.writeValueAsString(line));
+                bw.flush();
             }
         }
     }

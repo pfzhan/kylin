@@ -36,7 +36,7 @@ import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 
 @Mapper
 public interface AsyncTaskMapper {
@@ -52,6 +52,7 @@ public interface AsyncTaskMapper {
     @Results(id = "TaskResult", value = {
             @Result(column = "id", property = "id", jdbcType = JdbcType.INTEGER, id = true),
             @Result(column = "project", property = "project", jdbcType = JdbcType.VARCHAR),
+            @Result(column = "task_key", property = "taskKey", jdbcType = JdbcType.VARCHAR),
             @Result(column = "task_attributes", property = "taskAttributes", jdbcType = JdbcType.VARCHAR, typeHandler = AsyncTaskTable.TaskHandler.class),
             @Result(column = "task_type", property = "taskType", jdbcType = JdbcType.VARCHAR),
             @Result(column = "update_time", property = "updateTime", jdbcType = JdbcType.BIGINT),

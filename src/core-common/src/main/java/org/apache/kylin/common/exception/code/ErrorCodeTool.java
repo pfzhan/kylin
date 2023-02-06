@@ -19,6 +19,7 @@ package org.apache.kylin.common.exception.code;
 
 public enum ErrorCodeTool implements ErrorCodeProducer {
 
+    GET_METADATA_BACKUP_LIST_FAILED("KE-040024004"),
     // parameter
     PARAMETER_EMPTY("KE-050040201"), PARAMETER_NOT_SPECIFY("KE-050040202"), PARAMETER_TIMESTAMP_NOT_SPECIFY(
             "KE-050040203"), PARAMETER_TIMESTAMP_COMPARE("KE-050040204"),
