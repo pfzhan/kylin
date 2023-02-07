@@ -73,6 +73,7 @@ import static org.apache.kylin.metadata.model.FunctionDesc.PARAMETER_TYPE_COLUMN
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -95,7 +96,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -106,7 +106,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -129,7 +128,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
@@ -206,7 +205,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.streaming.KafkaConfig;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
@@ -1806,7 +1804,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                 QueryParams queryParams = new QueryParams(project, flatTableSql, "default", false);
                 queryParams.setKylinConfig(prjInstance.getConfig());
                 queryParams.setAclInfo(AclPermissionUtil.createAclInfo(project, getCurrentUserGroups()));
-                String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
+                String pushdownSql = PushDownUtil.massagePushDownSql(queryParams);
                 ss.sql(pushdownSql);
             }
         } catch (Exception e) {
@@ -2452,8 +2450,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
     }
 
-    public String probeDateFormatIfNotExist(String project, NDataModel modelDesc) throws Exception {
-        val partitionDesc = modelDesc.getPartitionDesc();
+    public String probeDateFormatIfNotExist(String project, NDataModel model) throws SQLException {
+        PartitionDesc partitionDesc = model.getPartitionDesc();
         if (PartitionDesc.isEmptyPartitionDesc(partitionDesc)
                 || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return "";
@@ -2463,9 +2461,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             return partitionDesc.getPartitionDateColumn();
         }
 
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
-
-        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
+        String partitionColumn = model.getPartitionDesc().getPartitionDateColumnRef().getBackTickExp();
+        String date = PushDownUtil.probeColFormat(model.getRootFactTableName(), partitionColumn, project);
         return DateFormat.proposeDateFormat(date);
     }
 
@@ -2494,7 +2491,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         String dateFormat = desc.getPartitionDateFormat();
         Preconditions.checkArgument(StringUtils.isNotEmpty(dateFormat) && StringUtils.isNotEmpty(partitionColumn));
 
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTimeWithTimeOut(partitionColumn, table, project);
+        val minAndMaxTime = PushDownUtil.probeMinMaxTsWithTimeout(partitionColumn, table, project);
 
         return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
@@ -2840,7 +2837,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
         model.init(getConfig(), project, getManager(NDataModelManager.class, project).getCCRelatedModels(model));
         model.getComputedColumnDescs().forEach(cc -> {
-            String innerExp = QueryUtil.massageComputedColumn(model, project, cc, null);
+            String innerExp = PushDownUtil.massageComputedColumn(model, project, cc, null);
             cc.setInnerExpression(innerExp);
         });
 
@@ -2867,7 +2864,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                             MsgPicker.getMsg().getccOnAntiFlattenLookup(), antiFlattenLookup));
                 }
                 ComputedColumnDesc.simpleParserCheck(cc.getExpression(), model.getAliasMap().keySet());
-                String innerExpression = QueryUtil.massageComputedColumn(model, project, cc, aclInfo);
+                String innerExpression = PushDownUtil.massageComputedColumn(model, project, cc, aclInfo);
                 cc.setInnerExpression(innerExpression);
 
                 //check by data source, this could be slow
@@ -2969,10 +2966,10 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         // Update CC expression from query transformers
         QueryContext.AclInfo aclInfo = AclPermissionUtil.createAclInfo(project, getCurrentUserGroups());
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
-            String ccExpression = QueryUtil.massageComputedColumn(model, project, ccDesc, aclInfo);
+            String ccExpression = PushDownUtil.massageComputedColumn(model, project, ccDesc, aclInfo);
             ccDesc.setInnerExpression(ccExpression);
             TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
-            tblColRef.getColumnDesc().setComputedColumn(ccExpression);
+            tblColRef.getColumnDesc().setComputedColumnExpr(ccExpression);
         }
 
         ComputedColumnEvalUtil.evalDataTypeOfCCInBatch(model, model.getComputedColumnDescs());
@@ -3292,7 +3289,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                 return baseIndexResponse;
             }, project);
         } catch (TransactionException te) {
-            Throwable root = ExceptionUtils.getCause(te);
+            Throwable root = te.getCause();
             if (root instanceof RuntimeException) {
                 throw (RuntimeException) root;
             }
@@ -3686,24 +3683,24 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         String pattitions = props.get("kylin.engine.spark-conf.spark.sql.shuffle.partitions");
         String memory = props.get("kylin.engine.spark-conf.spark.executor.memory");
         String baseCuboidAllowed = props.get("kylin.cube.aggrgroup.is-base-cuboid-always-valid");
-        if (null != cores && !StringUtil.validateNumber(cores)) {
+        if (null != cores && !StringHelper.validateNumber(cores)) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.cores"));
         }
-        if (null != instances && !StringUtil.validateNumber(instances)) {
+        if (null != instances && !StringHelper.validateNumber(instances)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.executor.instances"));
         }
-        if (null != pattitions && !StringUtil.validateNumber(pattitions)) {
+        if (null != pattitions && !StringHelper.validateNumber(pattitions)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidIntegerFormat(), "spark.sql.shuffle.partitions"));
         }
         if (null != memory
-                && (!memory.endsWith("g") || !StringUtil.validateNumber(memory.substring(0, memory.length() - 1)))) {
+                && (!memory.endsWith("g") || !StringHelper.validateNumber(memory.substring(0, memory.length() - 1)))) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getInvalidMemorySize(), "spark.executor.memory"));
         }
-        if (null != baseCuboidAllowed && !StringUtil.validateBoolean(baseCuboidAllowed)) {
+        if (null != baseCuboidAllowed && !StringHelper.validateBoolean(baseCuboidAllowed)) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidBooleanFormat(), "is-base-cuboid-always-valid"));
         }
@@ -3847,17 +3844,15 @@ public class ModelService extends AbstractModelService implements TableModelSupp
      *
      * @param model
      */
-    @VisibleForTesting
-    public void massageModelFilterCondition(final NDataModel model) {
+    void massageModelFilterCondition(final NDataModel model) {
         if (StringUtils.isEmpty(model.getFilterCondition())) {
             return;
         }
 
-        String massagedFilterCond = QueryUtil.massageExpression(model, model.getProject(), model.getFilterCondition(),
-                AclPermissionUtil.createAclInfo(model.getProject(), getCurrentUserGroups()), false);
-
-        String filterConditionWithTableName = addTableNameIfNotExist(massagedFilterCond, model);
-
+        String filterConditionWithTableName = addTableNameIfNotExist(model.getFilterCondition(), model);
+        QueryContext.AclInfo aclInfo = AclPermissionUtil.createAclInfo(model.getProject(), getCurrentUserGroups());
+        // validate as soon as possible
+        PushDownUtil.massageExpression(model, model.getProject(), model.getFilterCondition(), aclInfo);
         model.setFilterCondition(filterConditionWithTableName);
     }
 
@@ -3895,9 +3890,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                         MsgPicker.getMsg().getFilterConditionOnAntiFlattenLookup(), antiFlatLookup));
             }
         }
-        String exp = sqlNode
-                .toSqlString(new CalciteSqlDialect(SqlDialect.EMPTY_CONTEXT.withIdentifierQuoteString("`")), true)
-                .toString();
+        String exp = sqlNode.toSqlString(CalciteSqlDialect.DEFAULT, true).toString();
         return CalciteParser.normalize(exp);
     }
 
@@ -4418,7 +4411,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             String innerExp = cc.getInnerExpression();
             if (cc.getExpression().equalsIgnoreCase(innerExp)) {
-                innerExp = QueryUtil.massageComputedColumn(model, project, cc, null);
+                innerExp = PushDownUtil.massageComputedColumn(model, project, cc, null);
             }
             cc.setInnerExpression(innerExp);
         }

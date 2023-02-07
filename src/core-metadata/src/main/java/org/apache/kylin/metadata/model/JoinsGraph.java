@@ -192,14 +192,17 @@ public class JoinsGraph implements Serializable {
         }
 
         private boolean columnDescEquals(ColumnDesc[] a, ColumnDesc[] b) {
-            if (a.length != b.length)
+            if (a.length != b.length) {
                 return false;
-
-            for (int i = 0; i < a.length; i++) {
-                if (!columnDescEquals(a[i], b[i]))
-                    return false;
             }
-            return true;
+
+            List<ColumnDesc> oneList = Lists.newArrayList(a);
+            List<ColumnDesc> anotherList = Lists.newArrayList(b);
+
+            for (ColumnDesc obj : oneList) {
+                anotherList.removeIf(dual -> columnDescEquals(obj, dual));
+            }
+            return anotherList.isEmpty();
         }
 
         protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {

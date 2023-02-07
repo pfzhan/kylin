@@ -231,20 +231,24 @@ public class TableService extends BasicService {
     @Autowired
     private ClusterManager clusterManager;
 
-    public Pair<List<TableDesc>, Integer> getTableDesc(String project, boolean withExt, final String table, final String database,
-                                        boolean isFuzzy, List<Integer> sourceType, int returnTableSize) throws IOException {
-        TableDescRequest internalTableDescRequest = new TableDescRequest(project, withExt, table, database, isFuzzy, sourceType);
+    public Pair<List<TableDesc>, Integer> getTableDesc(String project, boolean withExt, final String table,
+            final String database, boolean isFuzzy, List<Integer> sourceType, int returnTableSize) throws IOException {
+        TableDescRequest internalTableDescRequest = new TableDescRequest(project, withExt, table, database, isFuzzy,
+                sourceType);
         return getTableDesc(internalTableDescRequest, returnTableSize);
     }
 
-    public Pair<List<TableDesc>, Integer> getTableDesc(TableDescRequest tableDescRequest, int returnTableSize) throws IOException {
+    public Pair<List<TableDesc>, Integer> getTableDesc(TableDescRequest tableDescRequest, int returnTableSize)
+            throws IOException {
         aclEvaluate.checkProjectReadPermission(tableDescRequest.getProject());
         boolean streamingEnabled = getConfig().streamingEnabled();
-        NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, tableDescRequest.getProject());
+        NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class,
+                tableDescRequest.getProject());
         List<TableDesc> tables = Lists.newArrayList();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableDescRequest.getTable()) && !tableDescRequest.isFuzzy()) {
-            val tableDesc = nTableMetadataManager.getTableDesc(tableDescRequest.getDatabase() + "." + tableDescRequest.getTable());
+            val tableDesc = nTableMetadataManager
+                    .getTableDesc(tableDescRequest.getDatabase() + "." + tableDescRequest.getTable());
             if (tableDesc != null && tableDesc.isAccessible(streamingEnabled))
                 tables.add(tableDesc);
         } else {
@@ -257,7 +261,8 @@ public class TableService extends BasicService {
                 if (StringUtils.isEmpty(tableDescRequest.getTable())) {
                     return true;
                 }
-                return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableDescRequest.getTable().toLowerCase(Locale.ROOT));
+                return tableDesc.getName().toLowerCase(Locale.ROOT)
+                        .contains(tableDescRequest.getTable().toLowerCase(Locale.ROOT));
             }).filter(tableDesc -> {
                 // Advance the logic of filtering the table by sourceType to here
                 if (!tableDescRequest.getSourceType().isEmpty()) {
@@ -454,7 +459,8 @@ public class TableService extends BasicService {
         return tableDescResponse;
     }
 
-    private Pair<List<TableDesc>, Integer> getTablesResponse(List<TableDesc> tables, String project, boolean withExt, int returnTableSize) {
+    private Pair<List<TableDesc>, Integer> getTablesResponse(List<TableDesc> tables, String project, boolean withExt,
+            int returnTableSize) {
         List<TableDesc> descs = new ArrayList<>();
         val projectManager = getManager(NProjectManager.class);
         val groups = getCurrentUserGroups();
@@ -518,8 +524,7 @@ public class TableService extends BasicService {
         AclTCRManager manager = getManager(AclTCRManager.class, project);
         Map<Integer, AclTCR.ColumnRealRows> columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
             int id = Integer.parseInt(cdr.getId());
-            val columnRealRows = manager.getAuthorizedRows(dbTblName, cdr.getName(),
-                    aclTCRS);
+            val columnRealRows = manager.getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
             return new AbstractMap.SimpleEntry<>(id, columnRealRows);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         for (String[] row : rtableDesc.getSamplingRows()) {
@@ -715,7 +720,8 @@ public class TableService extends BasicService {
                 () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam));
     }
 
-    public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
+    public String getPartitionColumnFormat(String project, String table, String partitionColumn,
+            String partitionExpression) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
 
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
@@ -723,7 +729,7 @@ public class TableService extends BasicService {
         Preconditions.checkNotNull(tableDesc, String.format(Locale.ROOT, MsgPicker.getMsg().getTableNotFound(), table));
         Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName)
                 .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
-        if (!columnSet.contains(partitionColumn.toUpperCase(Locale.ROOT))) {
+        if (!columnSet.contains(StringUtils.upperCase(partitionColumn))) {
             throw new KylinException(COLUMN_NOT_EXIST, String.format(Locale.ROOT,
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
@@ -739,11 +745,14 @@ public class TableService extends BasicService {
                 mapping.forEach((key, value) -> mappingAllCaps.put(key.toUpperCase(Locale.ROOT), value));
                 String cell = (String) mappingAllCaps.get(partitionColumn);
                 return DateFormat.proposeDateFormat(cell);
+            } else if (partitionExpression == null) {
+                List<String> list = PushDownUtil.backtickQuote(partitionColumn.split("\\."));
+                String cell = PushDownUtil.probeColFormat(table, String.join(".", list), project);
+                return DateFormat.proposeDateFormat(cell);
             } else {
-                String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
+                String cell = PushDownUtil.probeExpFormat(table, partitionExpression, project);
                 return DateFormat.proposeDateFormat(cell);
             }
-
         } catch (KylinException e) {
             throw e;
         } catch (Exception e) {
@@ -1803,12 +1812,14 @@ public class TableService extends BasicService {
     }
 
     public NInitTablesResponse getProjectTables(String project, String table, int offset, int limit,
-                                                boolean withExcluded, boolean useHiveDatabase, List<Integer> sourceType) throws Exception {
-        TableDescRequest internalTableDescRequest = new TableDescRequest(project, table, offset, limit, withExcluded, sourceType);
+            boolean withExcluded, boolean useHiveDatabase, List<Integer> sourceType) throws Exception {
+        TableDescRequest internalTableDescRequest = new TableDescRequest(project, table, offset, limit, withExcluded,
+                sourceType);
         return getProjectTables(internalTableDescRequest, useHiveDatabase);
     }
 
-    public NInitTablesResponse getProjectTables(TableDescRequest tableDescRequest, boolean useHiveDatabase) throws Exception {
+    public NInitTablesResponse getProjectTables(TableDescRequest tableDescRequest, boolean useHiveDatabase)
+            throws Exception {
         String project = tableDescRequest.getProject();
         aclEvaluate.checkProjectReadPermission(project);
         NInitTablesResponse response = new NInitTablesResponse();
@@ -1842,12 +1853,14 @@ public class TableService extends BasicService {
                 objWithActualSize.setSecond(hiveTableNameResponses.size());
             } else {
                 int returnTableSize = calculateTableSize(tableDescRequest.getOffset(), tableDescRequest.getLimit());
-                Pair<List<TableDesc>, Integer> tableDescWithActualSize = getTableDesc(tableDescRequest, returnTableSize);
+                Pair<List<TableDesc>, Integer> tableDescWithActualSize = getTableDesc(tableDescRequest,
+                        returnTableSize);
                 objWithActualSize.setFirst(tableDescWithActualSize.getFirst());
                 objWithActualSize.setSecond(tableDescWithActualSize.getSecond());
             }
             table = notAllowedModifyTableName;
-            List<?> tablePage = PagingUtil.cutPage(objWithActualSize.getFirst(), tableDescRequest.getOffset(), tableDescRequest.getLimit());
+            List<?> tablePage = PagingUtil.cutPage(objWithActualSize.getFirst(), tableDescRequest.getOffset(),
+                    tableDescRequest.getLimit());
             if (!tablePage.isEmpty()) {
                 response.putDatabase(database, objWithActualSize.getSecond(), tablePage);
             }
@@ -2030,7 +2043,7 @@ public class TableService extends BasicService {
 
     public void refreshTable(String table, List<String> refreshed, List<String> failed) {
         try {
-            PushDownUtil.trySimplePushDownExecute("REFRESH TABLE " + table, null);
+            PushDownUtil.trySimplyExecute("REFRESH TABLE " + table, null);
             refreshed.add(table);
         } catch (Exception e) {
             failed.add(table);

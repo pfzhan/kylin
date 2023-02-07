@@ -53,7 +53,6 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.domain.JobInfo;
@@ -179,7 +178,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     @SneakyThrows
     public JobInfoResponse buildSnapshotsInner(SnapshotRequest snapshotsRequest, boolean isRefresh,
-                                               Set<String> needBuildSnapshotTables, Set<TableDesc> tables) {
+            Set<String> needBuildSnapshotTables, Set<TableDesc> tables) {
         val project = snapshotsRequest.getProject();
         val options = snapshotsRequest.getOptions();
         List<String> invalidSnapshotsToBuild = new ArrayList<>();
@@ -228,15 +227,15 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private void updateTableDesc(String project, Set<TableDesc> tables,
-                                 Map<String, SnapshotRequest.TableOption> finalOptions) {
+            Map<String, SnapshotRequest.TableOption> finalOptions) {
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         for (TableDesc tableDesc : tables) {
             SnapshotRequest.TableOption option = finalOptions.get(tableDesc.getIdentity());
             if (tableDesc.isSnapshotHasBroken()
-                    || !StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
+                    || !StringUtils.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
                 TableDesc newTable = tableManager.copyForWrite(tableDesc);
                 newTable.setSnapshotHasBroken(false);
-                if (!StringUtil.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
+                if (!StringUtils.equals(option.getPartitionCol(), tableDesc.getSelectedSnapshotPartitionCol())) {
                     newTable.setSelectedSnapshotPartitionCol(option.getPartitionCol());
                 }
                 tableManager.updateTableDesc(newTable);
@@ -245,7 +244,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private static void invalidSnapshotsToBuild(Map<String, SnapshotRequest.TableOption> options,
-                                                List<String> invalidSnapshotsToBuild) {
+            List<String> invalidSnapshotsToBuild) {
         for (Map.Entry<String, SnapshotRequest.TableOption> entry : options.entrySet()) {
             Set<String> partitionToBuild = entry.getValue().getPartitionsToBuild();
             if (partitionToBuild != null && partitionToBuild.isEmpty()) {
@@ -259,7 +258,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     public JobInfoResponse buildSnapshots(SnapshotRequest snapshotsRequest, boolean isRefresh,
-                                          Set<String> needBuildSnapshotTables) {
+            Set<String> needBuildSnapshotTables) {
         val project = snapshotsRequest.getProject();
         checkSnapshotManualManagement(project);
         Set<TableDesc> tables = checkAndGetTable(project, needBuildSnapshotTables);
@@ -271,6 +270,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         checkOptions(tables, snapshotsRequest.getOptions());
         return buildSnapshotsInner(snapshotsRequest, isRefresh, needBuildSnapshotTables, tables);
     }
+
     private void checkOptions(Set<TableDesc> tables, Map<String, SnapshotRequest.TableOption> options) {
 
         Set<String> tableSubtraction = new LinkedHashSet<>();
@@ -452,8 +452,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     @Override
     public Pair<List<SnapshotInfoResponse>, Integer> getProjectSnapshots(String project, String table,
-             Set<SnapshotStatus> statusFilter, Set<Boolean> partitionFilter, String sortBy, boolean isReversed,
-             Pair<Integer, Integer> offsetAndLimit) {
+            Set<SnapshotStatus> statusFilter, Set<Boolean> partitionFilter, String sortBy, boolean isReversed,
+            Pair<Integer, Integer> offsetAndLimit) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);
@@ -486,8 +486,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             }
             TableExtDesc tableExtDesc = nTableMetadataManager.getOrCreateTableExt(tableDesc);
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
-            response.add(new SnapshotInfoResponse(tableDesc, tableExtDesc, tableDesc.getSnapshotTotalRows(), countPair.getFirst(),
-                    countPair.getSecond(), getSnapshotJobStatus(tableDesc, executables),
+            response.add(new SnapshotInfoResponse(tableDesc, tableExtDesc, tableDesc.getSnapshotTotalRows(),
+                    countPair.getFirst(), countPair.getSecond(), getSnapshotJobStatus(tableDesc, executables),
                     getForbiddenColumns(tableDesc)));
             satisfiedTableSize.getAndIncrement();
         });
@@ -501,7 +501,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             // Here the positive order needs to be cut from the offset position backwards
             Comparator<SnapshotInfoResponse> comparator = BasicService.propertyComparator(sortBy, !isReversed);
             response.sort(comparator);
-            return Pair.newPair(PagingUtil.cutPage(response, offsetAndLimit.getFirst(), offsetAndLimit.getSecond()), actualTableSize);
+            return Pair.newPair(PagingUtil.cutPage(response, offsetAndLimit.getFirst(), offsetAndLimit.getSecond()),
+                    actualTableSize);
         }
     }
 

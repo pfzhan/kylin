@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -108,7 +108,7 @@ public class DefaultExecutableOnModel extends DefaultExecutable {
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
         val indexPlan = indexPlanManager.getIndexPlan(getTargetModel());
         val allLayoutIds = indexPlan.getAllLayouts().stream().map(l -> l.getId() + "").collect(Collectors.toSet());
-        return Stream.of(StringUtil.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
+        return Stream.of(StringHelper.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
     }
 
     private boolean checkTargetSegmentAndPartitionExists(String segmentId) {

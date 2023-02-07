@@ -35,7 +35,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.util.ExecAndComp;
@@ -251,13 +251,13 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             int offset, SQLException sqlException, boolean isForced) throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         String pushdownSql = ExecAndComp.removeDataBaseInSql(sql);
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);
+        String massagedSql = QueryUtil.appendLimitOffset(prjName, pushdownSql, limit, offset);
         QueryParams queryParams = new QueryParams(prjName, massagedSql, "DEFAULT", BackdoorToggles.getPrepareOnly(),
                 sqlException, isForced);
         queryParams.setSelect(true);
         queryParams.setLimit(limit);
         queryParams.setOffset(offset);
-        Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownQuery(queryParams);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = KylinTestBase.tryPushDownQuery(queryParams);
         if (result == null) {
             throw sqlException;
         }

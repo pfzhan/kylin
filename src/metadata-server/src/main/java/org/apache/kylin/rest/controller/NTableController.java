@@ -41,7 +41,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -158,8 +158,8 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "source_type", required = false, defaultValue = "9") List<Integer> sourceType)
             throws Exception {
         checkProjectName(project);
-        TableDescRequest tableDescRequest = new TableDescRequest(project, table, "", withExt, isFuzzy,
-                offset, limit, sourceType, withExcluded);
+        TableDescRequest tableDescRequest = new TableDescRequest(project, table, "", withExt, isFuzzy, offset, limit,
+                sourceType, withExcluded);
         NInitTablesResponse projectTables = tableService.getProjectTables(tableDescRequest, false);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectTables, "");
     }
@@ -233,7 +233,7 @@ public class NTableController extends NBasicController {
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
-            StringUtil.toUpperCaseArray(tableLoadRequest.getTables(), tableLoadRequest.getTables());
+            StringHelper.toUpperCaseArray(tableLoadRequest.getTables(), tableLoadRequest.getTables());
             LoadTableResponse loadByTable = tableExtService.loadDbTables(tableLoadRequest.getTables(),
                     tableLoadRequest.getProject(), false);
             loadTableResponse.getFailed().addAll(loadByTable.getFailed());
@@ -241,7 +241,7 @@ public class NTableController extends NBasicController {
         }
 
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
-            StringUtil.toUpperCaseArray(tableLoadRequest.getDatabases(), tableLoadRequest.getDatabases());
+            StringHelper.toUpperCaseArray(tableLoadRequest.getDatabases(), tableLoadRequest.getDatabases());
             LoadTableResponse loadByDb = tableExtService.loadDbTables(tableLoadRequest.getDatabases(),
                     tableLoadRequest.getProject(), true);
             loadTableResponse.getFailed().addAll(loadByDb.getFailed());
@@ -354,8 +354,8 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) throws Exception {
         String projectName = checkProjectName(project);
-        NInitTablesResponse data = tableService.getProjectTables(projectName, table, offset, limit, true,
-                true, Collections.emptyList());
+        NInitTablesResponse data = tableService.getProjectTables(projectName, table, offset, limit, true, true,
+                Collections.emptyList());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 

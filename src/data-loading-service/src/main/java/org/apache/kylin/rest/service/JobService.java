@@ -39,7 +39,7 @@ import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.dao.JobStatistics;
@@ -333,7 +333,7 @@ public class JobService extends BasicService {
             return;
         }
         // The user's browser may contain multiple language preferences, such as xx,xx;ss,ss
-        String language = StringUtil.dropFirstSuffix(StringUtil.dropFirstSuffix(languageToHandle, ";"), ",");
+        String language = StringHelper.dropFirstSuffix(StringHelper.dropFirstSuffix(languageToHandle, ";"), ",");
         if (CHINESE_LANGUAGE.equals(language) || CHINESE_SIMPLE_LANGUAGE.equals(language)
                 || CHINESE_HK_LANGUAGE.equals(language) || CHINESE_TW_LANGUAGE.equals(language)) {
             ErrorCode.setMsg("cn");

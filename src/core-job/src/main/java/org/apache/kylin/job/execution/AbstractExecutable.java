@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.guava20.shaded.common.base.Throwables;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -47,7 +46,7 @@ import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.common.util.ThrowableUtils;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobIssueEnum;
@@ -67,13 +66,14 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
-import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -905,7 +905,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
         String layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
         if (layouts != null) {
-            return computeDriverMemory(StringUtil.splitAndTrim(layouts, ",").length);
+            return computeDriverMemory(StringHelper.splitAndTrim(layouts, ",").length);
         }
         return 0;
     }
@@ -913,8 +913,8 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
     public static Integer computeDriverMemory(Integer cuboidNum) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         int[] driverMemoryStrategy = config.getSparkEngineDriverMemoryStrategy();
-        List strategy = Lists.newArrayList(cuboidNum);
-        Arrays.stream(driverMemoryStrategy).forEach(x -> strategy.add(Integer.valueOf(x)));
+        List<Integer> strategy = Lists.newArrayList(cuboidNum);
+        Arrays.stream(driverMemoryStrategy).forEach(strategy::add);
         Collections.sort(strategy);
         int index = strategy.indexOf(cuboidNum);
         int driverMemoryMaximum = config.getSparkEngineDriverMemoryMaximum();
@@ -926,7 +926,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
+        return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
                 .toString();
     }
 

@@ -222,23 +222,22 @@ public class TableServiceTest extends CSVSourceTestCase {
         List<Integer> sourceType = new ArrayList<>();
         sourceType.add(1); // Kafka table
         sourceType.add(9); // Hive table
-        List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true,
-                sourceType, 12).getFirst();
+        List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true, sourceType, 12)
+                .getFirst();
         Assert.assertEquals(12, tableDesc.size());
-        List<TableDesc> tableDesc2 = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", false,
-                sourceType, 10).getFirst();
+        List<TableDesc> tableDesc2 = tableService
+                .getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", false, sourceType, 10).getFirst();
         Assert.assertEquals(1, tableDesc2.size());
-        List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true,
-                sourceType, 100).getFirst();
+        List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true, sourceType, 100).getFirst();
         Assert.assertEquals(21, tables3.size());
-        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true,
-                sourceType, 10).getFirst();
+        List<TableDesc> tables = tableService
+                .getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true, sourceType, 10).getFirst();
         Assert.assertEquals("TEST_KYLIN_FACT", tables.get(0).getName());
         Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getStorageSize());
         Assert.assertEquals(0, ((TableDescResponse) tables.get(0)).getTotalRecords());
 
-        List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true,
-                sourceType, 10).getFirst();
+        List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true, sourceType, 10)
+                .getFirst();
         Assert.assertEquals("TEST_COUNTRY", table2.get(0).getName());
         Assert.assertEquals(0L, ((TableDescResponse) table2.get(0)).getStorageSize());
 
@@ -247,25 +246,22 @@ public class TableServiceTest extends CSVSourceTestCase {
         countryTable.setLastSnapshotPath("cannot/find/it");
         manager.updateTableDesc(countryTable);
 
-        table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true,
-                sourceType, 10).getFirst();
+        table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true, sourceType, 10).getFirst();
         Assert.assertEquals("TEST_COUNTRY", table2.get(0).getName());
         Assert.assertEquals(0L, ((TableDescResponse) table2.get(0)).getStorageSize());
 
         // get a not existing table desc
-        tableDesc = tableService.getTableDesc("default", true, "not_exist_table", "DEFAULT", false,
-                sourceType, 10).getFirst();
+        tableDesc = tableService.getTableDesc("default", true, "not_exist_table", "DEFAULT", false, sourceType, 10)
+                .getFirst();
         Assert.assertEquals(0, tableDesc.size());
 
-        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true,
-                sourceType, 10).getFirst();
+        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true, sourceType, 10).getFirst();
         Assert.assertEquals(2, tableDesc.size());
         val tableMetadataManager = getInstance(getTestConfig(), "streaming_test");
         var tableDesc1 = tableMetadataManager.getTableDesc("DEFAULT.SSB_TOPIC");
         Assert.assertTrue(tableDesc1.isAccessible(getTestConfig().streamingEnabled()));
         getTestConfig().setProperty("kylin.streaming.enabled", "false");
-        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true,
-                sourceType, 10).getFirst();
+        tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true, sourceType, 10).getFirst();
         Assert.assertEquals(0, tableDesc.size());
         // check kafka table
         Assert.assertFalse(tableDesc1.isAccessible(getTestConfig().streamingEnabled()));
@@ -303,8 +299,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, newTableExt.getAllColumnStats().size());
 
         // call api to check tableDescResponse has the correct value
-        final List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        final List<TableDesc> tables = tableService
+                .getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertEquals(1, tables.size());
         Assert.assertTrue(tables.get(0) instanceof TableDescResponse);
         TableDescResponse t = (TableDescResponse) tables.get(0);
@@ -347,8 +343,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         Mockito.when(userAclService.hasUserAclPermissionInProject(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(false);
 
-        List<TableDesc> tableExtList = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT",
-                true, Collections.emptyList(), 10).getFirst();
+        List<TableDesc> tableExtList = tableService
+                .getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertEquals(0, ((TableDescResponse) tableExtList.get(0)).getSamplingRows().size());
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
@@ -420,8 +416,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("float", confirmedTableDesc.getColumns()[2].getDatatype());
 
         // call api to check tableDescResponse has the correct value
-        final List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        final List<TableDesc> tables = tableService
+                .getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertEquals(1, tables.size());
         Assert.assertTrue(tables.get(0) instanceof TableDescResponse);
         TableDescResponse t = (TableDescResponse) tables.get(0);
@@ -509,8 +505,8 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testLoadTableToProject() throws IOException {
-        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        List<TableDesc> tables = tableService
+                .getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         TableDesc nTableDesc = new TableDesc(tables.get(0));
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
@@ -792,7 +788,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableDesc.setTableType(TableDesc.TABLE_TYPE_VIEW);
         tableMgr.updateTableDesc(tableDesc);
         try {
-            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT", null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals(MsgPicker.getMsg().getViewDateFormatDetectionError(), e.getMessage());
@@ -806,7 +802,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         testGetBatchLoadTablesBefore();
         final String table = "DEFAULT.TEST_KYLIN_FACT";
         try {
-            tableService.getPartitionColumnFormat("default", table, "CAL_DT");
+            tableService.getPartitionColumnFormat("default", table, "CAL_DT", null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals(MsgPicker.getMsg().getPushdownPartitionFormatError(), e.getMessage());
@@ -828,8 +824,8 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     private void testSetPartitionKeyWithoutException() throws Exception {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
-        List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        List<TableDesc> tables = tableService
+                .getTableDesc("default", false, "", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         //test set fact and table list order by fact
         Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isIncrementLoading());
     }
@@ -923,7 +919,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     private void testgetPartitionColumnFormat() throws Exception {
         // Test on batch table
-        String format = tableService.getPartitionColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
+        String format = tableService.getPartitionColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT", null);
         Assert.assertEquals("yyyy-MM-dd", format);
 
         // Test on streaming table
@@ -951,7 +947,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         when(kafkaServiceMock.decodeMessage(any())).thenReturn(mockResp);
 
         when(kafkaServiceMock.parserMessage(any(String.class), any(), any(String.class))).thenReturn(parseMap);
-        String format2 = tableService.getPartitionColumnFormat("default", "DEFAULT.STREAMING_TABLE", "MINUTE_START");
+        String format2 = tableService.getPartitionColumnFormat("default", "DEFAULT.STREAMING_TABLE", "MINUTE_START",
+                null);
         Assert.assertEquals("yyyy-MM-dd HH:mm:ss", format2);
 
         when(kafkaServiceMock.getMessages(any(), any(String.class))).thenCallRealMethod();
@@ -976,8 +973,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetTop() throws IOException {
         TopTableRequest topTableRequest = mockTopTableRequest();
         tableService.setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
-        List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        List<TableDesc> tables = tableService
+                .getTableDesc("default", false, "", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertTrue(tables.get(0).isTop());
     }
 
@@ -1193,35 +1190,29 @@ public class TableServiceTest extends CSVSourceTestCase {
         NInitTablesResponse response;
         overwriteSystemProp("kylin.source.load-hive-tablename-enabled", "false");
 
-        response = tableService.getProjectTables("default", "SSB.SS", 0, 14, true, true,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "SSB.SS", 0, 14, true, true, Collections.emptyList());
         Assert.assertEquals(0, response.getDatabases().size());
 
-        response = tableService.getProjectTables("default", "SSB.CU", 0, 14, true, true,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "SSB.CU", 0, 14, true, true, Collections.emptyList());
         Assert.assertEquals(1, response.getDatabases().size());
         Assert.assertEquals(2, response.getDatabases().get(0).getTables().size());
 
-        response = tableService.getProjectTables("default", "", 0, 14, true, true,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "", 0, 14, true, true, Collections.emptyList());
         Assert.assertEquals(3, response.getDatabases().size());
         Assert.assertEquals(21,
                 response.getDatabases().get(0).getTables().size() + response.getDatabases().get(1).getTables().size()
                         + response.getDatabases().get(2).getTables().size());
 
-        response = tableService.getProjectTables("default", "TEST", 0, 14, true, true,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "TEST", 0, 14, true, true, Collections.emptyList());
         Assert.assertEquals(2, response.getDatabases().size());
         Assert.assertEquals(13,
                 response.getDatabases().get(0).getTables().size() + response.getDatabases().get(1).getTables().size());
 
-        response = tableService.getProjectTables("default", "EDW.", 0, 14, true, true,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "EDW.", 0, 14, true, true, Collections.emptyList());
         Assert.assertEquals(1, response.getDatabases().size());
         Assert.assertEquals(3, response.getDatabases().get(0).getTables().size());
 
-        response = tableService.getProjectTables("default", "EDW.", 0, 14, true, false,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", "EDW.", 0, 14, true, false, Collections.emptyList());
         Assert.assertEquals(1, response.getDatabases().size());
         Assert.assertEquals(3, response.getDatabases().get(0).getTables().size());
 
@@ -1230,12 +1221,10 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.getDatabases().size());
         Assert.assertEquals(1, response.getDatabases().get(0).getTables().size());
 
-        response = tableService.getProjectTables("default", ".TEST_ORDER", 0, 14, true, false,
-                Collections.emptyList());
+        response = tableService.getProjectTables("default", ".TEST_ORDER", 0, 14, true, false, Collections.emptyList());
         Assert.assertEquals(0, response.getDatabases().size());
 
-        response = tableService.getProjectTables("default", "", 0, 14, true, true,
-                Collections.singletonList(9));
+        response = tableService.getProjectTables("default", "", 0, 14, true, true, Collections.singletonList(9));
         Assert.assertEquals(3, response.getDatabases().size());
     }
 
@@ -1377,18 +1366,18 @@ public class TableServiceTest extends CSVSourceTestCase {
         String warehousePath = getTestConfig().exportToProperties()
                 .getProperty("kylin.storage.columnar.spark-conf.spark.sql.warehouse.dir").substring(5)
                 + "/test_kylin_refresh/";
-        PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
-        PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
-        PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('a')", null);
-        PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('c')", null);
-        PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+        PushDownUtil.trySimplyExecute("drop table if exists test_kylin_refresh", null);
+        PushDownUtil.trySimplyExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
+        PushDownUtil.trySimplyExecute("insert into test_kylin_refresh values ('a')", null);
+        PushDownUtil.trySimplyExecute("insert into test_kylin_refresh values ('c')", null);
+        PushDownUtil.trySimplyExecute("select * from test_kylin_refresh", null);
         CliCommandExecutor.CliCmdExecResult res = command.execute("ls " + warehousePath, null, null);
         val files = Arrays.stream(res.getCmd().split("\n")).filter(file -> file.endsWith("parquet"))
                 .collect(Collectors.toList());
         command.execute("rm " + warehousePath + files.get(0), null, null);
 
         try {
-            PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+            PushDownUtil.trySimplyExecute("select * from test_kylin_refresh", null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains("REFRESH TABLE tableName"));
@@ -1397,7 +1386,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         HashMap<String, Object> request = Maps.newHashMap();
         request.put("tables", Collections.singletonList("test_kylin_refresh"));
         TableRefresh refreshRes = tableService.refreshSingleCatalogCache(request);
-        PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+        PushDownUtil.trySimplyExecute("select * from test_kylin_refresh", null);
         Assert.assertEquals(1, refreshRes.getRefreshed().size());
         Assert.assertEquals("test_kylin_refresh", refreshRes.getRefreshed().get(0));
         SparderEnv.getSparkSession().stop();
@@ -1461,8 +1450,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableExt.setJodID("949afe5d-0221-420f-92db-cdd91cb31ac8");
         tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
 
-        List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        List<TableDesc> tables = tableService
+                .getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertEquals(1, tables.size());
 
         Assert.assertEquals("949afe5d-0221-420f-92db-cdd91cb31ac8", ((TableDescResponse) tables.get(0)).getJodID());
@@ -1491,18 +1480,20 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testGetTableDescByType() {
         String project = "streaming_test";
         try {
-            val tableDescs = tableService.getTableDesc(project, true, "", "default", true,
-                    Collections.singletonList(1), 10).getFirst();
+            val tableDescs = tableService
+                    .getTableDesc(project, true, "", "default", true, Collections.singletonList(1), 10).getFirst();
             Assert.assertNotNull(tableDescs);
 
-            val tableDescs1 = tableService.getTableDesc(project, true, "P_LINEORDER_STREAMING", "ssb", true,
-                    Collections.singletonList(1), 10).getFirst();
+            val tableDescs1 = tableService
+                    .getTableDesc(project, true, "P_LINEORDER_STREAMING", "ssb", true, Collections.singletonList(1), 10)
+                    .getFirst();
             Assert.assertEquals(1, tableDescs1.size());
             val tableDesc1 = tableDescs1.get(0);
             Assert.assertEquals(tableDesc1.getTableAlias(), tableDesc1.getKafkaConfig().getBatchTable());
 
-            val tableDescs2 = tableService.getTableDesc(project, true, "LINEORDER_HIVE", "SSB", false,
-                    Collections.singletonList(9), 10).getFirst();
+            val tableDescs2 = tableService
+                    .getTableDesc(project, true, "LINEORDER_HIVE", "SSB", false, Collections.singletonList(9), 10)
+                    .getFirst();
             Assert.assertEquals(1, tableDescs2.size());
             val tableDesc2 = tableDescs2.get(0);
             Assert.assertEquals(tableDesc2.getTableAlias(), tableDesc2.getIdentity());
@@ -1517,8 +1508,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         String project = "streaming_test";
         try {
             List<Integer> sourceTypes = Arrays.asList(1, 9);
-            val tableDescs2 = tableService.getTableDesc(project, true, "", "SSB", false,
-                    sourceTypes, 10).getFirst();
+            val tableDescs2 = tableService.getTableDesc(project, true, "", "SSB", false, sourceTypes, 10).getFirst();
             assert tableDescs2.stream().anyMatch(tableDesc -> tableDesc.getSourceType() == 1);
             assert tableDescs2.stream().anyMatch(tableDesc -> tableDesc.getSourceType() == 9);
         } catch (Exception e) {
@@ -1603,8 +1593,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableExt.setColumnStats(Lists.newArrayList(col1));
         tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
 
-        final List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true,
-                Collections.emptyList(), 10).getFirst();
+        final List<TableDesc> tables = tableService
+                .getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true, Collections.emptyList(), 10).getFirst();
         Assert.assertEquals(1, tables.size());
         Assert.assertTrue(tables.get(0) instanceof TableDescResponse);
         TableDescResponse t = (TableDescResponse) tables.get(0);
