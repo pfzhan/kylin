@@ -695,7 +695,7 @@ public class KylinLogTool {
             RestClient restClient = new RestClient(lokiApiServer).resetBaseUrlWithoutKylin();
             Map<String, String> tags = new HashMap<>();
             tags.put("namespace", System.getenv("NAME_SPACE"));
-            tags.put("app", "yinglong");
+            tags.put("app", System.getenv("RELEASE_NAME"));
 
             if (instances.isEmpty()) {
                 extractKylinLogFromLokiByServerIds(tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
@@ -711,7 +711,7 @@ public class KylinLogTool {
                                                           long startTimeInSec, long endTImeInSec, File destLogDir) throws IOException {
         for (String serverId : NacosClusterManager.SERVER_IDS) {
             logger.info("Extract logs for {}", serverId);
-            tags.put("component", serverId.replace("yinglong", "yl"));
+            tags.put("component", serverId);
             String logUrl = String.format("/log/download?query=%s&start=%d&end=%d", mapsToUrlStr(tags), startTimeInSec,
                     endTImeInSec);
             HttpResponse response = restClient.forwardGet(new HttpHeaders(), logUrl, false);

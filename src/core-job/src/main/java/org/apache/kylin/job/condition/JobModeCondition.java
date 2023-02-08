@@ -44,7 +44,7 @@ public class JobModeCondition implements Condition {
         }
 
         if (kylinConfig.isDataLoadingNode()) {
-            log.info("load bean = {} on yinglong-data-loading-booter", beanName);
+            log.info("load bean = {} on data-loading", beanName);
             return true;
         }
 

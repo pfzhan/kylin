@@ -34,9 +34,9 @@ kylin:
         - target: org.apache.kylin.common.KylinConfig
           type: nacos
           properties:
-            app: "${APP_NAME:yinglong-smart-booter}"
+            app: "${APP_NAME:smart}"
             zhName: "${APP_DISPLAY_NAME:推荐服务}"
-            dataIds: "${APP_NAME:yinglong-smart-booter}-kylin-config"
+            dataIds: "${APP_NAME:smart}-kylin-config"
             group: "${TENANT_ID}"
             autoRefresh: true
             needInit: true

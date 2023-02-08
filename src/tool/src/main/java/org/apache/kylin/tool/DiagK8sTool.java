@@ -27,11 +27,11 @@ import java.util.Locale;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.ClusterConstant;
 import org.apache.kylin.common.util.OptionBuilder;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.query.QueryHistory;
-import org.apache.kylin.rest.cluster.NacosClusterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -126,7 +126,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         dumpMetadata(exportDir, recordTime);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
         exportQueryHistoryOffset(project, recordTime);
-        exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.QUERY);
+        exportK8sConf(headers, exportDir, recordTime, ClusterConstant.QUERY);
         exportLogFromLoki(exportDir, startTime, endTime, instances, recordTime);
         exportLogFromWorkingDir(exportDir, instances, recordTime);
         exportSparkLog(exportDir, startTime, endTime, recordTime, queryId);
@@ -151,7 +151,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
             exportRecCandidate(project, modelId, exportDir, false, recordTime);
         }
         exportJobInfo(project, jobId, recordTime);
-        exportK8sConf(headers, exportDir, recordTime, NacosClusterManager.DATA_LOADING);
+        exportK8sConf(headers, exportDir, recordTime, ClusterConstant.DATA_LOADING);
         exportLogFromLoki(exportDir, startTime, endTime, instances, recordTime);
         exportLogFromWorkingDir(exportDir, instances, recordTime);
         exportJobSparkLog(exportDir, recordTime, project, jobId, job);

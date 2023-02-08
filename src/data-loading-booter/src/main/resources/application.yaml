@@ -67,7 +67,7 @@ spring:
       max-file-size: "5MB"
       max-request-size: "5MB"
   application:
-    name: yinglong-data-loading-booter
+    name: data-loading
   resources:
     chain:
       gzipped: true

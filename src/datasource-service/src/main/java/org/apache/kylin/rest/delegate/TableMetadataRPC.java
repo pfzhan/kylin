@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @EnableFeignClients
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/tables/feign")
+@FeignClient(name = "common", path = "/kylin/api/tables/feign")
 public interface TableMetadataRPC extends TableMetadataContract {
 
     @PostMapping(value = "/merge_and_update_table_ext")

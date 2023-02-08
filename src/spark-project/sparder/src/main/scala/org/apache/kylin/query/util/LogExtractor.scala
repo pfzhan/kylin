@@ -19,9 +19,10 @@
 package org.apache.kylin.query.util
 
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
-import org.apache.kylin.common.util.{AddressUtil, HadoopUtil}
+import org.apache.kylin.common.util.{AddressUtil, ClusterConstant, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, KylinConfigBase}
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Lettuce.Cluster
 
 object ExtractFactory {
   def create: ILogExtractor = {
@@ -118,8 +119,7 @@ object K8sLogExtractor extends ILogExtractor {
   }
 
   override def getValidSparderApps(startTime: Long, endTime: Long, host: String): scala.List[FileStatus] = {
-    // TODO batter way to get query service name
-    val logDir = getServiceSparderEventLogDir("yinglong-query-booter")
+    val logDir = getServiceSparderEventLogDir(ClusterConstant.QUERY)
     val fs = HadoopUtil.getFileSystem(logDir)
     fs.listStatus(new Path(logDir))
       .flatMap(status => {

@@ -158,7 +158,7 @@ public class Broadcaster implements Closeable {
         Set<String> nodes;
         switch (notifier.getBroadcastScope()) {
         case LEADER_NODES:
-            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.METADATA);
+            nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.COMMON);
             break;
         case ALL_NODES:
             nodes = getNodesByModes(ServerModeEnum.ALL);
@@ -174,7 +174,7 @@ public class Broadcaster implements Closeable {
             break;
         default:
             nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY,
-                    ServerModeEnum.DATA_LOADING, ServerModeEnum.METADATA, ServerModeEnum.SMART);
+                    ServerModeEnum.DATA_LOADING, ServerModeEnum.COMMON, ServerModeEnum.SMART);
         }
         if (!notifier.needBroadcastSelf()) {
             String identity = AddressUtil.getLocalInstance();

@@ -34,9 +34,9 @@ kylin:
         - target: org.apache.kylin.common.KylinConfig
           type: nacos
           properties:
-            app: "${APP_NAME:yinglong-data-loading-booter}"
+            app: "${APP_NAME:data-loading}"
             zhName: "${APP_DISPLAY_NAME:构建服务}"
-            dataIds: "${APP_NAME:yinglong-data-loading-booter}-kylin-config"
+            dataIds: "${APP_NAME:data-loading}-kylin-config"
             group: "${TENANT_ID}"
             autoRefresh: true
             needInit: true

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @EnableFeignClients
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/jobs/feign")
+@FeignClient(name = "common", path = "/kylin/api/jobs/feign")
 public interface JobStatisticsRPC extends JobStatisticsContract {
     @PostMapping(value = "/update_statistics")
     @WaitForSyncAfterRPC

@@ -2186,21 +2186,13 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getMicroServerMode() {
         String serverName = getApplicationConfig(SERVER_NAME_STRING);
-        if ("yinglong-common-booter".equals(serverName)) {
-            return ClusterConstant.METADATA;
-        } else if ("yinglong-query-booter".equals(serverName)) {
-            return ClusterConstant.QUERY;
-        } else if ("yinglong-smart-booter".equals(serverName)) {
-            return ClusterConstant.SMART;
-        } else if ("yinglong-data-loading-booter".equals(serverName)) {
-            return ClusterConstant.DATA_LOADING;
-        } else if ("yinglong-resource-booter".equals(serverName)) {
-            return ClusterConstant.RESOURCE;
-        } else if ("yinglong-ops-booter".equals(serverName)) {
-            return ClusterConstant.OPS;
-        } else {
-            return null;
+        ClusterConstant.ServerModeEnum[] allModes = ClusterConstant.ServerModeEnum.values();
+        for (ClusterConstant.ServerModeEnum mode : allModes) {
+            if (mode.getName().equals(serverName)) {
+                return mode.getName();
+            }
         }
+        return null;
     }
 
     public String getApplicationConfig(String key) {
@@ -2279,7 +2271,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isMetadataNode() {
-        return ClusterConstant.METADATA.equals(getMicroServerMode());
+        return ClusterConstant.COMMON.equals(getMicroServerMode());
     }
 
     public boolean isAllNode() {

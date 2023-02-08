@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "yinglong-common-booter", path = "/kylin/api/models/feign")
+@FeignClient(name = "common", path = "/kylin/api/models/feign")
 public interface ModelMetadataRPC extends ModelMetadataContract {
 
     @PostMapping(value = "/update_index")

@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @EnableFeignClients
-@FeignClient(name = "yinglong-data-loading-booter", path = "/kylin/api/tables/feign")
+@FeignClient(name = "data-loading", path = "/kylin/api/tables/feign")
 public interface TableSamplingRPC extends TableSamplingContract {
 
     @PostMapping(value = "/sampling")
