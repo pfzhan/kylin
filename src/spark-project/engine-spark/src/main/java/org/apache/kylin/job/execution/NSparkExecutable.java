@@ -245,7 +245,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
-        if (!config.isUTEnv()) {
+        if (!config.isDevOrUT()) {
             sparkJobHandler.checkApplicationJar(config);
         }
 
