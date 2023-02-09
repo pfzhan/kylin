@@ -101,12 +101,13 @@ public class AppInitializer {
         boolean isJob = kylinConfig.isJobNode();
         boolean isDataLoading = kylinConfig.isDataLoadingNode();
         boolean isMetadata = kylinConfig.isMetadataNode();
+        boolean isQueryOnly = kylinConfig.isQueryNodeOnly();
 
         // set kylin.metadata.distributed-lock.jdbc.url
         // before kylin.metadata.url is changed
         kylinConfig.setJDBCDistributedLockURL(kylinConfig.getJDBCDistributedLockURL().toString());
 
-        if (isJob || isDataLoading || isMetadata) {
+        if (!isQueryOnly) {
             // restore from metadata, should not delete
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.setChecker(e -> {
