@@ -285,7 +285,13 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             SnapshotRequest.TableOption option = options.get(table.getIdentity());
             if (option != null) {
                 String partCol = option.getPartitionCol();
+                Set<String> partitionsToBuild = option.getPartitionsToBuild();
                 checkSupportBuildSnapShotByPartition(table);
+                // If partition_col is specified, partitions_to_build must be specified
+                if (StringUtils.isNotEmpty(partCol) && partitionsToBuild == null) {
+                    throw new KylinException(INVALID_PARAMETER,
+                            MsgPicker.getMsg().getSnapshotPartitionsToBuildIsEmpty());
+                }
                 if (StringUtils.isNotEmpty(partCol) && table.findColumnByName(partCol) == null) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ROOT, "table %s col %s not exist", table.getIdentity(), partCol));
