@@ -432,11 +432,9 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     if (repartitionNum == 0) {
       sourceData.write.parquet(resourcePath)
     } else {
-      sourceData.repartition().write.parquet(resourcePath)
+      sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
-
-    val snapshotDS = ss.read.parquet(resourcePath)
-    val (originSize, totalRows) = computeSnapshotSize(snapshotDS)
+    val (originSize, totalRows) = computeSnapshotSize(sourceData)
     resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows))
   }
 
@@ -461,11 +459,10 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
         List((totalSize, totalRows)).toIterator
     }(Encoders.tuple(Encoders.scalaLong, Encoders.scalaLong))
 
-    val stats = ds.collect().reduceOption((a, b) => (a._1 + b._1, a._2 + b._2))
-    if (stats.isEmpty) {
+    if (ds.isEmpty) {
       (0L, 0L)
     } else {
-      stats.get
+      ds.reduce((a, b) => (a._1 + b._1, a._2 + b._2))
     }
   }
 

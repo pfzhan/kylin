@@ -266,7 +266,7 @@ trait SegmentExec extends Logging {
     require(layout.getIndex.getMeasures.isEmpty)
     val dimensions = wrapDimensions(layout)
     val columns = NSparkCubingUtil.getColumns(dimensions)
-    parentDS.select(columns: _*).repartition().sortWithinPartitions(columns: _*)
+    parentDS.select(columns: _*).sortWithinPartitions(columns: _*)
   }
 
   protected def columnIdFunc(colRef: TblColRef): String
@@ -274,10 +274,11 @@ trait SegmentExec extends Logging {
   private def wrapAggLayoutDS(layout: LayoutEntity, parentDS: Dataset[Row]): Dataset[Row] = {
     val dimensions = wrapDimensions(layout)
     val measures = layout.getOrderedMeasures.keySet()
+    val sortColumns = NSparkCubingUtil.getColumns(dimensions)
     val selectColumns = NSparkCubingUtil.getColumns(NSparkCubingUtil.combineIndices(dimensions, measures))
     val aggregated = CuboidAggregator.aggregate(parentDS, //
       dimensions, layout.getIndex.getEffectiveMeasures, columnIdFunc)
-    aggregated.select(selectColumns: _*)
+    aggregated.select(selectColumns: _*).sortWithinPartitions(sortColumns: _*)
   }
 
   protected final def newDataLayout(segment: NDataSegment, //

@@ -20,7 +20,6 @@ package org.apache.kylin.engine.spark.builder
 
 import com.google.common.collect.Sets
 import org.apache.commons.lang3.StringUtils
-import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.constant.LogConstant
 import org.apache.kylin.common.logging.SetLogCategory
 import org.apache.kylin.common.util.HadoopUtil
@@ -36,7 +35,6 @@ import org.apache.kylin.metadata.model._
 import org.apache.kylin.query.util.PushDownUtil
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.manager.SparderLookupManager
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.utils.ProxyThreadUtils

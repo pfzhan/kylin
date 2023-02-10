@@ -237,7 +237,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
         }
         if (joinDesc.isFlattenable && !antiFlattenTableSet.contains(joinDesc.getTable)) {
           val tableRef = joinDesc.getTableRef
-          val tableDS = newSnapshotDS(tableRef)
+          val tableDS = newTableDS(tableRef)
           ret.put(joinDesc, fulfillDS(tableDS, Set.empty, tableRef))
         }
       }
@@ -306,11 +306,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
     }
     logInfo(s"Segment $segmentId persist flat table: $flatTablePath")
     sparkSession.sparkContext.setJobDescription(s"Segment $segmentId persist flat table.")
-    if (config.isFlatTableRedistributionEnabled) {
-      sparkSession.sessionState.conf.setLocalProperty("spark.sql.sources.repartitionWritingDataSource", "true")
-    }
     tableDS.write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
-    sparkSession.sessionState.conf.setLocalProperty("spark.sql.sources.repartitionWritingDataSource", null)
     DFBuilderHelper.checkPointSegment(dataSegment, (copied: NDataSegment) => {
       copied.setFlatTableReady(true)
       if (dataSegment.isFlatTableReady) {
@@ -375,18 +371,6 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
     // The previous flat table could be reusable.
     logInfo(s"Segment $segmentId skip build flat table.")
     Some(tableDS)
-  }
-
-  def newSnapshotDS(tableRef: TableRef): Dataset[Row] = {
-    val snapshotResPath = tableRef.getTableDesc.getLastSnapshotPath
-    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
-    val snapshotResFilePath = new Path(baseDir + snapshotResPath)
-    val fs = HadoopUtil.getWorkingFileSystem
-    if (snapshotResPath == null || !fs.exists(snapshotResFilePath)) {
-      newTableDS(tableRef)
-    } else {
-      sparkSession.read.parquet(snapshotResFilePath.toString).alias(tableRef.getAlias)
-    }
   }
 
   protected def newTableDS(tableRef: TableRef): Dataset[Row] = {
