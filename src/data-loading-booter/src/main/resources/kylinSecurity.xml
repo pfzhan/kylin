@@ -759,6 +759,9 @@
     </beans>
 
     <beans profile="custom">
+
+        <bean id="customAuthProvider" class="io.kyligence.saas.iam.sdk.ke.IAMAuthenticationProvider"></bean>
+
         <scr:authentication-manager alias="customAuthManager" erase-credentials="false">
             <scr:authentication-provider ref="customAuthProvider"/>
         </scr:authentication-manager>

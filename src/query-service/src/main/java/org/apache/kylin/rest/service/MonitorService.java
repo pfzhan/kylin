@@ -134,14 +134,15 @@ public class MonitorService extends BasicService implements ApplicationListener<
             }
         });
         if (!kylinConfig.isJobNode() && !kylinConfig.isDataLoadingNode()) {
-            monitorReporter.submit(
-                    new AbstractMonitorCollectTask(Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
-                        @Override
-                        protected MonitorMetric collect() {
-                            return collectJobMetric();
-                        }
-                    });
+            return;
         }
+        monitorReporter.submit(
+                new AbstractMonitorCollectTask(Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
+                    @Override
+                    protected MonitorMetric collect() {
+                        return collectJobMetric();
+                    }
+                });
     }
 
     private JobStatusMonitorMetric collectJobMetric() {
