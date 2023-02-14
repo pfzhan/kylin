@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -272,15 +271,6 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     }
 
     private void checkOptions(Set<TableDesc> tables, Map<String, SnapshotRequest.TableOption> options) {
-
-        Set<String> tableSubtraction = new LinkedHashSet<>();
-        tableSubtraction.addAll(options.keySet());
-        tableSubtraction.removeAll(tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList()));
-        if (!tableSubtraction.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getSnapshotTableOptionError(), StringUtils.join(tableSubtraction, ",")));
-        }
-
         for (TableDesc table : tables) {
             SnapshotRequest.TableOption option = options.get(table.getIdentity());
             if (option != null) {

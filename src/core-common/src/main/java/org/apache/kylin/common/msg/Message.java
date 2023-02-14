@@ -42,7 +42,7 @@ public class Message {
     private static final String ILLEGAL_AUTHORIZING_USER = "Unable to modify. Only Super Admin or System Admin with query permission can modify query permission.";
     private static final String GRANT_TO_NON_SYSTEM_ADMIN = "Unable to modify. You can only modify the permission of the System Admin.";
     private static final String MODIFY_OWN_PERMISSION_FAILED = "Can’t modify your own permission.";
-    private static final String OPTIONSTABLE_NOTIN_TABLES = "%s in the options parameter is not in the snapshot tables to be created, please modify it and recreate it.";
+
     private static final String PROFILING_NOT_ENABLED = "Async profiling is not enabled. check parameter '%s'";
     private static final String PROFILING_STATUS_ERROR = "Async profiler status error, ";
     private static final String PROFILING_COLLECT_TIMEOUT = "Async profiler timeout";
@@ -1247,10 +1247,6 @@ public class Message {
 
     public String getModelOnlineForbidden() {
         return "Can’t get the model online. Please set the configuration “kylin.model.offline“ as false first.";
-    }
-
-    public String getSnapshotTableOptionError() {
-        return OPTIONSTABLE_NOTIN_TABLES;
     }
 
     // multi level partition mapping
