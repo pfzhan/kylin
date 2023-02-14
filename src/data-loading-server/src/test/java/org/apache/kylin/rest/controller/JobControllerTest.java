@@ -22,15 +22,26 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.dao.JobInfoDao;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.JobErrorRequest;
 import org.apache.kylin.rest.request.JobUpdateRequest;
@@ -41,12 +52,14 @@ import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.service.JobService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sparkproject.guava.collect.Sets;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -61,11 +74,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import lombok.val;
+import lombok.var;
 
 public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
+
+    private JobInfoDao jobInfoDao;
 
     @Mock
     private JobService jobService;
@@ -90,6 +107,8 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         JobContextUtil.cleanUp();
         JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
         ReflectionTestUtils.setField(jobController, "jobContext", jobContext);
+
+        jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
@@ -285,29 +304,35 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateSparkJobInfo() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
         SparkJobUpdateRequest request = new SparkJobUpdateRequest();
-        request.setProject("default");
-        request.setJobId("b");
-        request.setTaskId("c");
+        request.setJobLastRunningStartTime(String.valueOf(job.getOutput().getLastRunningStartTime()));
+        request.setProject(job.getProject());
+        request.setJobId(job.getId());
+        request.setTaskId(job.getId() + "_00_00");
         request.setYarnAppUrl("url");
         request.setYarnAppId("app_id");
         request.setCores("1");
         request.setMemory("1024");
         request.setQueueName("queue");
         Mockito.doNothing().when(jobInfoService).updateSparkJobInfo(request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/spark").contentType(MediaType.APPLICATION_JSON)
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/spark").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_SUCCESS);
 
         Mockito.verify(jobController).updateSparkJobInfo(request);
     }
 
     @Test
     public void testUpdateJobError() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
         JobErrorRequest request = new JobErrorRequest();
-        request.setProject("default");
-        request.setJobId("b");
+        request.setJobLastRunningStartTime(String.valueOf(job.getOutput().getLastRunningStartTime()));
+        request.setProject(job.getProject());
+        request.setJobId(job.getId());
         request.setFailedStepId("c");
         request.setFailedSegmentId("d");
         request.setFailedStack("error");
@@ -317,35 +342,42 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 request.getFailedStepId(), request.getFailedSegmentId(), request.getFailedStack(),
                 request.getFailedReason());
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/error") //
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/error") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_SUCCESS);
 
         Mockito.verify(jobController).updateJobError(request);
     }
 
     @Test
     public void testUpdateStageStatus() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
         StageRequest request = new StageRequest();
-        request.setProject("default");
-        request.setSegmentId("b");
-        request.setTaskId("c");
+        request.setProject(job.getProject());
+        request.setSegmentId(job.getTargetSegments().get(0));
+        request.setTaskId(job.getId() + "_00_00");
         request.setStatus("RUNNING");
+        request.setJobLastRunningStartTime(String.valueOf(job.getOutput().getLastRunningStartTime()));
         Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_SUCCESS);
 
         Mockito.verify(jobController).updateStageStatus(request);
 
         request = new StageRequest();
         request.setProject("");
-        request.setSegmentId("b");
+        request.setSegmentId(job.getTargetSegments().get(0));
         request.setTaskId("");
         request.setStatus("RUNNING");
+        request.setJobLastRunningStartTime(String.valueOf(job.getOutput().getLastRunningStartTime()));
         Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
@@ -357,19 +389,67 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUpdateStageStatusOnRestartJob() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
+        StageRequest request = new StageRequest();
+        request.setProject(job.getProject());
+        request.setSegmentId(job.getTargetSegments().get(0));
+        request.setTaskId(job.getId() + "_00_00");
+        request.setStatus("RUNNING");
+        request.setJobLastRunningStartTime(String.valueOf(System.currentTimeMillis()));
+        Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
+                request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_UNDEFINED);
+        Assert.assertEquals(response.get("msg"), "Job has stopped.");
+
+        Mockito.verify(jobController).updateStageStatus(request);
+    }
+
+    @Test
+    public void testUpdateStageStatusOnStoppedJob() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
+        StageRequest request = new StageRequest();
+        request.setProject(job.getProject());
+        request.setSegmentId(job.getTargetSegments().get(0));
+        request.setTaskId(job.getId() + "_00_00");
+        request.setStatus("PENDING");
+        request.setJobLastRunningStartTime(String.valueOf(System.currentTimeMillis()));
+        Mockito.doNothing().when(jobInfoService).updateStageStatus(request.getProject(), request.getTaskId(),
+                request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_UNDEFINED);
+        Assert.assertEquals(response.get("msg"), "Job has stopped.");
+
+        Mockito.verify(jobController).updateStageStatus(request);
+    }
+
+    @Test
     public void testUpdateSparkJobTime() throws Exception {
+        ExecutablePO job = mockJob(ExecutableState.RUNNING);
         SparkJobTimeRequest request = new SparkJobTimeRequest();
-        request.setProject("default");
-        request.setJobId("b");
-        request.setTaskId("c");
+        request.setJobLastRunningStartTime(String.valueOf(job.getOutput().getLastRunningStartTime()));
+        request.setProject(job.getProject());
+        request.setJobId(job.getId());
+        request.setTaskId(job.getId() + "_00_00");
         request.setYarnJobWaitTime("2");
         request.setYarnJobRunTime("1");
         Mockito.doNothing().when(jobInfoService).updateSparkTimeInfo(request.getProject(), request.getJobId(),
                 request.getTaskId(), request.getYarnJobWaitTime(), request.getYarnJobRunTime());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/wait_and_run_time")
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/wait_and_run_time")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Map<String, String> response = JsonUtil.readValueAsMap(result.getResponse().getContentAsString());
+        Assert.assertEquals(response.get("code"), KylinException.CODE_SUCCESS);
 
         Mockito.verify(jobController).updateSparkJobTime(request);
     }
@@ -436,5 +516,29 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(jobController).stopProfileByYarnAppId(yarnAppId, params, mvcResult.getRequest(), mvcResult.getResponse());
+    }
+
+    private ExecutablePO mockJob(ExecutableState state) {
+        ExecutablePO po = mockJob(RandomUtil.randomUUIDStr(), 0, Long.MAX_VALUE);
+        jobInfoDao.updateJob(po.getId(), job -> {
+            job.getOutput().setStatus(state.name());
+            if (state.equals(ExecutableState.RUNNING)) {
+                job.getOutput().setLastRunningStartTime(System.currentTimeMillis());
+            }
+            return true;
+        });
+        return ExecutableManager.getInstance(getTestConfig(), "default").getExecutablePO(po.getId());
+    }
+    
+    private ExecutablePO mockJob(String jobId, long start, long end) {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        var dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        dataflow = dataflowManager.getDataflow(dataflow.getId());
+        val layouts = dataflow.getIndexPlan().getAllLayouts();
+        val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
+        NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
+                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null, null));
+        ExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
+        return ExecutableManager.getInstance(getTestConfig(), "default").getExecutablePO(jobId);
     }
 }

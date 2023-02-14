@@ -43,4 +43,7 @@ public class SparkJobUpdateRequest implements ProjectInsensitiveRequest {
     private String cores;
     private String memory;
 
+    @JsonProperty("job_last_running_start_time")
+    private String jobLastRunningStartTime;
+
 }

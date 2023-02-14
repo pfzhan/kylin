@@ -375,7 +375,7 @@ public class JdbcJobScheduler implements JobScheduler {
             String jobId = jobLock.getLockId();
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
             AbstractExecutable jobExecutable = (AbstractExecutable) getJobExecutable(jobInfo);
-            if (jobExecutable.getStatusInMem().isProgressing()) {
+            if (jobExecutable.getStatusInMem().equals(ExecutableState.RUNNING)) {
                 logger.error("Unexpected status for {} <{}>, mark job error", jobId, jobExecutable.getStatusInMem());
                 markErrorJob(jobId, jobExecutable.getProject());
             }

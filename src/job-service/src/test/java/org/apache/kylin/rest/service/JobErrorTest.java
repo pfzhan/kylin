@@ -39,6 +39,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
@@ -161,6 +162,16 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         sparkExecutable.wrapWithExecuteException(() -> null);
         var output = manager.getJob(jobId).getOutput();
         Assert.assertNull(output.getFailedStepId());
+
+        try {
+            sparkExecutable.wrapWithExecuteException(() -> {
+                throw new JobStoppedNonVoluntarilyException();
+            });
+            Assert.fail();
+        } catch (ExecuteException e) {
+            output = manager.getJob(jobId).getOutput();
+            Assert.assertNull(output.getFailedStepId());
+        }
 
         try {
             sparkExecutable.wrapWithExecuteException(() -> {

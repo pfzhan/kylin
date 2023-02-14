@@ -113,6 +113,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     private static final String KRB5_CONF_WITH_CLUSTER_ON_K8S = "/etc/krb5.conf";
     private static final String KEYTAB_FILE_WITH_CLUSTER_ON_K8S = "/mnt/secrets/kerberos-keytab";
 
+    public static final String JOB_LAST_RUNNING_START_TIME = "jobLastRunningStartTime";
+
     protected static final String SPARK_PLUGINS = "spark.plugins";
     protected ISparkJobHandler sparkJobHandler;
 
@@ -302,6 +304,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             jobParams.put("job_params", JsonUtil.writeValueAsString(sparkConf));
             updateJobOutput(project, getId(), ExecutableState.RUNNING, jobParams, null, null);
         });
+        this.setParam(JOB_LAST_RUNNING_START_TIME, String.valueOf(getParent().getOutput().getLastRunningStartTime()));
     }
 
     protected String createArgsFileOnHDFS(KylinConfig config, String jobId) throws ExecuteException {

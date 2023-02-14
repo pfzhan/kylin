@@ -206,7 +206,7 @@ public class DefaultExecutable extends AbstractExecutable implements ChainedExec
 
     @Override
     protected void onExecuteStart() throws JobStoppedException {
-        if (isStoppedNonVoluntarily() && ExecutableState.PENDING != getOutput().getState()) //onExecuteStart will turn READY to RUNNING
+        if (isStoppedNonVoluntarily() && ExecutableState.PENDING != getOutput().getState()) //onExecuteStart will turn PENDING to RUNNING
             return;
         updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
     }

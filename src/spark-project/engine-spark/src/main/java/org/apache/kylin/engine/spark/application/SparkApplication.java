@@ -19,6 +19,7 @@
 package org.apache.kylin.engine.spark.application;
 
 import static org.apache.kylin.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
+import static org.apache.kylin.job.execution.NSparkExecutable.JOB_LAST_RUNNING_START_TIME;
 import static org.apache.kylin.job.execution.stage.StageType.WAITE_FOR_RESOURCE;
 
 import java.io.BufferedReader;
@@ -481,6 +482,7 @@ public abstract class SparkApplication implements Application {
             Map<String, String> extraInfo = new HashMap<>();
             extraInfo.put("yarn_job_wait_time", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
             extraInfo.put("yarn_job_run_time", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
+            extraInfo.put("job_last_running_start_time", getParam(JOB_LAST_RUNNING_START_TIME));
 
             getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/wait_and_run_time", project, jobId,
                     extraInfo);
@@ -577,8 +579,9 @@ public abstract class SparkApplication implements Application {
 
         sparkSession = createSpark(sparkConf);
         if (!config.isUTEnv()) {
-            getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/spark", project, jobId,
-                    getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled()));
+            Map<String, String> extraInfo = getTrackingInfo(sparkSession, config.isTrackingUrlIpAddressEnabled());
+            extraInfo.put("job_last_running_start_time", getParam(JOB_LAST_RUNNING_START_TIME));
+            getReport().updateSparkJobExtraInfo(getReportParams(), "/kylin/api/jobs/spark", project, jobId, extraInfo);
         }
 
         // for spark metrics

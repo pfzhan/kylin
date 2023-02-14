@@ -475,6 +475,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             ExecutableState state = parent.getStatus();
             switch (state) {
                 case READY:
+                case PENDING:
                 case PAUSED:
                 case DISCARDED:
                     //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
@@ -940,7 +941,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
             exception = e;
             throw new ExecuteException(e);
         } finally {
-            if (null != exception) {
+            if (exception != null && !(exception instanceof JobStoppedNonVoluntarilyException)) {
                 wrapWithExecuteExceptionUpdateJobError(exception);
             }
         }

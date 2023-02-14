@@ -108,7 +108,7 @@ public enum ExecutableState {
 
     public boolean isStoppedNonVoluntarily() {
         return this == DISCARDED || this == PAUSED || //
-                this == READY;//restart case
+                this == READY || this == PENDING;//restart case
     }
 
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {

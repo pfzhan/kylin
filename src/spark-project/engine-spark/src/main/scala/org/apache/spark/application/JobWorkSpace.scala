@@ -18,17 +18,18 @@
 
 package org.apache.spark.application
 
+import java.util
+import java.util.concurrent.CountDownLatch
+
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.kylin.common.util.{JsonUtil, Unsafe}
 import org.apache.kylin.engine.spark.application.SparkApplication
 import org.apache.kylin.engine.spark.job.{KylinBuildEnv, ParamsConstants}
 import org.apache.kylin.engine.spark.scheduler._
+import org.apache.kylin.job.execution.NSparkExecutable
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
-
-import java.util
-import java.util.concurrent.CountDownLatch
 
 /**
  * Spark driver part, construct the real spark job [SparkApplication]
@@ -104,8 +105,8 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
       logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
       KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
       updateJobErrorInfo(jf)
-      stop()
     } finally {
+      stop()
       statusCode = 1
       latch.countDown()
     }
@@ -142,6 +143,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     payload.put("failed_segment_id", failedSegmentId)
     payload.put("failed_stack", failedStack)
     payload.put("failed_reason", failedReason)
+    payload.put("job_last_running_start_time", context.getParam(NSparkExecutable.JOB_LAST_RUNNING_START_TIME))
     val json = JsonUtil.writeValueAsString(payload)
     val params = new util.HashMap[String, String]()
     val config = KylinBuildEnv.get().kylinConfig

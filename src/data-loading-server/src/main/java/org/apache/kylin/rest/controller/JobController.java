@@ -38,9 +38,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.service.JobInfoService;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.rest.request.JobErrorRequest;
 import org.apache.kylin.rest.request.JobUpdateRequest;
 import org.apache.kylin.rest.request.SparkJobTimeRequest;
@@ -257,9 +260,9 @@ public class JobController extends BaseController {
         checkProjectName(request.getProject());
         logger.info("updateJobError errorRequest is : {}", request);
 
-        jobInfoService.updateJobError(request.getProject(), request.getJobId(), request.getFailedStepId(),
-                request.getFailedSegmentId(), request.getFailedStack(), request.getFailedReason());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+        return updateJobInfoWithCheck(request.getProject(), request.getJobId(), request.getJobLastRunningStartTime(),
+                () -> jobInfoService.updateJobError(request.getProject(), request.getJobId(), request.getFailedStepId(),
+                        request.getFailedSegmentId(), request.getFailedStack(), request.getFailedReason()));
     }
 
     /**
@@ -277,9 +280,11 @@ public class JobController extends BaseController {
         }
         checkProjectName(stageRequest.getProject());
         logger.info("updateStageStatus stageRequest is : {}", stageRequest);
-        jobInfoService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(), stageRequest.getSegmentId(),
-                stageRequest.getStatus(), stageRequest.getUpdateInfo(), stageRequest.getErrMsg());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+        return updateJobInfoWithCheck(stageRequest.getProject(), stageRequest.getTaskId(),
+                stageRequest.getJobLastRunningStartTime(),
+                () -> jobInfoService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(),
+                        stageRequest.getSegmentId(), stageRequest.getStatus(), stageRequest.getUpdateInfo(),
+                        stageRequest.getErrMsg()));
     }
 
     /**
@@ -293,9 +298,9 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
-        jobInfoService.updateSparkJobInfo(sparkJobUpdateRequest);
-
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+        return updateJobInfoWithCheck(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
+                sparkJobUpdateRequest.getJobLastRunningStartTime(),
+                () -> jobInfoService.updateSparkJobInfo(sparkJobUpdateRequest));
     }
 
     /**
@@ -309,11 +314,52 @@ public class JobController extends BaseController {
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest) {
         checkProjectName(sparkJobTimeRequest.getProject());
-        jobInfoService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
-                sparkJobTimeRequest.getTaskId(), sparkJobTimeRequest.getYarnJobWaitTime(),
-                sparkJobTimeRequest.getYarnJobRunTime());
-
+        return updateJobInfoWithCheck(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
+                sparkJobTimeRequest.getJobLastRunningStartTime(),
+                () -> jobInfoService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(),
+                        sparkJobTimeRequest.getJobId(), sparkJobTimeRequest.getTaskId(),
+                        sparkJobTimeRequest.getYarnJobWaitTime(), sparkJobTimeRequest.getYarnJobRunTime()));
+    }
+    
+    private EnvelopeResponse<String> updateJobInfoWithCheck(String project, String taskOrJobId,
+            String jobLastRunningStartTime, Runnable runner) {
+        try {
+            JobContextUtil.withTxAndRetry(() -> {
+                checkJobStatus(project, taskOrJobId, jobLastRunningStartTime);
+                runner.run();
+                return true;
+            });
+        } catch (Exception e) {
+            logger.warn("Update job info failed.", e);
+            if (!checkJobStatusWithOutException(project, taskOrJobId, jobLastRunningStartTime)) {
+                return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, "", "Job has stopped.");
+            }
+            return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, "", "");
+        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    private boolean checkJobStatusWithOutException(String project, String jobOrTaskId, String jobLastRunningStartTime) {
+        try {
+            checkJobStatus(project, jobOrTaskId, jobLastRunningStartTime);
+            return true;
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
+    }
+
+    private void checkJobStatus(String project, String jobOrTaskId, String jobLastRunningStartTime) {
+        ExecutableManager execMgr = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        String jobId = ExecutableManager.extractJobId(jobOrTaskId);
+        AbstractExecutable job = execMgr.getJob(jobId);
+        if (job.getOutput().getState() != ExecutableState.RUNNING) {
+            throw new IllegalStateException(String.format("Job's state is : %s instead of %s !",
+                    job.getOutput().getState(), ExecutableState.RUNNING));
+        }
+        if (!String.valueOf(job.getOutput().getLastRunningStartTime()).equals(jobLastRunningStartTime)) {
+            throw new IllegalStateException(String.format("Job's lastRunningStartTime is : %s instead of %s !",
+                    job.getOutput().getLastRunningStartTime(), jobLastRunningStartTime));
+        }
     }
 
     @Deprecated
