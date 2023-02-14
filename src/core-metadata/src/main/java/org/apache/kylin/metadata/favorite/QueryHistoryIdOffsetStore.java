@@ -63,7 +63,7 @@ public class QueryHistoryIdOffsetStore {
     }
 
     private QueryHistoryIdOffsetStore(KylinConfig config, String tableName) throws Exception {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new QueryHistoryIdOffsetTable(tableName);
@@ -73,7 +73,7 @@ public class QueryHistoryIdOffsetStore {
     }
 
     private static String genQueryHistoryIdOffsetTableName(KylinConfig config) {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getMetadataUrl();
         String tablePrefix = config.isUTEnv() ? "test_opt" : url.getIdentifier();
         return tablePrefix + QUERY_HISTORY_OFFSET;
     }
@@ -164,7 +164,8 @@ public class QueryHistoryIdOffsetStore {
                 .set(table.offset).equalTo(offset::getOffset) //
                 .set(table.updateTime).equalTo(offset::getUpdateTime) //
                 .set(table.mvcc).equalTo(offset.getMvcc() + 1) //
-                .where(table.id, SqlBuilder.isEqualTo(offset::getId)) //
+                .where(table.project, SqlBuilder.isEqualTo(offset::getProject))
+                .and(table.type, SqlBuilder.isEqualTo(offset::getType))//
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 

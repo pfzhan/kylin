@@ -65,7 +65,7 @@ public class FavoriteRuleStore {
     }
 
     private FavoriteRuleStore(KylinConfig config, String tableName) throws Exception {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new FavoriteRuleTable(tableName);
@@ -75,7 +75,7 @@ public class FavoriteRuleStore {
     }
 
     private static String genTableName(KylinConfig config) {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getMetadataUrl();
         String tablePrefix = config.isUTEnv() ? "test_opt" : url.getIdentifier();
         return tablePrefix + FAVORITE_RULE;
     }
