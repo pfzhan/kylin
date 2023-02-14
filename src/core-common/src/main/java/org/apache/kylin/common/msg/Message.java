@@ -43,7 +43,6 @@ public class Message {
     private static final String GRANT_TO_NON_SYSTEM_ADMIN = "Unable to modify. You can only modify the permission of the System Admin.";
     private static final String MODIFY_OWN_PERMISSION_FAILED = "Can’t modify your own permission.";
     private static final String OPTIONSTABLE_NOTIN_TABLES = "%s in the options parameter is not in the snapshot tables to be created, please modify it and recreate it.";
-    private static final String PARTITIONS_TO_BUILD_EMPTY = "After the partition column is set, the partition value cannot be empty";
     private static final String PROFILING_NOT_ENABLED = "Async profiling is not enabled. check parameter '%s'";
     private static final String PROFILING_STATUS_ERROR = "Async profiler status error, ";
     private static final String PROFILING_COLLECT_TIMEOUT = "Async profiler timeout";
@@ -1252,10 +1251,6 @@ public class Message {
 
     public String getSnapshotTableOptionError() {
         return OPTIONSTABLE_NOTIN_TABLES;
-    }
-
-    public String getSnapshotPartitionsToBuildIsEmpty() {
-        return PARTITIONS_TO_BUILD_EMPTY;
     }
 
     // multi level partition mapping

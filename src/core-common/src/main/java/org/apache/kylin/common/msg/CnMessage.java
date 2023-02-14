@@ -1264,11 +1264,6 @@ public class CnMessage extends Message {
     public String getSnapshotTableOptionError() {
         return "options 参数中的 “%s” 不在需要创建的快照表中，请修改后重新创建.";
     }
-    @Override
-    public String getSnapshotPartitionsToBuildIsEmpty() {
-        return "设置了分区列后，分区值不能为空";
-    }
-
     // multi level partition mapping
     @Override
     public String getMultiPartitionMappingReqeustNotValid() {

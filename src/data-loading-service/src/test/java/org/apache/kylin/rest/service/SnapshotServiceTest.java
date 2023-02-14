@@ -359,46 +359,23 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         request.setTables(tables);
         request.setPriority(3);
         request.setOptions(ImmutableMap.of(table1, option));
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("After the partition column is set, the partition value cannot be empty");
         snapshotService.buildSnapshots(request, false);
-    }
 
-    @Test
-    public void testBuildSnapshotWithNonExistPartition() throws Exception {
-        enableSnapshotManualManagement();
-        final String table1 = "DEFAULT.TEST_KYLIN_FACT";
-        final String table2 = "DEFAULT.TEST_ACCOUNT";
-        String partitionCol = "ABC";
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
-        tableService = Mockito.mock(TableService.class);
-        ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
-        NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
-        TableDesc tableDesc = tbgr.copyForWrite(tbgr.getTableDesc(table1));
-        tableDesc.setSourceType(1);
-        tableDesc.setPartitionColumn(partitionCol);
+        final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
+        Assert.assertEquals(2, allExecutables.size());
 
-        Mockito.when(tableService.extractTableMeta(Arrays.asList(table1).toArray(new String[0]), PROJECT))
-                .thenReturn(Arrays.asList(Pair.newPair(tableDesc, null)));
+        final AbstractExecutable job1 = allExecutables.get(0);
+        Assert.assertTrue(job1 instanceof NSparkSnapshotJob);
+        NSparkSnapshotJob samplingJob1 = (NSparkSnapshotJob) job1;
+        Assert.assertEquals("SNAPSHOT_BUILD", samplingJob1.getName());
+        Assert.assertEquals(PROJECT, samplingJob1.getProject());
+        final String tableNameOfSamplingJob1 = samplingJob1.getParam(NBatchConstants.P_TABLE_NAME);
+        Assert.assertTrue(tables.contains(tableNameOfSamplingJob1));
+        Assert.assertEquals(PROJECT, samplingJob1.getParam(NBatchConstants.P_PROJECT_NAME));
+        Assert.assertEquals("ADMIN", samplingJob1.getSubmitter());
 
-        Set<String> tables = Sets.newHashSet(table1, table2);
-        Set<String> databases = Sets.newHashSet();
-
-        SnapshotRequest.TableOption option = new SnapshotRequest.TableOption();
-        option.setPartitionCol(partitionCol);
-        option.setIncrementalBuild(true);
-        option.setPartitionsToBuild(Sets.newHashSet("123"));
-        var request = new SnapshotRequest();
-        request.setProject(PROJECT);
-        request.setDatabases(databases);
-        request.setTables(tables);
-        request.setPriority(3);
-        request.setOptions(ImmutableMap.of(table1, option));
-
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("col ABC not exist");
-        snapshotService.buildSnapshots(request, false);
     }
 
     @Test
