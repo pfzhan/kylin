@@ -109,7 +109,7 @@ public class JdbcLockClient {
     private boolean tryAcquireInternal(JdbcJobLock jobLock) throws LockException {
         boolean acquired = false;
         try {
-            int r = jobContext.getJobLockMapper().upsertLock(jobLock.getLockId(), jobLock.getLockNode(),
+            int r = jobContext.getJobLockMapper().updateLock(jobLock.getLockId(), jobLock.getLockNode(),
                     jobLock.getRenewalSec());
             acquired = r > 0;
             return acquired;

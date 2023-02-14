@@ -20,6 +20,15 @@ package org.apache.kylin.job.domain;
 
 import java.util.Date;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class JobLock {
     private Long id;
 
@@ -38,67 +47,8 @@ public class JobLock {
 
     private String database;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getLockId() {
-        return lockId;
-    }
-
-    public void setLockId(String lockId) {
+    public JobLock(String lockId) {
         this.lockId = lockId;
-    }
-
-    public String getLockNode() {
-        return lockNode;
-    }
-
-    public void setLockNode(String lockNode) {
-        this.lockNode = lockNode;
-    }
-
-    public Date getLockExpireTime() {
-        return lockExpireTime;
-    }
-
-    public void setLockExpireTime(Date lockExpireTime) {
-        this.lockExpireTime = lockExpireTime;
-    }
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
-    public Date getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public String getJobLockTable() {
-        return jobLockTable;
-    }
-
-    public void setJobLockTable(String jobLockTable) {
-        this.jobLockTable = jobLockTable;
-    }
-
-    public void setDatabase(String database) {
-        this.database = database;
-    }
-
-    public String getDatabase() {
-        return database;
+        this.createTime = new Date();
     }
 }

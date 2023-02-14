@@ -18,51 +18,38 @@
 
 package org.apache.kylin.mapper;
 
+import static org.apache.kylin.common.util.TestUtils.getTestConfig;
+
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.job.JobContext;
-import org.apache.kylin.job.config.JobTableInterceptor;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.mapper.JobLockMapper;
-import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.junit.annotation.MetadataInfo;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
-@Ignore
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(value = { "classpath:applicationContext.xml" })
-@TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })
-@TestPropertySource(properties = { "spring.session.store-type = NONE" })
-public class JobLockMapperTest extends NLocalFileMetadataTestCase {
+@MetadataInfo(onlyProps = true)
+public class JobLockMapperTest {
+    private JobLockMapper jobLockMapper;
 
-    @Autowired
-    private JobContext jobContext;
-
-    @BeforeClass
-    public static void setupClass() {
-        staticCreateTestMetadata();
-        // change kylin.env to load bean
-        getTestConfig().setProperty("kylin.env", "testing");
+    @BeforeEach
+    public void setup() throws Exception {
+        KylinConfig config = getTestConfig();
+        ReflectionTestUtils.invokeMethod(JobContextUtil.class, "initMappers", config);
+        jobLockMapper = (JobLockMapper) ReflectionTestUtils.getField(JobContextUtil.class, "jobLockMapper");
     }
 
-    @Before
-    public void setup() {
-        // add mybatis intercepter, (this applicationContext is not mybatis-SpringBoot, should config yourself)
-        SqlSessionFactory sqlSessionFactory = (SqlSessionFactory) SpringContext.getBean("sqlSessionFactory");
-        JobTableInterceptor jobTableInterceptor = SpringContext.getBean(JobTableInterceptor.class);
-        sqlSessionFactory.getConfiguration().addInterceptor(jobTableInterceptor);
+    @AfterEach
+    public void clean() {
+        JobContextUtil.cleanUp();
     }
 
     private JobLock generateJobLock() {
@@ -77,8 +64,6 @@ public class JobLockMapperTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void jobLockCrud() {
-        JobLockMapper jobLockMapper = jobContext.getJobLockMapper();
-
         // create
         JobLock jobLock = generateJobLock();
         int insertAffect = jobLockMapper.insert(jobLock);
@@ -108,4 +93,16 @@ public class JobLockMapperTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void batchRemoveLocksTest() {
+        JobLock jobLock = generateJobLock();
+        JobLock jobLock2 = generateJobLock();
+        jobLock2.setLockId(jobLock2.getLockId() + "_1");
+
+        jobLockMapper.insert(jobLock);
+        jobLockMapper.insert(jobLock2);
+
+        int deleteAffect = jobLockMapper.batchRemoveLock(Arrays.asList(jobLock.getLockId(), jobLock2.getLockId()));
+        Assert.assertEquals(2, deleteAffect);
+    }
 }

@@ -34,9 +34,7 @@ public interface JobLockMapper {
 
     JobLock selectByPrimaryKey(@Param("id") Long id);
 
-    int updateByPrimaryKeySelective(JobLock row);
-
-    int updateByPrimaryKey(JobLock row);
+    JobLock selectByJobId(@Param("jobId") String jobId);
 
     // --------------------------------------
     String findNodeByLockId(@Param("lockId") String lockId);
@@ -45,12 +43,16 @@ public interface JobLockMapper {
 
     int deleteAllJobLock();
 
-    int upsertLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode,
+    int updateLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode,
             @Param("renewalSec") long renewalSec);
 
     int removeLock(@Param("lockId") String lockId, @Param("lockNode") String lockNode);
 
+    int batchRemoveLock(@Param("jobIdList") List<String> jobIdList);
+
     List<String> findNonLockIdList(@Param("batchSize") int batchSize);
+
+    List<String> findExpiredLockIdList(@Param("batchSize") int batchSize);
 
     List<JobLock> fetchAll();
 }

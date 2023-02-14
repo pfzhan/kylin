@@ -18,6 +18,12 @@
     from ${jobLockTable}
     where id = #{id,jdbcType=BIGINT}
   </select>
+  <select id="selectByJobId" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from ${jobLockTable}
+    where lock_id = #{jobId,jdbcType=VARCHAR}
+  </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from ${jobLockTable}
     where id = #{id,jdbcType=BIGINT}
@@ -76,36 +82,6 @@
       </if>
     </trim>
   </insert>
-  <update id="updateByPrimaryKeySelective" parameterType="org.apache.kylin.job.domain.JobLock">
-    update ${jobLockTable}
-    <set>
-      <if test="lockId != null">
-        lock_id = #{lockId,jdbcType=VARCHAR},
-      </if>
-      <if test="lockNode != null">
-        lock_node = #{lockNode,jdbcType=VARCHAR},
-      </if>
-      <if test="lockExpireTime != null">
-        lock_expire_time = #{lockExpireTime,jdbcType=TIMESTAMP},
-      </if>
-      <if test="createTime != null">
-        create_time = #{createTime,jdbcType=TIMESTAMP},
-      </if>
-      <if test="updateTime != null">
-        update_time = #{updateTime,jdbcType=TIMESTAMP},
-      </if>
-    </set>
-    where id = #{id,jdbcType=BIGINT}
-  </update>
-  <update id="updateByPrimaryKey" parameterType="org.apache.kylin.job.domain.JobLock">
-    update ${jobLockTable}
-    set lock_id = #{lockId,jdbcType=VARCHAR},
-      lock_node = #{lockNode,jdbcType=VARCHAR},
-      lock_expire_time = #{lockExpireTime,jdbcType=TIMESTAMP},
-      create_time = #{createTime,jdbcType=TIMESTAMP},
-      update_time = #{updateTime,jdbcType=TIMESTAMP}
-    where id = #{id,jdbcType=BIGINT}
-  </update>
 
   <select id="findNodeByLockId" resultType="java.lang.String">
     SELECT lock_node
@@ -118,53 +94,15 @@
     FROM ${jobLockTable}
   </select>
 
-  <insert id="upsertLock">
-    insert into ${jobLockTable}
-    <trim prefix="(" suffix=")" suffixOverrides=",">
-      lock_id,
-      <if test="lockNode != null">
-        lock_node,
-        lock_expire_time,
-      </if>
-    </trim>
-
-    <if test="database == 'mysql' or database == 'h2'">
-      <trim prefix="values (" suffix=")" suffixOverrides=",">
-        #{lockId,jdbcType=VARCHAR},
-        <if test="lockNode != null">
-          #{lockNode,jdbcType=VARCHAR},
-          TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
-        </if>
-      </trim>
-      on duplicate key update
-      <trim suffixOverrides=",">
-        id = id,
-        <if test="lockNode != null">
-          lock_node = CASE WHEN lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_node) ELSE lock_node END,
-          lock_expire_time = CASE WHEN lock_node = VALUES(lock_node) OR lock_expire_time IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN VALUES(lock_expire_time) ELSE lock_expire_time END,
-        </if>
-      </trim>
-    </if>
-
-    <if test="database == 'postgresql'">
-      <trim prefix="values (" suffix=")" suffixOverrides=",">
-        #{lockId,jdbcType=VARCHAR},
-        <if test="lockNode != null">
-          #{lockNode,jdbcType=VARCHAR},
-          CURRENT_TIMESTAMP + interval '${renewalSec} second',
-        </if>
-      </trim>
-      ON CONFLICT (lock_id) DO UPDATE SET
-      <trim suffixOverrides=",">
-        id = ${jobLockTable}.id,
-        <if test="lockNode != null">
-          lock_node = CASE WHEN ${jobLockTable}.lock_expire_time IS NULL OR ${jobLockTable}.lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN excluded.lock_node ELSE ${jobLockTable}.lock_node END,
-          lock_expire_time = CASE WHEN ${jobLockTable}.lock_node = excluded.lock_node OR ${jobLockTable}.lock_expire_time IS NULL OR ${jobLockTable}.lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP THEN excluded.lock_expire_time ELSE ${jobLockTable}.lock_expire_time END,
-        </if>
-      </trim>
-    </if>
-
-  </insert>
+  <update id="updateLock">
+    update ${jobLockTable}
+    set lock_node = #{lockNode,jdbcType=VARCHAR},
+    lock_expire_time = TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
+    update_time = CURRENT_TIMESTAMP
+    where lock_id = #{lockId,jdbcType=VARCHAR}
+    and (lock_node is null or lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP or lock_node =
+    #{lockNode,jdbcType=VARCHAR})
+  </update>
 
   <delete id="removeLock">
     delete from ${jobLockTable}
@@ -174,10 +112,27 @@
     </if>
   </delete>
 
+  <delete id="batchRemoveLock">
+    delete from ${jobLockTable}
+    where
+    <foreach close=")" collection="jobIdList" index="index" item="item" open="lock_id in (" separator=",">
+      #{item}
+    </foreach>
+  </delete>
+
   <select id="findNonLockIdList" resultType="java.lang.String">
     SELECT lock_id
     FROM ${jobLockTable}
     WHERE lock_node IS NULL OR lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP
+    <if test="batchSize&gt;=0">
+      LIMIT #{batchSize,jdbcType=INTEGER}
+    </if>
+  </select>
+
+  <select id="findExpiredLockIdList" resultType="java.lang.String">
+    SELECT lock_id
+    FROM ${jobLockTable}
+    WHERE lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP
     <if test="batchSize&gt;=0">
       LIMIT #{batchSize,jdbcType=INTEGER}
     </if>

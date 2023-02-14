@@ -18,6 +18,7 @@
 
 package org.apache.kylin.job.scheduler;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +41,11 @@ import org.apache.kylin.job.core.lock.LockAcquireListener;
 import org.apache.kylin.job.core.lock.LockException;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
@@ -83,6 +86,17 @@ public class JdbcJobScheduler implements JobScheduler {
 
     @Override
     public void publishJob() {
+        // init master lock
+        try {
+            if (jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER) == null) {
+                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER));
+            }
+        } catch (Exception e) {
+            JobLock masterLock = jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER);
+            if (masterLock == null) {
+                logger.error("Master lock init failed!");
+            }
+        }
         // master lock
         masterLock = new JdbcJobLock(JobScheduler.MASTER_SCHEDULER, jobContext.getServerNode(),
                 jobContext.getKylinConfig().getJobSchedulerMasterRenewalSec(),
@@ -174,6 +188,8 @@ public class JdbcJobScheduler implements JobScheduler {
                 return;
             }
 
+            releaseExpiredLock();
+
             // parallel job count threshold
             if (!jobContext.getParallelLimiter().tryRelease()) {
                 return;
@@ -200,13 +216,14 @@ public class JdbcJobScheduler implements JobScheduler {
                 }
 
                 JobContextUtil.withTxAndRetry(() -> {
-                    int r = jobContext.getJobLockMapper().upsertLock(jobId, null, 0L);
-                    if (r > 0) {
-                        JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
-                        ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
-                                .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
+                    JobLock lock = jobContext.getJobLockMapper().selectByJobId(jobId);
+                    if (lock == null && jobContext.getJobLockMapper().insertSelective(new JobLock(jobId)) == 0) {
+                        logger.error("Create job lock for [{}] failed!", jobId);
+                        return null;
                     }
-
+                    JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
+                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobInfo.getProject())
+                            .publishJob(jobId, (AbstractExecutable) getJobExecutable(jobInfo));
                     return null;
                 });
             }
@@ -218,6 +235,28 @@ public class JdbcJobScheduler implements JobScheduler {
         } finally {
             master.schedule(this::produceJob, delaySec, TimeUnit.SECONDS);
         }
+    }
+
+    private void releaseExpiredLock() {
+        int batchSize = jobContext.getKylinConfig().getJobSchedulerMasterPollBatchSize();
+        JobMapperFilter filter = new JobMapperFilter();
+        List<String> jobIds = jobContext.getJobLockMapper().findExpiredLockIdList(batchSize);
+        if (jobIds.isEmpty()) {
+            return;
+        }
+        filter.setJobIds(jobIds);
+        List<JobInfo> jobs = jobContext.getJobInfoMapper().selectByJobFilter(filter);
+        List<String> toRemoveLocks = new ArrayList<>();
+        for (JobInfo job : jobs) {
+            ExecutablePO po = JobInfoUtil.deserializeExecutablePO(job);
+            if (po != null) {
+                ExecutableState state = ExecutableState.valueOf(po.getOutput().getStatus());
+                if (state.isNotProgressing() || state.isFinalState()) {
+                    toRemoveLocks.add(job.getJobId());
+                }
+            }
+        }
+        jobContext.getJobLockMapper().batchRemoveLock(toRemoveLocks);
     }
 
     private void consumeJob() {
@@ -278,7 +317,6 @@ public class JdbcJobScheduler implements JobScheduler {
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
             if (jobInfo == null) {
                 logger.warn("can not find job info {}", jobId);
-                jobContext.getJobLockMapper().removeLock(jobId, null);
                 return null;
             }
             AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
@@ -309,31 +347,29 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private void executeJob(AbstractJobExecutable jobExecutable, JobInfo jobInfo) {
+        JdbcJobLock jobLock = null;
         try (JobExecutor jobExecutor = new JobExecutor(jobContext, jobExecutable)) {
-            JdbcJobLock jobLock = tryJobLock(jobExecutable);
+            // Must do this check before tryJobLock
+            if (!checkJobStatusBeforeExecute(jobExecutable)) {
+                return;
+            }
+
+            jobLock = tryJobLock(jobExecutable);
             if (null == jobLock) {
                 return;
             }
-
             if (jobContext.isProjectReachQuotaLimit(jobExecutable.getProject())
                     && JobCheckUtil.stopJobIfStorageQuotaLimitReached(jobContext, jobInfo, jobExecutable)) {
-                jobLock.tryRelease();
                 return;
             }
-
-            if (!checkJobStatusBeforeExecute(jobExecutable, jobLock)) {
-                return;
-            }
-
-            try {
-                // heavy action
-                jobExecutor.execute();
-            } finally {
-                releaseJobLockAfterExecute(jobLock);
-            }
+            // heavy action
+            jobExecutor.execute();
         } catch (Throwable t) {
             logger.error("Execute job failed " + jobExecutable.getJobId(), t);
         } finally {
+            if (jobLock != null) {
+                stopJobLockRenewAfterExecute(jobLock);
+            }
             runningJobMap.remove(jobExecutable.getJobId());
         }
     }
@@ -350,8 +386,7 @@ public class JdbcJobScheduler implements JobScheduler {
         return jobLock;
     }
 
-    private boolean checkJobStatusBeforeExecute(AbstractJobExecutable jobExecutable, JdbcJobLock jobLock)
-            throws LockException {
+    private boolean checkJobStatusBeforeExecute(AbstractJobExecutable jobExecutable) {
         AbstractExecutable executable = (AbstractExecutable) jobExecutable;
         ExecutableState jobStatus = executable.getStatus();
         if (ExecutableState.PENDING == jobStatus) {
@@ -364,13 +399,10 @@ public class JdbcJobScheduler implements JobScheduler {
             ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), executable.getProject())
                     .resumeJob(jobExecutable.getJobId(), true);
         }
-        // for other status, it should be caused by the failure of release locks, so just release lock agagin
-        logger.warn("Release lock for {} <{}>", jobExecutable.getJobId(), jobStatus);
-        jobLock.tryRelease();
         return false;
     }
 
-    private void releaseJobLockAfterExecute(JdbcJobLock jobLock) throws LockException {
+    private void stopJobLockRenewAfterExecute(JdbcJobLock jobLock) {
         try {
             String jobId = jobLock.getLockId();
             JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
@@ -380,11 +412,10 @@ public class JdbcJobScheduler implements JobScheduler {
                 markErrorJob(jobId, jobExecutable.getProject());
             }
         } catch (Throwable t) {
-            logger.error("Fail to check status before release job lock {}, stop renew job lock", jobLock.getLockId());
+            logger.error("Fail to check status before stop renew job lock {}", jobLock.getLockId(), t);
+        } finally {
             jobLock.stopRenew();
-            throw t;
         }
-        jobLock.tryRelease();
     }
 
     private void markErrorJob(String jobId, String project) {
@@ -438,7 +469,7 @@ public class JdbcJobScheduler implements JobScheduler {
 
         @Override
         public void onFailed() {
-            jobExecutable.cancelJob();
+            // do nothing
         }
     }
 

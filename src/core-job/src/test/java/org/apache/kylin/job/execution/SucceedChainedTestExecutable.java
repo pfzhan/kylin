@@ -46,7 +46,7 @@ public class SucceedChainedTestExecutable extends DefaultExecutable {
         try {
             Object o = new Object();
             synchronized (o) {
-                o.wait(1000);
+                o.wait(Integer.parseInt(System.getProperty("COST_TIME", "1000")));
             }
             this.retry++;
         } catch (InterruptedException ignored) {
