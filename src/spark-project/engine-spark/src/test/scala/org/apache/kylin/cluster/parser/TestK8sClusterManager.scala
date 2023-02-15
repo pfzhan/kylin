@@ -40,7 +40,7 @@ class TestK8sClusterManager extends SparderBaseFunSuite {
     capability.put("memory", Quantity.parse("10240Mi"))
     res = clusterManager.getAvailableResourceByVolcano(queue)
     assert(res.available.vCores == 100)
-    assert(res.available.memory == 10)
+    assert(res.available.memory == 10 * 1024)
   }
 
   test("getAvailableResourceByQuota") {
@@ -64,7 +64,7 @@ class TestK8sClusterManager extends SparderBaseFunSuite {
     res = clusterManager.getAvailableResourceByQuota(list)
     assert(res.max.vCores == 100)
     assert(res.available.vCores == 100)
-    assert(res.max.memory == 10)
-    assert(res.available.memory == 9)
+    assert(res.max.memory == 10 * 1024)
+    assert(res.available.memory == 9 * 1024)
   }
 }

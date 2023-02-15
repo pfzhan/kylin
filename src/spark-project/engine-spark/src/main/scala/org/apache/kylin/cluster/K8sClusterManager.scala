@@ -73,9 +73,11 @@ class K8sClusterManager extends IClusterManager with Logging {
   def getAvailableResourceByVolcano(queue: Queue): AvailableResource = {
     val capability = queue.getSpec.getCapability
     val memoryBytes = Quantity.getAmountInBytes(capability.getOrDefault("memory", Quantity.parse(Int.MaxValue + "Gi")))
-    val memory = SizeConvertUtil.byteStringAs(memoryBytes + "b", ByteUnit.GiB).toInt
+    val memory = SizeConvertUtil.byteStringAs(memoryBytes + "b", ByteUnit.MiB).toInt
     val cpu = getCpuByQuantity(capability.getOrDefault("cpu", Quantity.parse("1000")))
-    AvailableResource(ResourceInfo(memory, cpu), ResourceInfo(memory, cpu))
+    val resource = AvailableResource(ResourceInfo(memory, cpu), ResourceInfo(memory, cpu))
+    log.info("getAvailableResourceByVolcano:{}", resource)
+    resource
   }
 
   def getAvailableResourceByQuota(quotas: util.List[ResourceQuota]): AvailableResource = {
@@ -88,12 +90,14 @@ class K8sClusterManager extends IClusterManager with Logging {
       .min().getAsInt
 
     val used = quotas.get(0).getStatus.getUsed
-    val hardMemory = SizeConvertUtil.byteStringAs(hardMemoryBytes + "b", ByteUnit.GiB).toInt
+    val hardMemory = SizeConvertUtil.byteStringAs(hardMemoryBytes + "b", ByteUnit.MiB).toInt
     val usedMemoryBytes = Quantity.getAmountInBytes(used.getOrDefault("limits.memory", Quantity.parse("0Gi")))
-    val usedMemory = SizeConvertUtil.byteStringAs(usedMemoryBytes + "b", ByteUnit.GiB).toInt
+    val usedMemory = SizeConvertUtil.byteStringAs(usedMemoryBytes + "b", ByteUnit.MiB).toInt
 
     val usedCpu = used.getOrDefault("limits.cpu", Quantity.parse("0")).getAmount.toInt
-    AvailableResource(ResourceInfo(hardMemory - usedMemory, hardCpu - usedCpu), ResourceInfo(hardMemory, hardCpu))
+    val resource = AvailableResource(ResourceInfo(hardMemory - usedMemory, hardCpu - usedCpu), ResourceInfo(hardMemory, hardCpu))
+    log.info("getAvailableResourceByQuota:{}", resource)
+    resource
   }
 
   def getCpuByQuantity(quantity: Quantity): Int = {
