@@ -105,7 +105,7 @@ class DiagK8sToolTest {
 
         List<String> contentInZip = readFromZip(diagFile);
         Assert.assertTrue(contentInZip.stream().anyMatch(c -> c.contains("/metadata/")));
-        Assert.assertTrue(contentInZip.stream().anyMatch(c -> c.contains("/audit_log/")));
+        Assert.assertFalse(contentInZip.stream().anyMatch(c -> c.contains("/audit_log/")));
         Assert.assertTrue(contentInZip.stream().anyMatch(c -> c.contains("/query_history_offset/")));
         Assert.assertTrue(contentInZip.stream().anyMatch(c -> c.contains("/conf/")));
         Assert.assertTrue(contentInZip.stream().anyMatch(c -> c.contains("/logs/")));

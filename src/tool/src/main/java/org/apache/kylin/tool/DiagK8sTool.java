@@ -128,7 +128,6 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         logger.info("query project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
         dumpMetadata(exportDir, recordTime, project);
-        exportAuditLog(exportDir, recordTime, startTime, endTime);
         exportQueryHistoryOffset(project, recordTime);
         exportK8sConf(headers, exportDir, recordTime, ClusterConstant.QUERY);
         exportLogFromLoki(exportDir, startTime, endTime, instances, recordTime);
