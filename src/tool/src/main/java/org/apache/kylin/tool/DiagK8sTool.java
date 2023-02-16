@@ -113,6 +113,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportLogFromLoki(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
         exportLogFromWorkingDir(exportDir, Collections.emptyList(), recordTime);
         exportSparkLog(exportDir, startTime, endTime, recordTime, null);
+        exportCandidateLog(exportDir, recordTime, startTime, endTime);
     }
 
     private void extractQueryDiag(File exportDir, File recordTime, String queryId, String project) throws IOException {

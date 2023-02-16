@@ -21,6 +21,7 @@ import static org.apache.kylin.tool.constant.DiagSubTaskEnum.ASYNC_TASK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.AUDIT_LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.BIN;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CATALOG_INFO;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CLIENT;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CONF;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.FAVORITE_RULE;
@@ -84,6 +85,8 @@ import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.QueryHistory;
 import org.apache.kylin.query.util.ExtractFactory;
 import org.apache.kylin.query.util.ILogExtractor;
@@ -998,6 +1001,18 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(jobTmpTask, JOB_TMP);
+    }
+
+    protected void exportCandidateLog(File exportDir, File recordTime, long startTime, long endTime) {
+        // candidate log
+        val candidateLogTask = executorService.submit(() -> {
+            recordTaskStartTime(CANDIDATE_LOG);
+            List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .listAllProjects();
+            projects.forEach(x -> KylinLogTool.extractJobTmpCandidateLog(exportDir, x.getName(), startTime, endTime));
+            recordTaskExecutorTimeToFile(CANDIDATE_LOG, recordTime);
+        });
+        scheduleTimeoutTask(candidateLogTask, CANDIDATE_LOG);
     }
 }
 
