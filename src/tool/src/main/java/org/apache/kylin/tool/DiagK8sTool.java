@@ -83,10 +83,13 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
     }
 
     private void dumpMetadata(File exportDir, File recordTime) throws IOException {
+        dumpMetadata(exportDir, recordTime, "");
+    }
+    private void dumpMetadata(File exportDir, File recordTime, String project) throws IOException {
         File metaDir = new File(exportDir, "metadata");
         FileUtils.forceMkdir(metaDir);
         String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
-                "-excludeTableExd" };
+                "-excludeTableExd", OPT_PROJECT, project };
         dumpMetadata(metaToolArgs, recordTime);
     }
 
@@ -123,7 +126,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         List<String> instances = Collections.singletonList(query.getQueryHistoryInfo().getHostName());
         logger.info("query project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
-        dumpMetadata(exportDir, recordTime);
+        dumpMetadata(exportDir, recordTime, project);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
         exportQueryHistoryOffset(project, recordTime);
         exportK8sConf(headers, exportDir, recordTime, ClusterConstant.QUERY);
@@ -145,7 +148,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         List<String> instances = extractInstances(job);
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
-        dumpMetadata(exportDir, recordTime);
+        dumpMetadata(exportDir, recordTime, project);
         exportAuditLog(exportDir, recordTime, startTime, endTime);
         if (StringUtils.isNotEmpty(modelId)) {
             exportRecCandidate(project, modelId, exportDir, false, recordTime);
