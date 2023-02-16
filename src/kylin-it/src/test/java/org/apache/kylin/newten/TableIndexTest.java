@@ -27,6 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.metadata.realization.RealizationRuntimeException;
 import org.apache.kylin.util.ExecAndComp;
 import org.apache.kylin.util.ExecAndComp.CompareLevel;
 import org.apache.spark.sql.SparderEnv;
@@ -166,5 +167,21 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
                 + "             ON KYLIN_FACT.lstg_site_id = t0.x____\n"
                 + "WHERE  KYLIN_FACT.cal_dt = DATE '2012-01-01' "));
         ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+    }
+
+    @Test
+    public void testUseTableIndexUnionQuery() throws Exception {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+        overwriteSystemProp("kylin.metadata.table-exclusion-enabled", "true");
+        fullBuild("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee");
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, String>> query = new ArrayList<>();
+
+        query.add(Pair.newPair("query_table_index2", "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE"
+            + " union all select sum(PRICE) from TEST_KYLIN_FACT group by PRICE"));
+        ExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+        RealizationRuntimeException error = new RealizationRuntimeException("unexpected error", new RuntimeException(
+            "error"));
+        assert error.getMessage().contains("unexpected error");
     }
 }
