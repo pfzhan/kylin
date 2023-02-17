@@ -2307,6 +2307,10 @@ public abstract class KylinConfigBase implements Serializable {
         return ClusterConstant.ALL.equals(getServerMode()) && getMicroServerMode() == null;
     }
 
+    public boolean isCommonOnlyMode() {
+        return Boolean.parseBoolean(this.getOptional("kylin.server.common-only", FALSE));
+    }
+
     public String[] getAllModeServers() {
         return this.getSystemStringArray("kylin.server.cluster-mode-all", new String[0]);
     }

@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "data-loading", path = "/kylin/api/job_delegate/feign")
+@FeignClient(name = "data-loading", path = "/kylin/api/job_delegate/feign", fallbackFactory = JobMetadataFallbackFactory.class)
 public interface JobMetadataRpc extends JobMetadataContract {
 
     @PostMapping(value = "/add_index_job")
