@@ -361,7 +361,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         request.setOptions(ImmutableMap.of(table1, option));
         snapshotService.buildSnapshots(request, false);
 
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
