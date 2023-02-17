@@ -1175,7 +1175,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         List<String> jobTypes = Lists.newArrayList(INDEX_REFRESH.name(), INDEX_MERGE.name(), INDEX_BUILD.name(),
                 INC_BUILD.name());
         List<JobInfo> jobInfoList = JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, jobTypes,
-                null);
+                Lists.newArrayList());
         return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
                 .map(executablePO -> execManager.fromPO(executablePO)).collect(Collectors.toList());
     }

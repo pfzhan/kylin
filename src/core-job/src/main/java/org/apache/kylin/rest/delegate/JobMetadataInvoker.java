@@ -21,6 +21,7 @@ package org.apache.kylin.rest.delegate;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.FeignErrorResponse;
 import org.apache.kylin.common.exception.FeignRpcException;
@@ -179,7 +180,7 @@ public class JobMetadataInvoker extends JobMetadataBaseInvoker {
     }
 
     public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobNames, List<String> subjects) {
-        return getDelegate().fetchNotFinalJobsByTypes(project, jobNames, subjects);
+        return getDelegate().fetchNotFinalJobsByTypes(project, jobNames, null == subjects ? Lists.newArrayList() : subjects);
     }
 
     @Override
