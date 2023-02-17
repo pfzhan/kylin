@@ -256,7 +256,9 @@ public class JdbcJobScheduler implements JobScheduler {
                 }
             }
         }
-        jobContext.getJobLockMapper().batchRemoveLock(toRemoveLocks);
+        if (!toRemoveLocks.isEmpty()) {
+            jobContext.getJobLockMapper().batchRemoveLock(toRemoveLocks);
+        }
     }
 
     private void consumeJob() {

@@ -21,11 +21,13 @@ import static org.apache.kylin.common.util.TestUtils.getTestConfig;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.JobInfoDao;
+import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -106,7 +108,20 @@ public class JdbcJobSchedulerTest {
         secondJobContext.destroy();
         System.clearProperty("COST_TIME");
     }
-    
+
+    @Test
+    void testLockExpiredAndJobNotFinal() {
+        String jobId = mockJob();
+        JobLock lock = new JobLock(jobId);
+        lock.setLockNode("mock_node");
+        lock.setLockExpireTime(new Date());
+        int expect = jobContext.getJobLockMapper().insert(lock);
+        Assert.assertEquals(1, expect);
+        await().atMost(5, TimeUnit.SECONDS).until(
+                () -> jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus().equals(ExecutableState.SUCCEED.name()));
+
+    }
+
     private String mockJob() {
         ExecutableManager manager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         SucceedChainedTestExecutable job = new SucceedChainedTestExecutable();
