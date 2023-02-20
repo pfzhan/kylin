@@ -170,9 +170,9 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         exportSystemUsageInfo(recordTime, DateTime.now().minusDays(useInfoBeforeDay).withTimeAtStartOfDay().getMillis(),
                 Long.MAX_VALUE);
 
-        executeTimeoutTask(taskQueue);
-
         extractSnapshotAutoUpdate(exportDir, recordTime);
+
+        executeTimeoutTask(taskQueue);
 
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());

@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.base.Throwables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -64,6 +65,7 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.query.util.ILogExtractor;
 import org.apache.kylin.rest.cluster.NacosClusterManager;
 import org.apache.kylin.tool.restclient.RestClient;
+import org.apache.kylin.tool.util.DiagnosticFilesChecker;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -703,7 +705,9 @@ public class KylinLogTool {
                 extractKylinLogFromLokiByInstance(instances, tags, restClient, startTimeInSec, endTImeInSec, destLogDir);
             }
         } catch (Exception e) {
-            logger.error("Failed to extract kylin.log, ", e);
+            String msg = String.format(Locale.ROOT, "Error occurred when extracting kylin log from loki server:\n%s", Throwables.getStackTraceAsString(e));
+            DiagnosticFilesChecker.writeMsgToFile(msg, new File(destLogDir, "kylin.error.log"));
+            logger.error("Failed to extract kylin.log from Loki server.", e);
         }
     }
     

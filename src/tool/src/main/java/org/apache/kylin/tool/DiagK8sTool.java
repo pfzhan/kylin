@@ -78,6 +78,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
             extractSysDiag(exportDir, recordTime, startTime, endTime);
         }
 
+        executeTimeoutTask(taskQueue);
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
     }
