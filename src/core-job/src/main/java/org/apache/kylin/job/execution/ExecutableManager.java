@@ -808,6 +808,7 @@ public class ExecutableManager {
             // DISCARDED must not be transferred to any others status
             if ((oldStatus == ExecutableState.PAUSED && newStatus == ExecutableState.ERROR)
                     || (oldStatus == ExecutableState.SKIP && newStatus == ExecutableState.SUCCEED)
+                    || (oldStatus == ExecutableState.WARNING && newStatus == ExecutableState.SUCCEED)
                     || oldStatus == ExecutableState.DISCARDED) {
                 return false;
             }
@@ -823,6 +824,12 @@ public class ExecutableManager {
             final int indexSuccessCount = Integer
                     .parseInt(map.getOrDefault(NBatchConstants.P_INDEX_SUCCESS_COUNT, "0"));
             info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, String.valueOf(indexSuccessCount));
+
+            // Add warning_code to stage output info if exists
+            String warningCode;
+            if ((warningCode = map.get(NBatchConstants.P_WARNING_CODE)) != null) {
+                info.put(NBatchConstants.P_WARNING_CODE, warningCode);
+            }
         });
         jobOutput.setInfo(info);
         jobOutput.setLastModified(System.currentTimeMillis());

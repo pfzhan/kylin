@@ -96,6 +96,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -1242,7 +1243,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             boolean allToComplement, Set<Long> allIndexWithoutTobeDel, NDataSegment segment) {
         if (allToComplement) {
             // find seg that does not have all indexes(don't include tobeDeleted)
-            val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
+            val segLayoutIds = segment.getSegDetails().getWorkingLayouts().stream().map(NDataLayout::getLayoutId)
                     .collect(Collectors.toSet());
             return !Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty();
         }
@@ -1909,6 +1910,16 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
             List<NDataLayout[]> mergedLayouts = new ArrayList<>();
             mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
+            
+            AbstractExecutable executable = ExecutableManager.getInstance(getConfig(), project)
+                    .getJob(mergerInfo.getJobId());
+            if (!(executable instanceof NSparkCubingJob)) {
+                return mergedLayouts;
+            }
+            NSparkCubingJob job = (NSparkCubingJob) executable;
+            if (job.getSparkCubingStep().getStatus() != ExecutableState.SUCCEED) {
+                return mergedLayouts;
+            }
 
             if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
                 String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
@@ -2583,7 +2594,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             for (String segmentId : segmentIds) {
                 NDataSegment seg = dataflow.getSegment(segmentId);
                 NDataSegDetails segDetails = seg.getSegDetails();
-                List<NDataLayout> layouts = new LinkedList<>(segDetails.getLayouts());
+                List<NDataLayout> layouts = new LinkedList<>(segDetails.getAllLayouts());
                 layouts.removeIf(layout -> indexIds.contains(layout.getLayoutId()));
                 dfManger.updateDataflowDetailsLayouts(seg, layouts);
             }

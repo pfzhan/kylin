@@ -20,6 +20,8 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
@@ -27,7 +29,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NSparkExecutable;
+import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -103,5 +108,28 @@ public class NSparkCubingStep extends NSparkExecutable {
             }
         });
         return result;
+    }
+
+    @Override
+    protected ExecutableState adjustState(ExecutableState originalState) {
+        if (hasWarningStage()) {
+            return ExecutableState.WARNING;
+        }
+        return super.adjustState(originalState);
+    }
+
+    protected boolean hasWarningStage() {
+        ExecutableManager executableManager = getManager();
+        Map<String, List<StageBase>> stagesMap = getStagesMap();
+        for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
+            String segmentId = entry.getKey();
+            List<StageBase> stages = entry.getValue();
+            boolean hasWarning = stages.stream()
+                    .anyMatch(stage -> executableManager.getOutput(stage.getId(), segmentId).getState() == ExecutableState.WARNING);
+            if (hasWarning) {
+                return true;
+            }
+        }
+        return false;
     }
 }

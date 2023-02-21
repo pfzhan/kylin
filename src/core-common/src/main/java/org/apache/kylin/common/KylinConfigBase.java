@@ -3971,4 +3971,12 @@ public abstract class KylinConfigBase implements Serializable {
     public int getDDLLogicalViewCatchupInterval() {
         return Integer.parseInt(getOptional("kylin.source.ddl.logical-view-catchup-interval", "60"));
     }
+
+    public boolean isDataCountCheckEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.build.data-count-check-enabled", FALSE));
+    }
+
+    public boolean isNonStrictCountCheckAllowed() {
+        return Boolean.parseBoolean(getOptional("kylin.build.allow-non-strict-count-check", FALSE));
+    }
 }

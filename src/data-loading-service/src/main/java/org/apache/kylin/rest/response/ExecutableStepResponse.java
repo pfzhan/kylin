@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.Maps;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobStepCmdTypeEnum;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -156,5 +157,7 @@ public class ExecutableStepResponse {
         private long execEndTime;
         @JsonProperty("stage")
         private List<ExecutableStepResponse> stage;
+        @JsonProperty("info")
+        private Map<String, String> info = Maps.newHashMap();
     }
 }

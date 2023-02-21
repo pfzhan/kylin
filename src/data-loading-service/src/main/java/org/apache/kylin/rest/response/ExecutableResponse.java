@@ -254,7 +254,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                     continue;
                 }
             }
-            if (ExecutableState.SUCCEED == task.getStatusInMem() || ExecutableState.SKIP == task.getStatusInMem()) {
+
+            if (task.getStatusInMem().isNotBad()) {
                 successSteps++;
             }
         }
@@ -285,7 +286,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         var successStages = 0D;
         for (StageBase stage : stageBases) {
             if (ExecutableState.SUCCEED == stage.getStatusInMem(segmentId)
-                    || stage.getStatusInMem(segmentId) == ExecutableState.SKIP) {
+                    || ExecutableState.SKIP == stage.getStatusInMem(segmentId)
+                    || ExecutableState.WARNING == stage.getStatusInMem(segmentId)) {
                 successStages += 1;
                 continue;
             }

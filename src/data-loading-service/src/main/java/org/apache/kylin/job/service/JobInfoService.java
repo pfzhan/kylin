@@ -792,7 +792,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
              */
             Set<JobStatusEnum> jobStatusEnums = Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
                     JobStatusEnum.DISCARDED);
-            Set<JobStatusEnum> jobFinishOrSkip = Sets.newHashSet(JobStatusEnum.FINISHED, JobStatusEnum.SKIP);
+            Set<JobStatusEnum> jobFinishOrSkip = Sets.newHashSet(JobStatusEnum.FINISHED, JobStatusEnum.SKIP,
+                    JobStatusEnum.WARNING);
             if (oldResponse.getStatus() != newResponse.getStatus()
                     && !jobStatusEnums.contains(oldResponse.getStatus())) {
                 if (jobStatusEnums.contains(newResponse.getStatus())) {
@@ -900,6 +901,12 @@ public class JobInfoService extends BasicService implements JobSupporter {
         val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId, stageBases, true,
                 executablePO) / stepCount;
         segmentSubStages.setStepRatio(stepRatio);
+
+        // Put warning message into segment_sub_stages.info if exists
+        Optional<ExecutableStepResponse> warningStageRes = stageResponses.stream().filter(stageRes ->
+                stageRes.getStatus() == JobStatusEnum.WARNING).findFirst();
+        warningStageRes.ifPresent(res -> segmentSubStages.getInfo().put(NBatchConstants.P_WARNING_CODE,
+                res.getInfo().getOrDefault(NBatchConstants.P_WARNING_CODE, null)));
     }
 
     @SneakyThrows
