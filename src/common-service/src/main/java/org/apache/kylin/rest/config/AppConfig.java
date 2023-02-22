@@ -67,6 +67,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.ehcache.CacheManager;
 
 @Slf4j
 @Configuration
@@ -127,9 +128,14 @@ public class AppConfig implements WebMvcConfigurer {
     }
 
     @Bean
+    public CacheManager ehCacheCacheManager(Environment environment) {
+        return cacheFactoryBean(environment).getObject();
+    }
+
+    @Bean
     public EhCacheCacheManager cacheManager(Environment environment) {
         val manager = new EhCacheCacheManager();
-        manager.setCacheManager(cacheFactoryBean(environment).getObject());
+        manager.setCacheManager(ehCacheCacheManager(environment));
         return manager;
     }
 
