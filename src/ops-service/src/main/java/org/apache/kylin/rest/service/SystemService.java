@@ -126,69 +126,11 @@ public class SystemService extends BasicService {
         helper.backup(getConfig(), project, path, null, compress, false);
     }
 
-    //    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId,
-            String queryId, String project) {
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String queryId, String project, HttpHeaders headers) {
         File exportFile = KylinConfigBase.getDiagFileName();
         String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
         exportFile.mkdirs();
-
-        DiagTypeEnum diagPackageType;
-        String[] arguments;
-        
-        if (StringUtils.isNotEmpty(jobId) && StringUtils.isNotEmpty(queryId)) {
-            throw new IllegalArgumentException();
-        } else if (StringUtils.isNotEmpty(jobId)) {
-            String jobOpt = "-job";
-            if (StringUtils.endsWithAny(jobId, new String[] { "_build", "_merge" })) {
-                jobOpt = "-streamingJob";
-            }
-            arguments = new String[] { jobOpt, jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
-            diagPackageType = JOB;
-        } else if (StringUtils.isNotEmpty(queryId)) {
-            arguments = new String[] { "-project", project, "-query", queryId, "-destDir", exportFile.getAbsolutePath(),
-                    "-diagId", uuid };
-            diagPackageType = QUERY;
-        } else {
-            if (startTime == null && endTime == null) {
-                startTime = Long.toString(System.currentTimeMillis() - 259200000L);
-                endTime = Long.toString(System.currentTimeMillis());
-            }
-
-            arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
-                    endTime, "-diagId", uuid };
-            diagPackageType = FULL;
-        }
-
-        Future<?> task = executorService.submit(() -> {
-            try {
-                exceptionMap.invalidate(uuid);
-                val packageType = diagPackageType.toString().toLowerCase();
-                new DiagK8sTool(headers, packageType).execute(arguments);
-
-                DiagInfo diagInfo = diagMap.getIfPresent(uuid);
-                if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {
-                    throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDiagFailed());
-                }
-            } catch (Exception ex) {
-                handleDiagException(uuid, ex);
-            }
-        });
-
-        diagMap.put(uuid, new DiagInfo(exportFile, task, diagPackageType));
-        return uuid;
-    }
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String queryId, String project) {
-        File exportFile = KylinConfigBase.getDiagFileName();
-        String uuid = exportFile.getName();
-        FileUtils.deleteQuietly(exportFile);
-        exportFile.mkdirs();
-
-        CliCommandExecutor commandExecutor = new CliCommandExecutor();
-        val patternedLogger = new BufferedLogger(logger);
 
         DiagTypeEnum diagPackageType;
         String[] arguments;
@@ -216,10 +158,16 @@ public class SystemService extends BasicService {
         Future<?> task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
-                String finalCommand = String.format(Locale.ROOT, "%s/bin/diag.sh %s", KylinConfig.getKylinHome(),
-                        StringUtils.join(arguments, " "));
-                commandExecutor.execute(finalCommand, patternedLogger, uuid);
-
+                if (KylinConfig.getInstanceFromEnv().getMicroServerMode() == null) {
+                    CliCommandExecutor commandExecutor = new CliCommandExecutor();
+                    val patternedLogger = new BufferedLogger(logger);
+                    String finalCommand = String.format(Locale.ROOT, "%s/bin/diag.sh %s", KylinConfig.getKylinHome(),
+                            StringUtils.join(arguments, " "));
+                    commandExecutor.execute(finalCommand, patternedLogger, uuid);
+                } else {
+                    val packageType = diagPackageType.toString().toLowerCase();
+                    new DiagK8sTool(headers, packageType).execute(arguments);
+                }
                 DiagInfo diagInfo = diagMap.getIfPresent(uuid);
                 if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {
                     throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDiagFailed());
@@ -232,12 +180,12 @@ public class SystemService extends BasicService {
         return uuid;
     }
 
-    public String dumpLocalQueryDiagPackage(String queryId, String project) {
+    public String dumpLocalQueryDiagPackage(String queryId, String project, HttpHeaders headers) {
         aclEvaluate.checkProjectQueryPermission(project);
-        return dumpLocalDiagPackage(null, null, null, queryId, project);
+        return dumpLocalDiagPackage(null, null, null, queryId, project, headers);
     }
 
-    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String project) {
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String project, HttpHeaders headers) {
         if (StringUtils.isEmpty(jobId)) {
             aclEvaluate.checkIsGlobalAdmin();
         } else {
@@ -246,7 +194,7 @@ public class SystemService extends BasicService {
             }
             checkDiagPermission(project);
         }
-        return dumpLocalDiagPackage(startTime, endTime, jobId, null, null);
+        return dumpLocalDiagPackage(startTime, endTime, jobId, null, null, headers);
     }
 
 
@@ -261,16 +209,6 @@ public class SystemService extends BasicService {
             }
         }
         return null;
-    }
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpK8sDiagPackage(HttpHeaders headers, String startTime, String endTime, String jobId) {
-        return dumpK8sDiagPackage(headers, startTime, endTime, jobId, null, null);
-    }
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpK8sDiagPackage(HttpHeaders headers, String queryId, String project) {
-        return dumpK8sDiagPackage(headers, null, null, null, queryId, project);
     }
 
     private void handleDiagException(String uuid, @NotNull Exception ex) {

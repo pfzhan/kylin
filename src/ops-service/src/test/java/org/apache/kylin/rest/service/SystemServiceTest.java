@@ -149,7 +149,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         Mockito.doNothing().when(aclEvaluate).checkProjectQueryPermission(null);
-        systemService.dumpLocalQueryDiagPackage(null, null);
+        systemService.dumpLocalQueryDiagPackage(null, null, null);
     }
 
     @Test
@@ -209,9 +209,9 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         Mockito.doNothing().when(aclEvaluate).checkProjectAdminPermission(null);
         Mockito.doNothing().when(aclEvaluate).checkIsGlobalAdmin();
-        systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", "");
-        systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", null, "test");
-        systemService.dumpLocalDiagPackage(null, null, null, "5bc63cbe-a2fe-fa4e-3142-1bb4ebab8f98", "test");
+        systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", "", null);
+        systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", null, "test", null);
+        systemService.dumpLocalDiagPackage(null, null, null, "5bc63cbe-a2fe-fa4e-3142-1bb4ebab8f98", "test", null);
         systemService.dumpLocalDiagPackage("1657546517380", "1657632917380", "", "", null);
     }
 
