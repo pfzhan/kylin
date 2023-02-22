@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobLock;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -122,15 +123,32 @@ public class JdbcJobSchedulerTest {
 
     }
 
+    @Test
+    void testJobProducedAndDeleted() {
+        // mock job, not persist in metadata
+        AbstractExecutable job = mockExecutable();
+        // insert job lock, without lock node
+        String jobId = job.getJobId();
+        JobLock lock = new JobLock(jobId);
+        int expect = jobContext.getJobLockMapper().insert(lock);
+        Assert.assertEquals(1, expect);
+        await().atMost(60, TimeUnit.SECONDS).until(() -> jobContext.getJobLockMapper().selectByJobId(jobId) == null);
+    }
+
     private String mockJob() {
         ExecutableManager manager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
+        AbstractExecutable job = mockExecutable();
+        manager.addJob(job);
+        return job.getJobId();
+    }
+
+    private AbstractExecutable mockExecutable() {
         SucceedChainedTestExecutable job = new SucceedChainedTestExecutable();
         job.setProject(PROJECT);
         job.setName("mocked job");
         job.setTargetSubject("12345678");
         job.setJobType(JobTypeEnum.INC_BUILD);
-        manager.addJob(job);
-        return job.getJobId();
+        return job;
     }
     
     private JobContext mockJobContext(String serverNode) {

@@ -52,6 +52,7 @@ import org.apache.kylin.job.util.JobInfoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.val;
@@ -240,13 +241,17 @@ public class JdbcJobScheduler implements JobScheduler {
     private void releaseExpiredLock() {
         int batchSize = jobContext.getKylinConfig().getJobSchedulerMasterPollBatchSize();
         JobMapperFilter filter = new JobMapperFilter();
-        List<String> jobIds = jobContext.getJobLockMapper().findExpiredLockIdList(batchSize);
+        List<String> jobIds = jobContext.getJobLockMapper().findExpiredORNonLockIdList(batchSize);
         if (jobIds.isEmpty()) {
             return;
         }
         filter.setJobIds(jobIds);
         List<JobInfo> jobs = jobContext.getJobInfoMapper().selectByJobFilter(filter);
+        List<String> jobInfoIds = jobs.stream().map(jobInfo -> jobInfo.getJobId()).collect(Collectors.toList());
+        List<String> notExistJobs = Lists.newArrayList(jobIds).stream().filter(jobId -> !jobInfoIds.contains(jobId))
+                .collect(Collectors.toList());
         List<String> toRemoveLocks = new ArrayList<>();
+        toRemoveLocks.addAll(notExistJobs);
         for (JobInfo job : jobs) {
             ExecutablePO po = JobInfoUtil.deserializeExecutablePO(job);
             if (po != null) {

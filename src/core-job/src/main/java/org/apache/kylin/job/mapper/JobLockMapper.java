@@ -52,7 +52,7 @@ public interface JobLockMapper {
 
     List<String> findNonLockIdList(@Param("batchSize") int batchSize);
 
-    List<String> findExpiredLockIdList(@Param("batchSize") int batchSize);
+    List<String> findExpiredORNonLockIdList(@Param("batchSize") int batchSize);
 
     List<JobLock> fetchAll();
 }

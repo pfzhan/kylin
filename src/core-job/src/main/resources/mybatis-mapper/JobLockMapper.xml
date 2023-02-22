@@ -129,10 +129,11 @@
     </if>
   </select>
 
-  <select id="findExpiredLockIdList" resultType="java.lang.String">
+  <select id="findExpiredORNonLockIdList" resultType="java.lang.String">
     SELECT lock_id
     FROM ${jobLockTable}
-    WHERE lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP
+    WHERE lock_id != 'master_scheduler' and (lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP OR lock_node IS NULL)
+    ORDER BY create_time
     <if test="batchSize&gt;=0">
       LIMIT #{batchSize,jdbcType=INTEGER}
     </if>
