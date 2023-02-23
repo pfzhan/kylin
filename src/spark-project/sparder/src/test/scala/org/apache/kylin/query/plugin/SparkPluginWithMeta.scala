@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.asyncprofiler
+package org.apache.kylin.query.plugin
 
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase
-import org.apache.spark.sql.{SparderEnv, SparkSession}
 import org.apache.spark.{SparkContext, SparkFunSuite}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
 
-trait AsyncPluginWithMeta extends SparkFunSuite with BeforeAndAfterAll {
+trait SparkPluginWithMeta extends SparkFunSuite with BeforeAndAfterAll {
 
   @transient var sc: SparkContext = _
   protected val ut_meta = "../examples/test_case_data/localmeta"
