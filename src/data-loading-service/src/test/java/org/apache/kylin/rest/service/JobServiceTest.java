@@ -44,7 +44,9 @@ import java.util.function.Supplier;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.ClassUtil;
@@ -1126,5 +1128,21 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         result.put("nodes", Lists.newArrayList());
         result.put("cmd_output", null);
         Assert.assertEquals(result, jobService.getStepOutput("default", jobId, jobId));
+    }
+
+    @Test
+    public void testJobSubdirectoryPermission() throws IOException {
+        String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de";
+        ExecutableManager manager = ExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
+        Map<String, String> info = Maps.newHashMap();
+        info.put("nodes", "localhost:7070:all");
+        executableOutputPO.setInfo(info);
+        overwriteSystemProp("kylin.engine.job-tmp-dir-all-permission-enabled", "true");
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        String file = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("default", jobId);
+        Path path = new Path(file);
+        manager.updateJobOutputToHDFS(file, executableOutputPO);
+        Assert.assertSame(FsAction.ALL, fs.getFileStatus(path.getParent()).getPermission().getOtherAction());
     }
 }

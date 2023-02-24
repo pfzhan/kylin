@@ -3936,6 +3936,10 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isBuildSegmentOverlapEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.build.segment-overlap-enabled", FALSE));
     }
+
+    public boolean isJobTmpDirALLPermissionEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.job-tmp-dir-all-permission-enabled", FALSE));
+    }
     public boolean isProjectMergeWithBloatEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.project-merge-with-bloat-enabled", "true"));
     }
