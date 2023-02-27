@@ -183,7 +183,7 @@ public class Broadcaster implements Closeable {
             break;
         default:
             nodes = getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY,
-                    ServerModeEnum.DATA_LOADING, ServerModeEnum.COMMON, ServerModeEnum.SMART);
+                    ServerModeEnum.DATA_LOADING, ServerModeEnum.COMMON, ServerModeEnum.SMART, ServerModeEnum.OPS);
         }
         if (!notifier.needBroadcastSelf()) {
             String identity = AddressUtil.getLocalInstance();

@@ -392,14 +392,6 @@ public abstract class ResourceStore implements AutoCloseable {
         }
     }
 
-    public void leaderCatchup() {
-        val auditLogStore = getAuditLogStore();
-        try {
-            auditLogStore.restore(offset);
-        } catch (Throwable ignore) {
-        }
-    }
-
     public abstract void reload() throws IOException;
 
     public interface Visitor {

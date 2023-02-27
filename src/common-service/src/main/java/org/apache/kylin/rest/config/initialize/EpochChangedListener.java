@@ -22,7 +22,6 @@ import java.io.IOException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
-import org.apache.kylin.common.scheduler.EpochStartedNotifier;
 import org.apache.kylin.common.scheduler.ProjectControlledNotifier;
 import org.apache.kylin.common.scheduler.ProjectEscapedNotifier;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
@@ -120,12 +119,5 @@ public class EpochChangedListener {
                 log.warn("error when shutdown " + project + " thread", e);
             }
         }
-    }
-
-    @Subscribe
-    public void onEpochStarted(EpochStartedNotifier notifier) {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.leaderCatchup();
     }
 }

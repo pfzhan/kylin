@@ -2303,6 +2303,10 @@ public abstract class KylinConfigBase implements Serializable {
         return ClusterConstant.COMMON.equals(getMicroServerMode());
     }
 
+    public boolean isResource() {
+        return ClusterConstant.RESOURCE.equals(getMicroServerMode());
+    }
+
     public boolean isAllNode() {
         return ClusterConstant.ALL.equals(getServerMode()) && getMicroServerMode() == null;
     }

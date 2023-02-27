@@ -27,7 +27,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -274,7 +279,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     @Override
     public void restore(long currentId) {
-        if (config.isJobNode() && !config.isUTEnv()) {
+        if ((config.isJobNode() || config.isMetadataNode()) && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
             replayWorker.startSchedule(currentId, false);
             return;

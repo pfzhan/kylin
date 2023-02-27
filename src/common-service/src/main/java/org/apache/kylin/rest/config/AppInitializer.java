@@ -102,6 +102,7 @@ public class AppInitializer {
         boolean isDataLoading = kylinConfig.isDataLoadingNode();
         boolean isMetadata = kylinConfig.isMetadataNode();
         boolean isQueryOnly = kylinConfig.isQueryNodeOnly();
+        boolean isResource = kylinConfig.isResource();
 
         // set kylin.metadata.distributed-lock.jdbc.url
         // before kylin.metadata.url is changed
@@ -115,6 +116,9 @@ public class AppInitializer {
                 String localIdentify = EpochOrchestrator.getOwnerIdentity().split("\\|")[0];
                 return localIdentify.equalsIgnoreCase(instance);
             });
+            if (!isResource) {
+                resourceStore.catchup();
+            }
             if (isJob || isDataLoading) {
                 // register scheduler listener
                 EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
@@ -144,7 +148,9 @@ public class AppInitializer {
         }
 
         kylinConfig.getDistributedLockFactory().initialize();
-        warmUpSystemCache();
+        if (!isResource) {
+            warmUpSystemCache();
+        }
         context.publishEvent(new AfterMetadataReadyEvent(context));
 
         if (kylinConfig.isQueryNode()) {
