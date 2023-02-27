@@ -172,6 +172,7 @@ public class JobInfoDao {
         ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
         jobInfo.setJobStatus(oldStatus.toJobStatus().name());
         jobInfo.setProject(executablePO.getProject());
+        jobInfo.setPriority(executablePO.getPriority());
 
         String subject = null;
         if (JobTypeEnum.TABLE_SAMPLING == executablePO.getJobType()) {

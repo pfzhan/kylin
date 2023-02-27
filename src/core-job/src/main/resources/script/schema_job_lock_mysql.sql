@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_lock (
   lock_id varchar(100) NOT NULL COMMENT 'what is locked',
   lock_node varchar(50) DEFAULT NULL COMMENT 'who locked it',
   lock_expire_time datetime DEFAULT NULL COMMENT 'when does the lock expire',
+  priority integer DEFAULT 3,
   create_time datetime DEFAULT CURRENT_TIMESTAMP,
   update_time datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

@@ -174,6 +174,7 @@ public class JobInfoTool {
             this.setProject(jobInfo.getProject());
             this.setSubject(jobInfo.getSubject());
             this.setUpdateTime(jobInfo.getUpdateTime());
+            this.setPriority(jobInfo.getPriority());
 
             jobContentJson = JobInfoUtil.deserializeExecutablePO(jobInfo);
         }

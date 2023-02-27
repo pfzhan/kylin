@@ -40,6 +40,7 @@ import org.apache.kylin.job.core.lock.JdbcJobLock;
 import org.apache.kylin.job.core.lock.LockAcquireListener;
 import org.apache.kylin.job.core.lock.LockException;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.domain.PriorityFistRandomOrderJob;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -279,16 +280,10 @@ public class JdbcJobScheduler implements JobScheduler {
             if (exeFreeSlots < batchSize) {
                 batchSize = exeFreeSlots;
             }
-            List<String> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize);
+            List<String> jobIdList = findNonLockIdListInOrder(batchSize);
+
             if (CollectionUtils.isEmpty(jobIdList)) {
                 return;
-            }
-
-            // TODO
-            // Shuffle jobs avoiding jobLock conflict.
-            // At the same time, we should ensure the overall order.
-            if (hasRunningJob()) {
-                Collections.shuffle(jobIdList);
             }
 
             // submit job
@@ -317,6 +312,16 @@ public class JdbcJobScheduler implements JobScheduler {
             logger.info("{} running jobs in current scheduler", getRunningJob().size());
             slave.schedule(this::consumeJob, delay, TimeUnit.SECONDS);
         }
+    }
+
+    public List<String> findNonLockIdListInOrder(int batchSize) {
+        List<PriorityFistRandomOrderJob> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize);
+        // Shuffle jobs avoiding jobLock conflict.
+        // At the same time, we should ensure the overall order.
+        if (hasRunningJob()) {
+            Collections.sort(jobIdList);
+        }
+        return jobIdList.stream().map(PriorityFistRandomOrderJob::getJobId).collect(Collectors.toList());
     }
 
     private Pair<JobInfo, AbstractJobExecutable> fetchJob(String jobId) {

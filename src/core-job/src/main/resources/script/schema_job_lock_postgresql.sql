@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_lock (
   lock_id varchar(100) UNIQUE NOT NULL,
   lock_node varchar(50) DEFAULT NULL,
   lock_expire_time timestamptz DEFAULT NULL,
+  priority integer DEFAULT 3,
   create_time timestamptz DEFAULT CURRENT_TIMESTAMP,
   update_time timestamptz DEFAULT CURRENT_TIMESTAMP
 );

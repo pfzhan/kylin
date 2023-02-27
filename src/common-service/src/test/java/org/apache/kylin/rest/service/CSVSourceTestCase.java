@@ -27,6 +27,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -120,9 +121,13 @@ public class CSVSourceTestCase extends ServiceTestBase {
     }
 
     protected void deleteJobByForce(AbstractExecutable executable) {
-        val exManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
-        exManager.deleteJob(executable.getId());
+        JobContextUtil.withTxAndRetry(() -> {
+            val exManager =
+                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
+            exManager.deleteJob(executable.getId());
+            return null;
+        });
     }
 
 }

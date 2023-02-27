@@ -10,6 +10,7 @@
     <result column="project" jdbcType="VARCHAR" property="project" />
     <result column="subject" jdbcType="VARCHAR" property="subject" />
     <result column="model_id" jdbcType="VARCHAR" property="modelId" />
+    <result column="priority" javaType="INTEGER" property="priority" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
     <result column="job_duration_millis" jdbcType="BIGINT" property="jobDurationMillis" />
@@ -18,7 +19,7 @@
     <result column="job_content" jdbcType="BINARY" property="jobContent" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, job_id, job_type, job_status, project, subject, model_id, create_time, update_time, 
+    id, job_id, job_type, job_status, project, subject, model_id, priority, create_time, update_time,
     job_duration_millis, mvcc
   </sql>
   <sql id="Blob_Column_List">
@@ -30,12 +31,12 @@
   <insert id="insert" parameterType="org.apache.kylin.job.domain.JobInfo">
     insert into ${jobInfoTable} (id, job_id, job_type, 
       job_status, project, subject, 
-      model_id, create_time, update_time, 
+      model_id, priority, create_time, update_time,
       job_duration_millis, mvcc, job_content)
     values (#{id,jdbcType=BIGINT}, #{jobId,jdbcType=VARCHAR}, #{jobType,jdbcType=VARCHAR}, 
       #{jobStatus,jdbcType=VARCHAR}, #{project,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, 
-      #{modelId,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
-      #{jobDurationMillis,jdbcType=BIGINT}, #{mvcc}, #{jobContent,jdbcType=BINARY})
+      #{modelId,jdbcType=VARCHAR}, #{priority,jdbcType=INTEGER}, #{createTime,jdbcType=TIMESTAMP},
+      #{updateTime,jdbcType=TIMESTAMP}, #{jobDurationMillis,jdbcType=BIGINT}, #{mvcc}, #{jobContent,jdbcType=BINARY})
   </insert>
 
   <delete id="deleteByJobId" parameterType="java.lang.String">
@@ -77,6 +78,9 @@
       <if test="modelId != null">
         model_id,
       </if>
+      <if test="priority != null">
+        priority,
+      </if>
       <if test="createTime != null">
         create_time,
       </if>
@@ -111,6 +115,9 @@
       </if>
       <if test="modelId != null">
         #{modelId,jdbcType=VARCHAR},
+      </if>
+      <if test="priority != null">
+        #{priority,jdbcType=INTEGER},
       </if>
       <if test="createTime != null">
         #{createTime,jdbcType=TIMESTAMP},
@@ -155,6 +162,9 @@
       <if test="modelId != null">
         model_id = #{modelId,jdbcType=VARCHAR},
       </if>
+      <if test="priority != null">
+        priority = #{priority,jdbcType=INTEGER},
+      </if>
       <if test="createTime != null">
         create_time = #{createTime,jdbcType=TIMESTAMP},
       </if>
@@ -175,7 +185,7 @@
     select job_id
     from ${jobInfoTable}
     where job_status = #{status,jdbcType=VARCHAR}
-    ORDER BY create_time ASC
+    ORDER BY priority,create_time ASC
 	LIMIT #{batchSize,jdbcType=SMALLINT}
   </select>
   <select id="selectByJobFilter" parameterType="org.apache.kylin.job.rest.JobMapperFilter" resultMap="ResultMapWithBLOBs">

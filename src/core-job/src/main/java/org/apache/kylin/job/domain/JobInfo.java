@@ -45,6 +45,8 @@ public class JobInfo {
 
     private Long mvcc = 1L;
 
+    private int priority;
+
     // placeholder for mybatis ${}
     private String jobInfoTable;
 
@@ -150,5 +152,13 @@ public class JobInfo {
 
     public void setMvcc(Long mvcc) {
         this.mvcc = mvcc;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 }

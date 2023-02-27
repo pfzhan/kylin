@@ -18,39 +18,38 @@
 
 package org.apache.kylin.job.domain;
 
-import java.util.Date;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Random;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class JobLock {
-    private Long id;
+public class PriorityFistRandomOrderJob implements Comparable<PriorityFistRandomOrderJob>{
 
-    private String lockId;
+    private static Random random = new Random();
 
-    private String lockNode;
-
-    private Date lockExpireTime;
+    private String jobId;
 
     private int priority;
 
-    private Date createTime;
+    private int randomOrder = random.nextInt();
 
-    private Date updateTime;
-
-    // placeholder for mybatis ${}
-    private String jobLockTable;
-
-    private String database;
-
-    public JobLock(String lockId) {
-        this.lockId = lockId;
-        this.createTime = new Date();
+    @Override
+    public int compareTo(PriorityFistRandomOrderJob o) {
+        if (o == null) {
+            return -1;
+        }
+        if (this.getPriority() < o.getPriority()) {
+            return -1;
+        } else if (this.getPriority() < o.getPriority()){
+            return 1;
+        } else {
+            return this.randomOrder > o.randomOrder ? 1 : -1;
+        }
     }
 }

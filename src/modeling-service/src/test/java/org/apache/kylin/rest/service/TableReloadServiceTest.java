@@ -46,7 +46,6 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -149,14 +148,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
 
         JobContextUtil.cleanUp();
-        JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
-        try {
-            // need not start job scheduler
-            jobContext.destroy();
-        } catch (Exception e) {
-            log.error("Destroy jobContext failed.");
-            throw new RuntimeException("Destroy jobContext failed.", e);
-        }
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After

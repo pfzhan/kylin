@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.domain.JobLock;
+import org.apache.kylin.job.domain.PriorityFistRandomOrderJob;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.junit.annotation.MetadataInfo;
@@ -76,7 +77,7 @@ public class JobLockMapperTest {
         int count = jobLockMapper.findCount();
         Assert.assertEquals(1, count);
 
-        List<String> nonLockIdList = jobLockMapper.findNonLockIdList(10);
+        List<PriorityFistRandomOrderJob> nonLockIdList = jobLockMapper.findNonLockIdList(10);
         Assert.assertTrue(CollectionUtils.isNotEmpty(nonLockIdList));
         // update (h2 no support mysql-dialect)
         //        int updateAffect = jobLockMapper.upsertLock("mock_job_id", "mock_node_id", 10000L);

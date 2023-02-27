@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   project varchar(512) NOT NULL,
   subject varchar(512) NOT NULL,
   model_id varchar(512) NOT NULL,
+  priority integer DEFAULT 3,
   mvcc bigint(10),
   job_content longblob NOT NULL,
   create_time datetime(3) DEFAULT CURRENT_TIMESTAMP(3),
