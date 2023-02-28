@@ -49,7 +49,7 @@ public class JdbcDistributedLockUtil {
 
     public static void createDistributedLockTableIfNotExist() throws Exception {
         String prefix = getGlobalDictLockTablePrefix();
-        String lockTableName = prefix + "LOCK";
+        String lockTableName = prefix + "_lock";
         DataSource dataSource = getDataSource();
         try (Connection connection = dataSource.getConnection()) {
             if (JdbcUtil.isTableExists(connection, lockTableName)) {
