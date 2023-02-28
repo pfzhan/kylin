@@ -46,6 +46,7 @@ import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.helper.RoutineToolHelper;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.tool.garbage.LogCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -120,6 +121,8 @@ public class ScheduleService extends BasicService {
                     executeTask(() -> metadataToolHelper.cleanStorage(true, Collections.emptyList(), 0, 0), "HdfsCleanup",
                             startTime);
                 }
+                // clear logs for stopped instance
+                executeTask(() -> new LogCleaner().cleanUp(), "RemoteLogCleanup", startTime);
                 log.info("Finish to work, cost {}ms", System.currentTimeMillis() - startTime);
             }
         } catch (InterruptedException e) {

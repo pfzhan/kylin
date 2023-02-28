@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.base.Throwables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -74,6 +73,7 @@ import org.springframework.http.HttpHeaders;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 
 import lombok.val;
@@ -670,16 +670,23 @@ public class KylinLogTool {
     public static void extractLogFromWorkingDir(File exportDir, List<String> instances) {
         File destLogDir = new File(exportDir, "logs");
         try {
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
             FileUtils.forceMkdir(destLogDir);
-            Path remotePath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(), "_logs");
+            Path remotePath = new Path(config.getHdfsWorkingDirectory(), "_logs");
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            long retentionTime = config.getInstanceLogRetentionTime();
             if (instances.isEmpty()) {
-                HadoopUtil.downloadFileFromHdfsWithoutError(remotePath, destLogDir);
-            } else {
-                for (String instance : instances) {
-                    File toFile = new File(destLogDir, instance);
-                    FileUtils.forceMkdir(toFile);
-                    HadoopUtil.downloadFileFromHdfsWithoutError(new Path(remotePath, instance), toFile);
+                FileStatus[] fileStatuses = fs.listStatus(remotePath);
+                for (FileStatus fileStatus : fileStatuses) {
+                    if (System.currentTimeMillis() - fileStatus.getModificationTime() < retentionTime) {
+                        instances.add(fileStatus.getPath().getName());
+                    }
                 }
+            }
+            for (String instance : instances) {
+                File toFile = new File(destLogDir, instance);
+                FileUtils.forceMkdir(toFile);
+                HadoopUtil.downloadFileFromHdfsWithoutError(new Path(remotePath, instance), toFile);
             }
         } catch (IOException e) {
             logger.error("Failed to extract JStack and GC log.", e);

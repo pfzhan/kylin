@@ -334,6 +334,29 @@ public class HadoopUtil {
 
     }
 
+    public static void removeOldFiles(Path path, long maxCount) {
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        try {
+            if (!fs.exists(path)) {
+                return;
+            }
+            FileStatus[] fileStatuses = fs.listStatus(path);
+            Arrays.sort(fileStatuses, FileStatus::compareTo);
+            for (int i = fileStatuses.length - 1; i > maxCount - 2; i--) {
+                Path filePath = fileStatuses[i].getPath();
+                try {
+                    fs.delete(filePath, false);
+                    logger.debug("Removed outdated file {}", filePath);
+                } catch (IOException e) {
+                    logger.error("Error removing outdated file {}", filePath, e);
+                }
+            }
+
+        } catch (IOException e) {
+            logger.error("Error getting path {}", path, e);
+        }
+    }
+
     public static void uploadFileToHdfs(File file, Path path) {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         try {

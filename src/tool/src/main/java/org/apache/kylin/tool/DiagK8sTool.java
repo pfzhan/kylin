@@ -112,7 +112,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
         exportQueryHistoryOffset(null, recordTime);
         exportK8sConf(headers, exportDir, recordTime, null);
         exportLogFromLoki(exportDir, startTime, endTime, Collections.emptyList(), recordTime);
-        exportLogFromWorkingDir(exportDir, Collections.emptyList(), recordTime);
+        exportLogFromWorkingDir(exportDir, new ArrayList<>(), recordTime);
         exportSparkLog(exportDir, startTime, endTime, recordTime, null);
         exportCandidateLog(exportDir, recordTime, startTime, endTime);
     }

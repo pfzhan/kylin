@@ -592,3 +592,4 @@ kylin.extension.metadata.factory,string,extension metadata factory,extension met
 kylin.task.upload-gc-log-enabled,boolean,是否上传GC日志,whether upload gc log,TRUE,TRUE
 kylin.task.gc-log-upload-interval-minutes,Int,上传GC日志任务的运行周期,Run cycle of uploading GC log task,TRUE,TRUE
 kylin.task.upload-jstack-dump-enabled,boolean,是否上传jstack日志,whether upload jstack log,TRUE,TRUE
+kylin.log.gc-and-jstack.retention-time,string,GC和jstack日志保存时长,retention time of gc and jstack log,TRUE,TRUE

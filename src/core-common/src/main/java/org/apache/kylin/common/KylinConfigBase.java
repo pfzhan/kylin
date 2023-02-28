@@ -3254,6 +3254,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.tool.clean-diag-tmp-file", FALSE));
     }
 
+    public long getInstanceLogRetentionTime() {
+        return TimeUtil.timeStringAs(getOptional("kylin.log.gc-and-jstack.retention-time", "7d"),
+                TimeUnit.MILLISECONDS);
+    }
+
     public int getTurnMaintainModeRetryTimes() {
         return Integer.parseInt(getOptional("kylin.tool.turn-on-maintainmodel-retry-times", "3"));
     }

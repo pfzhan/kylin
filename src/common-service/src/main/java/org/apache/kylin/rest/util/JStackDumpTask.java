@@ -50,6 +50,7 @@ public class JStackDumpTask implements Runnable {
             ToolUtil.dumpKylinJStack(outputFile);
             if (kylinConfig.isUploadJstackDumpToWorkingDirEnabled()) {
                 Path path = new Path(kylinConfig.getHdfsWorkingDirectory(), "_logs/" + AddressUtil.getHostName());
+                HadoopUtil.removeOldFiles(path, kylinConfig.getJStackDumpTaskLogsMaxNum());
                 HadoopUtil.uploadFileToHdfs(outputFile, path);
             }
             log.trace("dump jstack successful");
