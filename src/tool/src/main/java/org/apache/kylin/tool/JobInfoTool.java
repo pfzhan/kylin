@@ -49,16 +49,16 @@ import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JobInfoTool {
+public class JobInfoTool extends CancelableTask {
     private static final Logger logger = LoggerFactory.getLogger("diag");
     private static final String JOB_INFO_DIR = "job_info";
     private static final String ZIP_SUFFIX = ".zip";
 
-    public static void backup(String dir, String project) throws IOException {
+    public void backup(String dir, String project) throws IOException {
         extractToHDFS(dir + "/" + JOB_INFO_DIR, project);
     }
 
-    public static void restore(String dir, boolean afterTruncate) throws IOException {
+    public void restore(String dir, boolean afterTruncate) throws IOException {
         Path path = new Path(dir + "/" + JOB_INFO_DIR);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         for (FileStatus fileStatus : fs.listStatus(path)) {
@@ -68,7 +68,7 @@ public class JobInfoTool {
         }
     }
 
-    public static void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
+    public void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         Path path = new Path(dir + "/" + JOB_INFO_DIR + "/" + project + ZIP_SUFFIX);
         List<JobInfo> jobInfos = Lists.newArrayList();
@@ -139,7 +139,7 @@ public class JobInfoTool {
         }
     }
 
-    public static void extractToHDFS(String dir, String project) throws IOException {
+    public void extractToHDFS(String dir, String project) throws IOException {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         String filePathStr = dir + "/" + project + ZIP_SUFFIX;
         try (FSDataOutputStream fos = fs.create(new Path(filePathStr));
@@ -152,6 +152,10 @@ public class JobInfoTool {
                 String value = JsonUtil.writeValueAsString(new JobInfoHelper(job));
                 bw.write(value);
                 bw.flush();
+                if (isCanceled()) {
+                    logger.info("job info backup was canceled.");
+                    return;
+                }
             }
         }
     }

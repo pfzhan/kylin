@@ -48,16 +48,16 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 
-public class FavoriteRuleTool {
+public class FavoriteRuleTool extends CancelableTask {
     private static final Logger logger = LoggerFactory.getLogger("diag");
     private static final String FAVORITE_RULE_DIR = "favorite_rule";
     private static final String ZIP_SUFFIX = ".zip";
 
-    public static void backup(String dir, String project) throws IOException {
+    public void backup(String dir, String project) throws IOException {
         extractToHDFS(dir + "/" + FAVORITE_RULE_DIR, project);
     }
 
-    public static void restore(String dir, boolean afterTruncate) throws IOException {
+    public void restore(String dir, boolean afterTruncate) throws IOException {
         Path path = new Path(dir + "/" + FAVORITE_RULE_DIR);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         for (FileStatus fileStatus : fs.listStatus(path)) {
@@ -67,7 +67,7 @@ public class FavoriteRuleTool {
         }
     }
 
-    public static void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
+    public void restoreProject(String dir, String project, boolean afterTruncate) throws IOException {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         Path path = new Path(dir + "/" + FAVORITE_RULE_DIR + "/" + project + ZIP_SUFFIX);
         FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
@@ -110,6 +110,10 @@ public class FavoriteRuleTool {
                 try {
                     bw.write(JsonUtil.writeValueAsString(line));
                     bw.newLine();
+                    if (isCanceled()) {
+                        logger.info("favorite rule backup was canceled.");
+                        return;
+                    }
                 } catch (Exception e) {
                     logger.error("Write error, id is {}", line.getId(), e);
                 }
@@ -117,7 +121,7 @@ public class FavoriteRuleTool {
         }
     }
 
-    public static void extractToHDFS(String dir, String project) throws IOException {
+    public void extractToHDFS(String dir, String project) throws IOException {
         FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         String filePathStr = dir + "/" + project + ZIP_SUFFIX;

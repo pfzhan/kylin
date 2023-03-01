@@ -57,6 +57,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MetadataChecker;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.tool.CancelableTask;
 import org.apache.kylin.tool.HDFSMetadataTool;
 import org.apache.kylin.tool.garbage.StorageCleaner;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ import lombok.var;
 /*
 * this class is only for removing dependency of kylin-tool module, and should be refactor later
 */
-public class MetadataToolHelper {
+public class MetadataToolHelper extends CancelableTask {
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = HelperConstants.DATE_TIME_FORMATTER;
     private static final String GLOBAL = "global";
@@ -217,6 +218,10 @@ public class MetadataToolHelper {
             copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("metadata task is interrupt");
+            }
+            if (isCanceled()) {
+                logger.info("core metadata backup was canceled.");
+                return;
             }
         }
     }

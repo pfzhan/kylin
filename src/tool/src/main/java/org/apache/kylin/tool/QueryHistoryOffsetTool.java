@@ -48,16 +48,16 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 
-public class QueryHistoryOffsetTool {
+public class QueryHistoryOffsetTool extends CancelableTask {
     private static final Logger logger = LoggerFactory.getLogger("diag");
     private static final String QUERY_HISTORY_DIR = "query_history_id_offset";
     private static final String ZIP_SUFFIX = ".zip";
 
-    public static void backup(String dir, String project) throws IOException {
+    public void backup(String dir, String project) throws IOException {
         extractToHDFS(dir + "/" + QUERY_HISTORY_DIR, project);
     }
 
-    public static void restore(String dir, boolean isTruncate) throws IOException {
+    public void restore(String dir, boolean isTruncate) throws IOException {
         Path path = new Path(dir + "/" + QUERY_HISTORY_DIR);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         for (FileStatus fileStatus : fs.listStatus(path)) {
@@ -67,7 +67,7 @@ public class QueryHistoryOffsetTool {
         }
     }
 
-    public static void restoreProject(String dir, String project, boolean isTruncate) throws IOException {
+    public void restoreProject(String dir, String project, boolean isTruncate) throws IOException {
         Path path = new Path(dir + "/" + QUERY_HISTORY_DIR + "/" + project + ZIP_SUFFIX);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         List<QueryHistoryIdOffset> offsets = Lists.newArrayList();
@@ -110,6 +110,10 @@ public class QueryHistoryOffsetTool {
                 try {
                     bw.write(JsonUtil.writeValueAsString(offset));
                     bw.newLine();
+                    if (isCanceled()) {
+                        logger.info("query history off set backup was canceled.");
+                        return;
+                    }
                 } catch (Exception e) {
                     logger.error("Write error, id is {}", offset.getId(), e);
                 }
@@ -117,7 +121,7 @@ public class QueryHistoryOffsetTool {
         }
     }
 
-    public static void extractToHDFS(String dir, String project) throws IOException {
+    public void extractToHDFS(String dir, String project) throws IOException {
         QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         String filePathStr = dir + "/" + project + ZIP_SUFFIX;
