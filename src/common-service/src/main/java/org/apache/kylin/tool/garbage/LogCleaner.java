@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.FileSystemUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,7 @@ public class LogCleaner {
                 log.info("Folder {} not exist, skip cleanUp.", remotePath);
                 return;
             }
-            for (FileStatus fileStatus : fs.listStatus(remotePath)) {
+            for (FileStatus fileStatus : FileSystemUtil.listStatus(fs, remotePath)) {
                 try {
                     if (System.currentTimeMillis() - fileStatus.getModificationTime() > config
                             .getInstanceLogRetentionTime()) {

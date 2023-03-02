@@ -309,7 +309,7 @@ public class HadoopUtil {
         try {
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
             Path path = new Path(resPath);
-            FileStatus[] fileStatus = fs.listStatus(path);
+            FileStatus[] fileStatus = FileSystemUtil.listStatus(fs, path);
             if (isFile) {
                 return Stream.of(fileStatus).filter(FileStatus::isFile).collect(Collectors.toList());
             } else {

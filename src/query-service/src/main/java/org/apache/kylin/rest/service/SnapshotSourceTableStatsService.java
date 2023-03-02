@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.FileSystemUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -404,7 +405,7 @@ public class SnapshotSourceTableStatsService extends BasicService {
         if (!fileSystem.exists(sourceTableStatsPath)) {
             return Collections.emptyList();
         }
-        val fileStatuses = fileSystem.listStatus(sourceTableStatsPath);
+        val fileStatuses = FileSystemUtil.listStatus(fileSystem, sourceTableStatsPath);
         return Arrays.stream(fileStatuses)
                 .sorted((fs1, fs2) -> Long.compare(fs2.getModificationTime(), fs1.getModificationTime()))
                 .collect(Collectors.toList());

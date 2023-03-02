@@ -48,6 +48,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.SnapshotRawResource;
 import org.apache.kylin.common.persistence.VersionedRawResource;
+import org.apache.kylin.common.util.FileSystemUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 
@@ -93,7 +94,7 @@ public class HDFSMetadataStore extends MetadataStore {
                 if (!fs.exists(new Path(path))) {
                     fs.mkdirs(new Path(path));
                 }
-                rootPath = Stream.of(fs.listStatus(new Path(path)))
+                rootPath = Stream.of(FileSystemUtil.listStatus(fs, new Path(path)))
                         .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                         .orElse(new Path(path + "/backup_0/"));
                 if (!fs.exists(rootPath)) {

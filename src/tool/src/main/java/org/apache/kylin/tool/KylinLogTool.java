@@ -57,6 +57,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.FileSystemUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -676,7 +677,7 @@ public class KylinLogTool {
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
             long retentionTime = config.getInstanceLogRetentionTime();
             if (instances.isEmpty()) {
-                FileStatus[] fileStatuses = fs.listStatus(remotePath);
+                FileStatus[] fileStatuses = FileSystemUtil.listStatus(fs, remotePath);
                 for (FileStatus fileStatus : fileStatuses) {
                     if (System.currentTimeMillis() - fileStatus.getModificationTime() < retentionTime) {
                         instances.add(fileStatus.getPath().getName());

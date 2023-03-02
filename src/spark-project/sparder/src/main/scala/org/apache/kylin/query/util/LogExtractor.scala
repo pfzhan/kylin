@@ -19,10 +19,9 @@
 package org.apache.kylin.query.util
 
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
-import org.apache.kylin.common.util.{AddressUtil, ClusterConstant, HadoopUtil}
+import org.apache.kylin.common.util.{AddressUtil, ClusterConstant, FileSystemUtil, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, KylinConfigBase}
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Lettuce.Cluster
 
 object ExtractFactory {
   def create: ILogExtractor = {
@@ -60,7 +59,7 @@ object CloudLogExtractor extends ILogExtractor {
     var valid = false
     try {
       val fileInfo = fileStatus.getPath.getName.split("#")
-      val fileStatuses: Array[FileStatus] = fs.listStatus(new Path(fileStatus.getPath.toUri))
+      val fileStatuses: Array[FileStatus] = FileSystemUtil.listStatus(fs, new Path(fileStatus.getPath.toUri));
       if (!fileStatuses.isEmpty) {
         val maxModifyTime = fileStatuses.map(f => f.getModificationTime).max
         valid = fileInfo.length == 2 && fileInfo(1).toLong <= endTime && maxModifyTime >= startTime
@@ -97,7 +96,7 @@ object K8sLogExtractor extends ILogExtractor {
     var valid = false
     try {
       val fileInfo = fileStatus.getPath.getName.split("#")
-      val fileStatuses: Array[FileStatus] = fs.listStatus(new Path(fileStatus.getPath.toUri))
+      val fileStatuses: Array[FileStatus] = FileSystemUtil.listStatus(fs, new Path(fileStatus.getPath.toUri))
       if (!fileStatuses.isEmpty) {
         val maxModifyTime = fileStatuses.map(f => f.getModificationTime).max
         valid = fileInfo.length == 2 && fileInfo(1).toLong <= endTime && maxModifyTime >= startTime
