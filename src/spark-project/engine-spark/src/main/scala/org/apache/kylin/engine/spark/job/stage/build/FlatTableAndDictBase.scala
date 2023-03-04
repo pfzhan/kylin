@@ -40,7 +40,6 @@ import org.apache.kylin.metadata.cube.cuboid.AdaptiveSpanningTree
 import org.apache.kylin.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder
 import org.apache.kylin.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model._
-import org.apache.kylin.query.util.PushDownUtil
 import org.apache.spark.sql.KapFunctions.dict_encode_v3
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, expr}
@@ -273,12 +272,12 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
   }
 
   private def applyFilterCondition(originDS: Dataset[Row]): Dataset[Row] = {
-    if (StringUtils.isBlank(dataModel.getFilterCondition)) {
+    val filterCondition = dataModel.getFilterCondition
+    if (StringUtils.isBlank(filterCondition)) {
       logInfo(s"No available FILTER-CONDITION segment $segmentId")
       return originDS
     }
-    val expression = PushDownUtil.massageExpression(dataModel, project, dataModel.getFilterCondition, null)
-    val converted = replaceDot(expression, dataModel)
+    val converted = replaceDot(filterCondition, dataModel)
     val condition = s" (1=1) AND ($converted)"
     logInfo(s"Apply FILTER-CONDITION: $condition segment $segmentId")
     originDS.where(condition)
