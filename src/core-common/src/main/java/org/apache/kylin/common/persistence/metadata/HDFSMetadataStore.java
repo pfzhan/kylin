@@ -95,6 +95,7 @@ public class HDFSMetadataStore extends MetadataStore {
                     fs.mkdirs(new Path(path));
                 }
                 rootPath = Stream.of(FileSystemUtil.listStatus(fs, new Path(path)))
+                        .filter(fileStatus -> fileStatus.getPath().getName().endsWith("_backup"))
                         .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                         .orElse(new Path(path + "/backup_0/"));
                 if (!fs.exists(rootPath)) {
