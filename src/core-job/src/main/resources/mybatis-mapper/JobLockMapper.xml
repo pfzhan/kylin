@@ -100,11 +100,6 @@
     WHERE lock_id = #{lockId,jdbcType=VARCHAR}
   </select>
 
-  <select id="findCount" resultType="int">
-    SELECT count(1)
-    FROM ${jobLockTable}
-  </select>
-
   <update id="updateLock">
     update ${jobLockTable}
     set lock_node = #{lockNode,jdbcType=VARCHAR},
@@ -140,6 +135,13 @@
       LIMIT #{batchSize,jdbcType=INTEGER}
     </if>
   </select>
+
+  <select id="getActiveJobLockCount" resultType="int">
+    SELECT count(1)
+    FROM ${jobLockTable}
+    WHERE lock_id != 'master_scheduler' and lock_expire_time <![CDATA[>=]]> CURRENT_TIMESTAMP
+  </select>
+
 
   <select id="findExpiredORNonLockIdList" resultType="java.lang.String">
     SELECT lock_id

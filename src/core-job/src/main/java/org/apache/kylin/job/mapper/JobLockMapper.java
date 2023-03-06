@@ -40,7 +40,7 @@ public interface JobLockMapper {
     // --------------------------------------
     String findNodeByLockId(@Param("lockId") String lockId);
 
-    int findCount();
+    int getActiveJobLockCount();
 
     int deleteAllJobLock();
 

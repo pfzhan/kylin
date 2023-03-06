@@ -22,15 +22,14 @@ import static org.apache.kylin.common.util.TestUtils.getTestConfig;
 
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.domain.JobLock;
-import org.apache.kylin.job.domain.PriorityFistRandomOrderJob;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.junit.annotation.MetadataInfo;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +44,7 @@ public class JobLockMapperTest {
     public void setup() throws Exception {
         KylinConfig config = getTestConfig();
         ReflectionTestUtils.invokeMethod(JobContextUtil.class, "initMappers", config);
+        config.setProperty("kylin.job.slave-lock-renew-sec", "3");
         jobLockMapper = (JobLockMapper) ReflectionTestUtils.getField(JobContextUtil.class, "jobLockMapper");
     }
 
@@ -58,7 +58,8 @@ public class JobLockMapperTest {
         JobLock jobLock = new JobLock();
         jobLock.setLockId("mock_lock_id");
         jobLock.setLockNode("mock_lock_node");
-        jobLock.setLockExpireTime(new Date());
+        long renewalSec = getTestConfig().getJobSchedulerJobRenewalSec();
+        jobLock.setLockExpireTime(new Date(System.currentTimeMillis() + renewalSec * 1000));
 
         return jobLock;
     }
@@ -74,11 +75,13 @@ public class JobLockMapperTest {
         String jobLockNode = jobLockMapper.findNodeByLockId("mock_lock_id");
         Assert.assertEquals("mock_lock_node", jobLockNode);
 
-        int count = jobLockMapper.findCount();
+        int count = jobLockMapper.getActiveJobLockCount();
         Assert.assertEquals(1, count);
 
-        List<PriorityFistRandomOrderJob> nonLockIdList = jobLockMapper.findNonLockIdList(10);
-        Assert.assertTrue(CollectionUtils.isNotEmpty(nonLockIdList));
+        long renewSec = getTestConfig().getJobSchedulerJobRenewalSec();
+        Awaitility.await().atMost(renewSec + 1, TimeUnit.SECONDS)
+                .until(() -> jobLockMapper.findNonLockIdList(10).size() > 0);
+
         // update (h2 no support mysql-dialect)
         //        int updateAffect = jobLockMapper.upsertLock("mock_job_id", "mock_node_id", 10000L);
         //        Assert.assertEquals(1, updateAffect);
