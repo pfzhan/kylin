@@ -685,7 +685,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithTimeOutException() throws Exception {
+    public void testQueryWithTimeOutException() throws Throwable {
         final String sql = "select * from exception_table";
         final String project = "newten";
 
@@ -2008,7 +2008,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testTableauIntercept() throws Exception {
+    public void testTableauIntercept() throws Throwable {
         List<String> sqlList = Files.walk(Paths.get("./src/test/resources/query/tableau_probing"))
                 .filter(file -> Files.isRegularFile(file)).map(path -> {
                     try {
