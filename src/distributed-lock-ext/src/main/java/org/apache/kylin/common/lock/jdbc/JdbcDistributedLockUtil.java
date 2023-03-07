@@ -49,7 +49,7 @@ public class JdbcDistributedLockUtil {
 
     public static void createDistributedLockTableIfNotExist() throws Exception {
         String prefix = getGlobalDictLockTablePrefix();
-        String lockTableName = prefix + "_lock";
+        String lockTableName = prefix + "lock";
         DataSource dataSource = getDataSource();
         try (Connection connection = dataSource.getConnection()) {
             if (JdbcUtil.isTableExists(connection, lockTableName)) {
@@ -73,7 +73,7 @@ public class JdbcDistributedLockUtil {
 
     public static String getGlobalDictLockTablePrefix() {
         StorageURL url = KylinConfig.getInstanceFromEnv().getJDBCDistributedLockURL();
-        return StorageURL.replaceUrl(url);
+        return StorageURL.replaceUrl(url) + "_";
     }
 
     public static DataSource getDataSource() throws Exception {
