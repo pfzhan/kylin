@@ -211,10 +211,6 @@ public class TableService extends BasicService {
     @Autowired
     private TableSampleService tableSampleService;
 
-    @Autowired(required = false)
-    @Qualifier("jobInfoService")
-    private JobSupporter jobInfoService;
-
     @Autowired
     private AclEvaluate aclEvaluate;
 

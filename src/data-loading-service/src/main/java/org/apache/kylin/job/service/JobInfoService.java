@@ -36,7 +36,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -104,7 +103,6 @@ import org.apache.kylin.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.JobDriverUIUtil;
@@ -128,7 +126,7 @@ import lombok.val;
 import lombok.var;
 
 @Service("jobInfoService")
-public class JobInfoService extends BasicService implements JobSupporter {
+public class JobInfoService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(LogConstant.BUILD_CATEGORY);
 
@@ -923,38 +921,54 @@ public class JobInfoService extends BasicService implements JobSupporter {
         return executableResponseList;
     }
 
-    @Override
-    public void stopBatchJob(String project, TableDesc tableDesc) {
+    public List<String> getFusionModelsByTableDesc(String project, TableDesc tableDesc) {
+        List<String> fusionModelIds = Lists.newArrayList();
         for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project)
                 .getModelsUsingTable(tableDesc)) {
-            stopBatchJobByModel(project, tableRelatedModel.getId());
-        }
-    }
-
-    private void stopBatchJobByModel(String project, String modelId) {
-
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
-        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
-        if (!model.isFusionModel() || Objects.isNull(fusionModel)) {
+            String modelId = tableRelatedModel.getId();
+            NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
+            FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
+            if (model.isFusionModel() && Objects.nonNull(fusionModel)) {
+                fusionModelIds.add(modelId);
+            }
             try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
                 logger.warn("model is not fusion model or fusion model is null, {}", modelId);
             }
-            return;
+        }
+        return fusionModelIds;
+    }
+
+    public List<String> getBatchModelJobIdsOfFusionModel(String project, List<String> fusionModelIds) {
+        List<String> batchModelIds = Lists.newArrayList();
+        for (String fusionModelId : fusionModelIds) {
+            FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            FusionModel fusionModel = fusionModelManager.getFusionModel(fusionModelId);
+            batchModelIds.add(fusionModel.getBatchModel().getUuid());
         }
 
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setModelIds(batchModelIds);
+        List<String> status = Lists.newArrayList(JobStatusEnum.values()).stream()
+                .filter(jobStatusEnum -> jobStatusEnum != JobStatusEnum.FINISHED && jobStatusEnum != JobStatusEnum.ERROR
+                        && jobStatusEnum != JobStatusEnum.DISCARDED)
+                .map(jobStatusEnum -> jobStatusEnum.name()).collect(Collectors.toList());
+        jobMapperFilter.setStatuses(status);
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        return jobInfoList.stream().map(jobInfo -> jobInfo.getJobId()).collect(Collectors.toList());
+    }
+
+
+    public void stopBatchJob(String project, TableDesc tableDesc) {
+        List<String> fusionModelIds = getFusionModelsByTableDesc(project, tableDesc);
+        List<String> jobIdList = getBatchModelJobIdsOfFusionModel(project, fusionModelIds);
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        executableManager.getJobs().stream().map(executableManager::getJob).filter(
-                job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
-                .forEach(job -> {
-                    Set<ExecutableState> matchedExecutableStates = Stream
-                            .of(JobStatusEnum.FINISHED, JobStatusEnum.ERROR, JobStatusEnum.DISCARDED)
-                            .map(this::parseToExecutableState).collect(Collectors.toSet());
-                    if (!matchedExecutableStates.contains(job.getOutput().getState())) {
-                        executableManager.discardJob(job.getId());
-                    }
-                });
+        for (String jobId : jobIdList) {
+            executableManager.discardJob(jobId);
+        }
     }
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {

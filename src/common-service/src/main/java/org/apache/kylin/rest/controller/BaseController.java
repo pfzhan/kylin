@@ -59,6 +59,8 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.FeignErrorResponse;
+import org.apache.kylin.common.exception.FeignRpcException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -248,6 +250,16 @@ public class BaseController {
         KylinException e = new KylinException(USER_UNAUTHORIZED, ex);
         getLogger().error("", e);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
+    }
+
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(FeignRpcException.class)
+    @ResponseBody
+    FeignErrorResponse handleFeignRpcException(HttpServletRequest req, Throwable ex) {
+        getLogger().error("", ex);
+        FeignRpcException cause = (FeignRpcException) ex;
+        String msg = "Exception happened when using feign rpc: " + req.getRequestURL().toString();
+        return new FeignErrorResponse(msg, cause.getExceptionSerialized());
     }
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {

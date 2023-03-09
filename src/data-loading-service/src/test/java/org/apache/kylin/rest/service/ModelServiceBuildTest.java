@@ -228,7 +228,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
         JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
         ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
         JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
         ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
 
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);

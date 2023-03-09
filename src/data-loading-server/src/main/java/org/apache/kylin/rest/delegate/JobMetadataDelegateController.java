@@ -19,13 +19,17 @@
 package org.apache.kylin.rest.delegate;
 
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.FeignRpcException;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.domain.JobInfo;
@@ -33,24 +37,33 @@ import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.aspect.WaitForSyncBeforeRPC;
-import org.apache.kylin.rest.controller.NBasicController;
+import org.apache.kylin.rest.controller.BaseController;
+import org.apache.kylin.tool.restclient.RestClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 @Controller
-@RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON,
-        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class JobMetadataDelegateController extends NBasicController {
+@RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON})
+public class JobMetadataDelegateController extends BaseController {
 
     @Autowired
     private JobMetadataDelegate jobMetadataDelegate;
+
+    @Autowired
+    private JobInfoService jobInfoService;
 
     @PostMapping(value = "/feign/add_index_job")
     @ResponseBody
@@ -197,9 +210,39 @@ public class JobMetadataDelegateController extends NBasicController {
 
     @PostMapping(value = "/feign/discard_job")
     @ResponseBody
-    public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId) {
-        jobMetadataDelegate.discardJob(project, jobId);
+    public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId,
+            @RequestHeader HttpHeaders headers) throws IOException {
+        List<String> jobIdList = Lists.newArrayList(jobId.split(","));
+        if ("true".equals(headers.getFirst(RestClient.ROUTED))) {
+            doDiscardJob(project, jobIdList);
+            return;
+        }
+        String local = AddressUtil.getLocalInstance();
+        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobIdList);
+        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
+            if (local.equals(entry.getKey())) {
+                doDiscardJob(project, entry.getValue());
+            } else {
+                remoteDiscardJob(entry.getKey(), headers, project, StringUtils.join(entry.getValue(), ","));
+            }
+        }
     }
+    
+    private void doDiscardJob(String project, List<String> jobIdList) {
+        for (String jobId : jobIdList) {
+            jobMetadataDelegate.discardJob(project, jobId);
+        }
+    }
+    
+    private void remoteDiscardJob(String targetHost, HttpHeaders headers, String project, String jobId)
+            throws IOException {
+        Map<String, String> form = Maps.newHashMap();
+        form.put("project", project);
+        form.put("jobId", jobId);
+        RestClient client = new RestClient(targetHost);
+        client.forwardPostWithUrlEncodedForm("/job_delegate/feign/discard_job", headers, form);
+    }
+    
 
     @PostMapping(value = "/feign/delete_job_by_ids")
     @ResponseBody
@@ -209,8 +252,22 @@ public class JobMetadataDelegateController extends NBasicController {
 
     @PostMapping(value = "/feign/stop_batch_job")
     @ResponseBody
-    public void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc) {
-        jobMetadataDelegate.stopBatchJob(project, tableDesc);
+    public void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc,
+            @RequestHeader HttpHeaders headers) throws IOException {
+        List<String> fusionModelIds = jobInfoService.getFusionModelsByTableDesc(project, tableDesc);
+        if (CollectionUtils.isEmpty(fusionModelIds)) {
+            return;
+        }
+        List<String> jobIdList = jobInfoService.getBatchModelJobIdsOfFusionModel(project, fusionModelIds);
+        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobIdList);
+        String local = AddressUtil.getLocalInstance();
+        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
+            if (local.equals(entry.getKey())) {
+                doDiscardJob(project, entry.getValue());
+            } else {
+                remoteDiscardJob(entry.getKey(), headers, project, StringUtils.join(entry.getValue(), ","));
+            }
+        }
     }
 
     @PostMapping(value = "/feign/clear_project_jobs")
