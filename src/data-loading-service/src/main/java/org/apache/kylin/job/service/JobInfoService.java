@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -408,27 +409,39 @@ public class JobInfoService extends BasicService {
 
     public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
         aclEvaluate.checkProjectOperationPermission(project);
-        batchDropJob0(project, jobIds, filterStatuses);
+        val jobs = getJobsByStatus(project, jobIds, filterStatuses);
+        batchDropJob0(project, jobs);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
-        for (String project : projectService.getOwnedProjects()) {
-            aclEvaluate.checkProjectOperationPermission(project);
-            JobContextUtil.withTxAndRetry(() -> {
-                batchDropJob0(project, jobIds, filterStatuses);
-                return true;
-            });
+        val jobs = getJobsByStatus(null, jobIds, filterStatuses);
+        Map<String, List<AbstractExecutable>> projectJobMap = new HashMap<>();
+        for (AbstractExecutable job : jobs) {
+            String project = job.getProject();
+            if (!projectJobMap.containsKey(project)) {
+                projectJobMap.put(project, Lists.newArrayList());
+            }
+            projectJobMap.get(project).add(job);
         }
+        projectJobMap.entrySet().stream().forEach(entry -> {
+            String project = entry.getKey();
+            aclEvaluate.checkProjectOperationPermission(project);
+            batchDropJob0(project, entry.getValue());
+        });
     }
 
-    private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
-        val jobs = getJobsByStatus(project, jobIds, filterStatuses);
-
+    private void batchDropJob0(String project, List<AbstractExecutable> jobs) {
         ExecutableManager executableManager = getManager(ExecutableManager.class, project);
-        jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job));
-
-        jobs.forEach(job -> jobInfoDao.dropJob(job.getId()));
+        List<String> jobIdsToBeDelete = Lists.newArrayList();
+        jobs.forEach(job -> {
+            executableManager.checkJobCanBeDeleted(job);
+            jobIdsToBeDelete.add(job.getJobId());
+        });
+        JobContextUtil.withTxAndRetry(() -> {
+            executableManager.deleteJobByIdList(jobIdsToBeDelete);
+            return true;
+        });
     }
 
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
