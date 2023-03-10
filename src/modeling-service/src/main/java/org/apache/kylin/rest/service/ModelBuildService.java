@@ -219,56 +219,6 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         }
     }
 
-    @Deprecated
-    private List<JobInfoResponse.JobInfo> constructFullBuild(FullBuildSegmentParams params) {
-        modelService.checkModelAndIndexManually(params);
-        String project = params.getProject();
-        String modelId = params.getModelId();
-        boolean needBuild = params.isNeedBuild();
-
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
-        if (model.getPartitionDesc() != null
-                && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
-            //increment build model
-            throw new IllegalArgumentException(MsgPicker.getMsg().getCanNotBuildSegment());
-
-        }
-        val dataflowManager = getManager(NDataflowManager.class, project);
-        val df = dataflowManager.getDataflow(modelId);
-        val seg = df.getFirstSegment();
-        if (Objects.isNull(seg)) {
-            NDataSegment newSegment = modelMetadataInvoker.appendSegment(
-                    new AddSegmentRequest(project, modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                            needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY, null));
-            if (!needBuild) {
-                return new LinkedList<>();
-            }
-            JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
-                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
-                    .withYarnQueue(params.getYarnQueue()).withTag(params.getTag());
-            addJobParamExtParams(jobParam, params);
-            return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                            () -> getManager(JobManager.class, project).addSegmentJob(jobParam))));
-        }
-        if (!needBuild) {
-            return new LinkedList<>();
-        }
-        List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
-
-        RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
-                Lists.newArrayList(
-                        getManager(NDataflowManager.class, project).getDataflow(modelId).getSegments().get(0).getId())
-                        .toArray(new String[0]),
-                true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                        .withPriority(params.getPriority()) //
-                        .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                        .withTag(params.getTag());
-        res.addAll(refreshSegmentById(refreshSegmentParams));
-        return res;
-    }
-
     private void addJobParamExtParams(JobParam jobParam, BasicSegmentParams params) {
         if (params.isPartialBuild()) {
             jobParam.addExtParams(NBatchConstants.P_PARTIAL_BUILD, String.valueOf(params.isPartialBuild()));
@@ -396,53 +346,6 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         return res;
     }
 
-    private List<JobInfoResponse.JobInfo> innerIncrementBuild(IncrementBuildSegmentParams params) throws IOException {
-        modelService.checkModelAndIndexManually(params);
-        if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
-            params.setSegmentHoles(Lists.newArrayList());
-        }
-        NDataModel modelDesc = getManager(NDataModelManager.class, params.getProject())
-                .getDataModelDesc(params.getModelId());
-        if (PartitionDesc.isEmptyPartitionDesc(modelDesc.getPartitionDesc())
-                || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc()) || !ModelSemanticHelper
-                        .isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
-            aclEvaluate.checkProjectWritePermission(params.getProject());
-            val request = modelService.convertToRequest(modelDesc);
-            request.setPartitionDesc(params.getPartitionDesc());
-            request.setProject(params.getProject());
-            request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            modelMetadataInvoker.updateDataModelSemantic(params.getProject(), request);
-            modelMetadataInvoker.updateSecondStorageModel(params.getProject(), request.getId());
-            params.getSegmentHoles().clear();
-        }
-        List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
-        List<String[]> allPartitions = null;
-        if (modelDesc.isMultiPartitionModel()) {
-            allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream()
-                    .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
-        }
-        for (SegmentTimeRequest hole : params.getSegmentHoles()) {
-            res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
-                    hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true, allPartitions)
-                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                            .withPriority(params.getPriority())
-                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                            .withPartialBuild(params.isPartialBuild()) //
-                            .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                            .withTag(params.getTag())));
-        }
-        res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
-                params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
-                params.getMultiPartitionValues()) //
-                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                        .withPriority(params.getPriority()) //
-                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                        .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                        .withTag(params.getTag())));
-        return res;
-    }
-
     public List<JobParam> createSegmentsAndJobParams(IncrementBuildSegmentParams params) throws IOException {
         modelService.checkModelAndIndexManually(params);
         if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
@@ -530,8 +433,11 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         }
         Preconditions.checkArgument(!PushDownUtil.needPushdown(params.getStart(), params.getEnd()),
                 "Load data must set start and end date");
-        val segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(params.getStart(), params.getEnd());
-        modelService.checkSegmentToBuildOverlapsBuilt(project, modelDescInTransaction, segmentRangeToBuild, params.isNeedBuild(), params.getBatchIndexIds());
+        val segmentRangeToBuild =
+                SourceFactory.getSource(table).getSegmentRange(params.getStart(), params.getEnd());
+        List<NDataSegment> overlapSegments = modelService.checkSegmentToBuildOverlapsBuilt(project,
+                modelDescInTransaction, segmentRangeToBuild, params.isNeedBuild(), params.getBatchIndexIds());
+        buildSegmentOverlapExceptionInfo(overlapSegments);
         modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
         checkMultiPartitionBuildParam(modelDescInTransaction, params);
         NDataSegment newSegment = modelMetadataInvoker.appendSegment(new AddSegmentRequest(project, modelId,
