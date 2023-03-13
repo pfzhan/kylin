@@ -203,6 +203,11 @@ public class JobContext implements InitializingBean, DisposableBean {
         return jobScheduler;
     }
 
+    // only for UT
+    public void setJobScheduler(JdbcJobScheduler jobScheduler) {
+        this.jobScheduler = jobScheduler;
+    }
+
     public void setProjectReachQuotaLimit(String project, Boolean reachQuotaLimit) {
         projectReachQuotaLimitMap.put(project, reachQuotaLimit);
     }

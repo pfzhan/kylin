@@ -43,6 +43,7 @@ import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @MetadataInfo(onlyProps = true)
@@ -172,7 +173,11 @@ class JdbcJobSchedulerTest {
             jobContext.getJobLockMapper().insert(lock);
             jobMap.put(id, p);
         }
-
+        JdbcJobScheduler originScheduler = jobContext.getJobScheduler();
+        originScheduler.destroy();
+        JdbcJobScheduler jobScheduler = Mockito.spy(originScheduler);
+        Mockito.when(jobScheduler.hasRunningJob()).thenReturn(true);
+        jobContext.setJobScheduler(jobScheduler);
         List<String> order1 = jobContext.getJobScheduler().findNonLockIdListInOrder(20);
         List<String> order2 = jobContext.getJobScheduler().findNonLockIdListInOrder(20);
         Boolean hasDiff = false;

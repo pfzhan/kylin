@@ -117,7 +117,8 @@ public class JdbcJobScheduler implements JobScheduler {
         slave.schedule(this::consumeJob, 0, TimeUnit.SECONDS);
     }
 
-    private boolean hasRunningJob() {
+    // public for UT
+    public boolean hasRunningJob() {
         return !runningJobMap.isEmpty();
     }
 

@@ -46,7 +46,7 @@ public class PriorityFistRandomOrderJob implements Comparable<PriorityFistRandom
         }
         if (this.getPriority() < o.getPriority()) {
             return -1;
-        } else if (this.getPriority() < o.getPriority()){
+        } else if (this.getPriority() > o.getPriority()){
             return 1;
         } else {
             return this.randomOrder > o.randomOrder ? 1 : -1;
