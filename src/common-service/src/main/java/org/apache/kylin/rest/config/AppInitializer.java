@@ -166,6 +166,7 @@ public class AppInitializer {
                     "table");
             EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
         }
+        EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
         // register for clean cache when delete
         EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
 
