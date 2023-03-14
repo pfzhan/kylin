@@ -4001,4 +4001,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getQueryConcurrentRunningThresholdForPushDown() {
         return Integer.parseInt(getOptional("kylin.query.pushdown-concurrent-running-threshold", "10"));
     }
+
+    public boolean isTableLoadThresholdEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.table.load-threshold-enabled", TRUE));
+    }
 }
