@@ -4005,4 +4005,8 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isTableLoadThresholdEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.table.load-threshold-enabled", TRUE));
     }
+
+    public boolean isIndexEnableOperatorDesign() {
+        return Boolean.parseBoolean(getOptional("kylin.index.enable-operator-design", FALSE));
+    }
 }
