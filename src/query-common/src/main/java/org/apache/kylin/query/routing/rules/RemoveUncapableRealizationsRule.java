@@ -22,7 +22,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.kylin.metadata.realization.CapabilityResult;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPContextProp;
 import org.apache.kylin.query.routing.Candidate;
+import org.apache.kylin.query.routing.QueryRouter;
 import org.apache.kylin.query.routing.RoutingRule;
 import org.apache.kylin.query.util.ComputedColumnRewriter;
 import org.apache.kylin.query.util.QueryAliasMatchInfo;
@@ -33,37 +36,39 @@ import com.google.common.collect.HashBiMap;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ *
  */
 @Slf4j
 public class RemoveUncapableRealizationsRule extends RoutingRule {
+
     @Override
     public void apply(List<Candidate> candidates) {
-        for (Iterator<Candidate> iterator = candidates.iterator(); iterator.hasNext();) {
+        for (Iterator<Candidate> iterator = candidates.iterator(); iterator.hasNext(); ) {
             Candidate candidate = iterator.next();
             if (candidate.getCapability() != null) {
                 continue;
             }
-            candidate.getCtx().resetSQLDigest();
-            CapabilityResult capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
+            OLAPContext olapContext = candidate.getCtx();
+            BiMap<String, String> aliasMapping = HashBiMap.create();
+            aliasMapping.putAll(candidate.getAliasMap());
+            OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(olapContext);
+            ComputedColumnRewriter.rewriteCcInnerCol(olapContext, candidate.getRealization().getModel(),
+                    new QueryAliasMatchInfo(aliasMapping, null));
+            olapContext.resetSQLDigest();
+            CapabilityResult capabilityResult = candidate.getRealization().isCapable(olapContext.getSQLDigest(),
                     candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments(),
                     candidate.getSecondStorageSegmentLayoutMap());
+            candidate.setCapability(capabilityResult);
 
-            if (!capability.capable && !candidate.getRealization().getModel().getComputedColumnDescs().isEmpty()) {
-                BiMap<String, String> aliasMapping = HashBiMap.create();
-                aliasMapping.putAll(candidate.getAliasMap());
-                ComputedColumnRewriter.rewriteCcInnerCol(candidate.getCtx(), candidate.getRealization().getModel(),
-                        new QueryAliasMatchInfo(aliasMapping, null));
-                candidate.getCtx().resetSQLDigest();
-                capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
+            if (!capabilityResult.capable) {
+                QueryRouter.restoreOLAPContextProps(olapContext, preservedOLAPContext);
+                capabilityResult = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
                         candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments(),
                         candidate.getSecondStorageSegmentLayoutMap());
             }
-
-            candidate.setCapability(capability);
-            if (!capability.capable) {
+            if (!capabilityResult.capable) {
                 iterator.remove();
             }
-
         }
     }
 
