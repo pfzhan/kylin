@@ -23,7 +23,7 @@ import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.junit.Before;
 
-import com.google.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
     String project = "default";

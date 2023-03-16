@@ -28,6 +28,7 @@ import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.cleanup.SnapshotChecker;
 import org.apache.kylin.engine.spark.utils.FileNames;
 import org.apache.kylin.engine.spark.utils.HDFSUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -39,8 +40,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.TableRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 import lombok.val;
 

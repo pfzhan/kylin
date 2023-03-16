@@ -33,11 +33,11 @@ public class NodeResource {
 
     @Override
     public String toString() {
-        return "NodeResource{" + //
-                "project=" + jobExecutable.getProject() + //
-                ", job=" + jobExecutable.getJobId() + //
-                ", memory=" + memory + "MB" + //
-                '}';
+        return "NodeResource{" //
+                + "project=" + jobExecutable.getProject() //
+                + ", job=" + jobExecutable.getJobId() //
+                + ", memory=" + memory + "MB" //
+                + '}';
     }
 
     public int getMemory() {

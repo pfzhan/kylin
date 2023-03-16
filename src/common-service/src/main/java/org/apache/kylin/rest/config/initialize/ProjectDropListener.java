@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.rest.cluster.ClusterManager;
@@ -34,8 +35,6 @@ import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
 import org.apache.kylin.tool.restclient.RestClient;
 import org.springframework.http.HttpHeaders;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;

@@ -33,6 +33,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ThreadUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.core.lock.JdbcJobLock;
@@ -54,9 +56,6 @@ import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.zen.license.check.CheckResult;
 import io.kyligence.zen.license.check.LicenseChecker;

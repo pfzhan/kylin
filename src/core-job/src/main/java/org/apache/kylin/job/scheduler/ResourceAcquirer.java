@@ -24,11 +24,10 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SystemInfoCollector;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
 
 
 public class ResourceAcquirer {

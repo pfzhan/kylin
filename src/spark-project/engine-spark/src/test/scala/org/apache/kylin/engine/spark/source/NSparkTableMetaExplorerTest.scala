@@ -17,10 +17,10 @@
  */
 package org.apache.kylin.engine.spark.source
 
-import com.google.common.collect.Sets
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.kylin.common.util.{HadoopUtil, TempMetadataBuilder, Unsafe}
+import org.apache.kylin.guava30.shaded.common.collect.Sets
 import org.apache.kylin.junit.annotation.MetadataInfo
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.catalyst.TableIdentifier

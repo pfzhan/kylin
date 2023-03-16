@@ -42,6 +42,7 @@ import org.apache.kylin.common.metrics.MetricsName;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.helper.RoutineToolHelper;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -50,8 +51,6 @@ import org.apache.kylin.tool.garbage.LogCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;

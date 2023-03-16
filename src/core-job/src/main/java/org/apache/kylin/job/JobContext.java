@@ -29,6 +29,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.condition.JobModeCondition;
 import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.core.lock.JdbcLockClient;
@@ -55,9 +57,6 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 
 @Component
 @DependsOn({ "springContext", "jobMybatisConfig" })

@@ -25,10 +25,10 @@ import java.io.InputStream;
 
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

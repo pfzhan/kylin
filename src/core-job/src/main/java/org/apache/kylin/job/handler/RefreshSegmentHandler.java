@@ -35,7 +35,7 @@ import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 
-import com.google.common.collect.Sets;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;

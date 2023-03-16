@@ -80,8 +80,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import lombok.var;
@@ -626,8 +626,8 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList(SNAPSHOT_BUILD.name()), null);
         Assert.assertEquals(0, runJobTypeExecutables.size());
         val executables = executableManager.getExecutablesByStatus(
-                Lists.newArrayList(job.getId()),
-                Lists.newArrayList(ExecutableState.READY));
+                org.apache.kylin.guava30.shaded.common.collect.Lists.newArrayList(job.getId()),
+                org.apache.kylin.guava30.shaded.common.collect.Lists.newArrayList(ExecutableState.READY));
         Assert.assertEquals(1, executables.size());
         val executables2 = executableManager.getExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY));
         val executables21 = executableManager.getPartialExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY),
@@ -882,7 +882,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
         // Test log file sampling
         String verboseMsg = manager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
         String[] actualVerboseMsgLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(verboseMsg, "\n");
-        ArrayList<String> exceptLinesL = Lists.newArrayList(exceptLines);
+        ArrayList<String> exceptLinesL = org.apache.kylin.guava30.shaded.common.collect.Lists.newArrayList(exceptLines);
         exceptLinesL.add("================================================================");
         assertTrue(Sets.newHashSet(exceptLinesL).containsAll(Sets.newHashSet(actualVerboseMsgLines)));
 

@@ -32,11 +32,10 @@ import org.apache.kylin.engine.spark.job.LogJobInfoUtils;
 import org.apache.kylin.engine.spark.job.SegmentJob;
 import org.apache.kylin.engine.spark.job.exec.MergeExec;
 import org.apache.kylin.engine.spark.job.stage.BuildParam;
+import org.apache.kylin.guava30.shaded.common.base.Throwables;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.spark.tracker.BuildContext;
-
-import com.google.common.base.Throwables;
 
 import lombok.val;
 

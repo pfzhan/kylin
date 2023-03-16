@@ -22,6 +22,9 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.util.Set;
 
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
+import org.apache.kylin.rest.service.QueryResourceService;
+import org.apache.kylin.rest.service.QueryResourceService.QueryResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -29,11 +32,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.google.common.collect.Sets;
-
-import org.apache.kylin.rest.service.QueryResourceService;
-import org.apache.kylin.rest.service.QueryResourceService.QueryResource;
 
 @RestController
 @RequestMapping(value = "/api/resource/query", produces = { HTTP_VND_APACHE_KYLIN_JSON,

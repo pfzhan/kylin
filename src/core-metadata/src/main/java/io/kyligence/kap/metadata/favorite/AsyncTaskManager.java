@@ -20,18 +20,17 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.metadata.asynctask.MetadataRestoreTask;
 import org.apache.kylin.metadata.favorite.AsyncTaskStore;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-
-import com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -33,6 +33,8 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.job.TableAnalysisJob;
 import org.apache.kylin.engine.spark.job.exec.TableAnalyzerExec;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -44,9 +46,6 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import lombok.val;
 import lombok.var;

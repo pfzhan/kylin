@@ -81,6 +81,8 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.common.util.ZipFileUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutable;
@@ -109,9 +111,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.http.HttpHeaders;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.zen.license.info.LicenseInfo;
 import io.kyligence.zen.license.service.ZenLicenseReadService;

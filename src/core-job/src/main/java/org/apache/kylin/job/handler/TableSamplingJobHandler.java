@@ -18,10 +18,12 @@
 
 package org.apache.kylin.job.handler;
 
-import com.google.common.collect.Lists;
-import lombok.Getter;
+
+import java.util.List;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -32,7 +34,7 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 
-import java.util.List;
+import lombok.Getter;
 
 public class TableSamplingJobHandler extends AbstractJobHandler {
 

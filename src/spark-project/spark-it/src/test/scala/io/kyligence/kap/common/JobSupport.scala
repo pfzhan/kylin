@@ -25,7 +25,9 @@ package io.kyligence.kap.common
 import java.io.File
 import java.util.Objects
 
-import com.google.common.collect.{Lists, Maps, Sets}
+import java.util.stream.Collectors
+import java.util.{Objects, UUID}
+import org.apache.kylin.guava30.shaded.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.conf.Configuration

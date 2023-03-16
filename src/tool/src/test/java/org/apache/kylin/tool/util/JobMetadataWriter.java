@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.util.JobContextUtil;
@@ -32,8 +33,6 @@ import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.mockito.Mockito;
-
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 
 public class JobMetadataWriter {

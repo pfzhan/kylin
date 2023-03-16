@@ -18,10 +18,10 @@
 
 package org.apache.kylin.job.handler;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_ADD_JOB_FAILED;
+import static org.apache.kylin.guava30.shaded.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 
 import java.util.HashSet;
@@ -46,7 +46,6 @@ import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-
 
 public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
 

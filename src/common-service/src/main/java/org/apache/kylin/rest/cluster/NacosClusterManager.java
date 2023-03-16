@@ -31,6 +31,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.kylin.common.exception.KylinRuntimeException;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
@@ -39,7 +40,6 @@ import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.stereotype.Component;
 
 import com.alibaba.cloud.nacos.ConditionalOnNacosDiscoveryEnabled;
-import com.google.common.base.Preconditions;
 
 import lombok.extern.slf4j.Slf4j;
 

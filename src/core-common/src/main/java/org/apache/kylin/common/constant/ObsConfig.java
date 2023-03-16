@@ -25,8 +25,8 @@ import java.util.Optional;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.guava30.shaded.common.base.Strings;
 
-import io.kyligence.kap.guava20.shaded.common.base.Strings;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

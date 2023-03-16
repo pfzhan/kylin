@@ -35,6 +35,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.config.JobMybatisConfig;
 import org.apache.kylin.job.constant.JobStatusUtil;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
@@ -44,8 +45,6 @@ import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.rest.service.ModelService;
 import org.apache.kylin.rest.service.TableExtService;
 import org.sparkproject.guava.collect.Lists;
-
-import com.google.common.base.Preconditions;
 
 public class JobFilterUtil {
 

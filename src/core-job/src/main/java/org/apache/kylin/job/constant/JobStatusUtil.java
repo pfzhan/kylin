@@ -21,9 +21,8 @@ package org.apache.kylin.job.constant;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.execution.ExecutableState;
-
-import com.google.common.collect.Lists;
 
 public class JobStatusUtil {
 

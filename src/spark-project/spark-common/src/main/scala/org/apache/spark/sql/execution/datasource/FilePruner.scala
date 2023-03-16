@@ -18,13 +18,12 @@
 
 package org.apache.spark.sql.execution.datasource
 
-import io.kyligence.kap.guava20.shaded.common.collect.Sets
-
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.exception.TargetSegmentNotFoundException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.engine.spark.utils.{LogEx, LogUtils}
+import org.apache.kylin.guava30.shaded.common.collect.Sets
 import org.apache.kylin.metadata.cube.model.{DimensionRangeInfo, LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.metadata.model.{PartitionDesc, TblColRef}

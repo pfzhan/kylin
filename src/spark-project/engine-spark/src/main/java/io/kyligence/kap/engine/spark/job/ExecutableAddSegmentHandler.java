@@ -21,6 +21,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.List;
 
 import org.apache.kylin.engine.spark.ExecutableUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
@@ -28,8 +29,6 @@ import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.job.execution.handler.ExecutableHandleUtils;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.feign.MetadataInvoker;
-
-import com.google.common.base.Preconditions;
 
 import lombok.val;
 

@@ -19,10 +19,9 @@
 package org.apache.kylin.job.execution;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.junit.annotation.MetadataInfo;
 import org.junit.jupiter.api.BeforeEach;
-
-import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 
 //TODO KE-36632
 @MetadataInfo

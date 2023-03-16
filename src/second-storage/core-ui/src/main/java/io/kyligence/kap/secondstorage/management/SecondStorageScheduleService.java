@@ -18,7 +18,6 @@
 
 package io.kyligence.kap.secondstorage.management;
 
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -37,8 +37,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.scheduling.annotation.Scheduled;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.secondstorage.NameUtil;

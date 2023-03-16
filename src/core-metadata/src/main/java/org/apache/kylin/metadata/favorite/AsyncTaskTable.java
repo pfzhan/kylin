@@ -29,13 +29,12 @@ import org.apache.commons.lang.SerializationException;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.mybatis.dynamic.sql.SqlTable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Preconditions;
-
-import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 
 public class AsyncTaskTable extends SqlTable {
 

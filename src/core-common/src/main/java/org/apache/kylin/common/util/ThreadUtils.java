@@ -18,8 +18,6 @@
 
 package org.apache.kylin.common.util;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,6 +25,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.kylin.guava30.shaded.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * methods copy from 'org.apache.kylin.engine.spark.utils.ThreadUtils', to fix module cycle dependency
