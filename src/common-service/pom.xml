@@ -50,10 +50,6 @@
             <artifactId>saas-nacos-discovery-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-spark-ddl</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-ldap</artifactId>
         </dependency>
