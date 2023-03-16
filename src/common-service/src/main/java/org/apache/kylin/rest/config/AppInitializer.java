@@ -36,6 +36,7 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.scheduler.ProjectSerialEventBus;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.HostInfoFetcher;
+import org.apache.kylin.engine.spark.filter.QueryFiltersCollector;
 import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
 import org.apache.kylin.metadata.epoch.EpochOrchestrator;
 import org.apache.kylin.metadata.project.NProjectLoader;
@@ -69,11 +70,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.session.web.http.CookieSerializer;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.session.web.http.CookieSerializer;
 
 @Slf4j
 @Configuration
@@ -181,6 +182,9 @@ public class AppInitializer {
             EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
                     "table");
             EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
+            if (kylinConfig.isBloomCollectFilterEnabled()) {
+                QueryFiltersCollector.initScheduler();
+            }
         }
         EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
         // register for clean cache when delete

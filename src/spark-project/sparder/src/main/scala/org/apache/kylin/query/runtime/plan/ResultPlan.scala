@@ -38,7 +38,7 @@ import org.apache.poi.xssf.usermodel.{XSSFSheet, XSSFWorkbook}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.execution._
 import org.apache.spark.sql.hive.QueryMetricUtils
-import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.util.{SparderConstants, SparderTypeUtil}
 import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
@@ -502,7 +502,7 @@ object ResultPlan extends LogEx {
 }
 
 object QueryToExecutionIDCache extends LogEx {
-  val KYLIN_QUERY_ID_KEY = "kylin.query.id"
+  val KYLIN_QUERY_ID_KEY = SparderConstants.KYLIN_QUERY_ID_KEY
   val KYLIN_QUERY_EXECUTION_ID = "kylin.query.execution.id"
 
   private val queryID2ExecutionID: Cache[String, String] =

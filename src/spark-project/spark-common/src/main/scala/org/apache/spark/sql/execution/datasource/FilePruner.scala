@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.exception.TargetSegmentNotFoundException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
+import org.apache.kylin.engine.spark.filter.QueryFiltersCollector.increaseHit
 import org.apache.kylin.engine.spark.utils.{LogEx, LogUtils}
 import org.apache.kylin.guava30.shaded.common.collect.Sets
 import org.apache.kylin.metadata.cube.model.{DimensionRangeInfo, LayoutEntity, NDataflow, NDataflowManager}
@@ -405,6 +406,8 @@ class FilePruner(val session: SparkSession,
   private def pruneSegmentsDimRange(filters: Seq[Expression],
                                     segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
     val reducedFilters = translateToSourceFilter(filters)
+    val hitColumns = Sets.newHashSet[String]()
+    val project = options.getOrElse("project", "")
     val filteredStatuses = if (reducedFilters.isEmpty) {
       segDirs
     } else {
@@ -412,7 +415,8 @@ class FilePruner(val session: SparkSession,
         e => {
           val dimRange = dataflow.getSegment(e.segmentID).getDimensionRangeInfoMap
           if (dimRange != null && !dimRange.isEmpty) {
-            SegDimFilters(dimRange, dataflow.getIndexPlan.getEffectiveDimCols).foldFilter(reducedFilters.get) match {
+            SegDimFilters(dimRange, dataflow.getIndexPlan.getEffectiveDimCols, dataflow.getId, project, hitColumns)
+              .foldFilter(reducedFilters.get) match {
               case Trivial(true) => true
               case Trivial(false) => false
             }
@@ -422,6 +426,7 @@ class FilePruner(val session: SparkSession,
         }
       }
     }
+    hitColumns.forEach(col => increaseHit(project, dataflow.getId, col))
     filteredStatuses
   }
 
@@ -766,7 +771,8 @@ abstract class PushableColumnBase {
 
 }
 
-case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], dimCols: java.util.Map[Integer, TblColRef]) extends Logging {
+case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], dimCols: java.util.Map[Integer, TblColRef],
+                         dataflowId: String, project: String, hitColumns: java.util.Set[String]) extends Logging {
 
   private def insurance(id: String, value: Any)
                        (func: Any => Filter): Filter = {
@@ -796,6 +802,7 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
     filter match {
       case EqualTo(id, value: Any) =>
         val col = escapeQuote(id)
+        hitColumns.add(col)
         insurance(col, value) {
           ts => {
             val dataType = getDataType(col, value)
@@ -805,6 +812,7 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
         }
       case In(id, values: Array[Any]) =>
         val col = escapeQuote(id)
+        hitColumns.add(col)
         val satisfied = values.map(v => insurance(col, v) {
           ts => {
             val dataType = getDataType(col, v)
