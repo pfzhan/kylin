@@ -4013,4 +4013,11 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isIndexEnableOperatorDesign() {
         return Boolean.parseBoolean(getOptional("kylin.index.enable-operator-design", FALSE));
     }
+    public int getAutoShufflePartitionMultiple() {
+        return Integer.parseInt(getOptional("kylin.query.pushdown.auto-set-shuffle-partitions-multiple", "3"));
+    }
+
+    public int getAutoShufflePartitionTimeOut() {
+        return Integer.parseInt(getOptional("kylin.query.pushdown.auto-set-shuffle-partitions-timeout", "30"));
+    }
 }
