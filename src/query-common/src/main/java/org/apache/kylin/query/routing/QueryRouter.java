@@ -118,7 +118,7 @@ public class QueryRouter {
         return preservePropsBeforeRewrite(rewrittenOLAContext);
     }
 
-    public static OLAPContextProp preservePropsBeforeRewrite(OLAPContext oriOLAPContext) {
+    static OLAPContextProp preservePropsBeforeRewrite(OLAPContext oriOLAPContext) {
         OLAPContextProp preserved = new OLAPContextProp(-1);
         preserved.allColumns = Sets.newHashSet(oriOLAPContext.allColumns);
         preserved.setSortColumns(Lists.newArrayList(oriOLAPContext.getSortColumns()));
@@ -133,7 +133,7 @@ public class QueryRouter {
         return preserved;
     }
 
-    public static void restoreOLAPContextProps(OLAPContext oriOLAPContext, OLAPContextProp preservedOLAPContext) {
+    static void restoreOLAPContextProps(OLAPContext oriOLAPContext, OLAPContextProp preservedOLAPContext) {
         oriOLAPContext.allColumns = preservedOLAPContext.allColumns;
         oriOLAPContext.setSortColumns(preservedOLAPContext.getSortColumns());
         oriOLAPContext.aggregations.forEach(agg -> {
