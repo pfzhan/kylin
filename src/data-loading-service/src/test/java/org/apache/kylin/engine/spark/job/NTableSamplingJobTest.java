@@ -22,20 +22,28 @@ import static org.awaitility.Awaitility.await;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
+import org.apache.kylin.engine.spark.NSparkCubingEngine;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.scheduler.ResourceAcquirer;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.source.SourceFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -111,6 +119,58 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTestBase {
         Assert.assertEquals(10, tableExt.getSampleRows().size());
         Assert.assertEquals(10_000, tableExt.getTotalRows());
         Assert.assertEquals(samplingJob.getCreateTime(), tableExt.getCreateTime());
+    }
+
+    @Test
+    public void testTableSamplingJobFailed_withCheckColumnsError() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final String TABLE_SAMPLING_TEST_TMP_DB = "TABLE_SAMPLING_TEST_TMP_DB";
+        overwriteSystemProp("kylin.source.ddl.logical-view.database", TABLE_SAMPLING_TEST_TMP_DB);
+
+        final String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+        Assert.assertNotNull(tableDesc);
+
+        ColumnDesc[] columns = tableDesc.getColumns();
+        ColumnDesc[] columnsModified = Arrays.copyOfRange(columns, 0, columns.length + 2);
+        columnsModified[columnsModified.length - 2] = new ColumnDesc(
+                "13",
+                "A_CC_COL",
+                "boolean",
+                "",
+                "true|false|TRUE|FALSE|True|False",
+                null,
+                "non-empty expr");
+        columnsModified[columnsModified.length - 1] = new ColumnDesc(
+                "14",
+                "A_NON_EXIST_COL",
+                "boolean",
+                "",
+                "true|false|TRUE|FALSE|True|False",
+                null,
+                null);
+        TableDesc tableDescModified = tableMgr.copyForWrite(tableDesc);
+        tableDescModified.setDatabase(null);
+        tableDescModified.setColumns(columnsModified);
+        tableDescModified.setMvcc(-1L);
+        tableMgr.saveSourceTable(tableDescModified);
+
+        Map<String, String> params = NProjectManager.getInstance(config)
+                .getProject(PROJECT).getLegalOverrideKylinProps();
+        Dataset<Row> dataFrame = SourceFactory
+                .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
+                .getSourceData(tableDesc, ss, params)
+                .coalesce(1);
+        dataFrame.createOrReplaceTempView(tableDescModified.getName());
+
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, PROJECT);
+        val samplingJob = NTableSamplingJob.internalCreate(tableDescModified, PROJECT, "ADMIN", 20_000_000);
+        execMgr.addJob(samplingJob);
+        Assert.assertEquals(ExecutableState.READY, samplingJob.getStatus());
+
+        await().atMost(60000, TimeUnit.MINUTES).until(() -> !execMgr.getJob(samplingJob.getId()).getStatus().isProgressing());
+        Assert.assertEquals(ExecutableState.ERROR, samplingJob.getStatus());
     }
 
     @Test
