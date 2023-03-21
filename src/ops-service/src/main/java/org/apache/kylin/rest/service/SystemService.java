@@ -53,8 +53,7 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.helper.MetadataToolHelper;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
@@ -67,6 +66,7 @@ import org.apache.kylin.rest.response.DiagStatusResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.tool.DiagK8sTool;
+import org.apache.kylin.tool.JobDiagInfoTool;
 import org.apache.kylin.tool.constant.DiagTypeEnum;
 import org.apache.kylin.tool.constant.StageEnum;
 import org.slf4j.Logger;
@@ -201,9 +201,9 @@ public class SystemService extends BasicService {
     private String getProjectByJobId(String jobId) {
         val projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().stream()
                 .map(ProjectInstance::getName).collect(Collectors.toList());
+        JobDiagInfoTool jobDiagInfoTool = new JobDiagInfoTool();
         for (String project : projects) {
-            AbstractExecutable job = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .getJob(jobId);
+            ExecutablePO job = jobDiagInfoTool.getJobByJobId(jobId);
             if (job != null) {
                 return project;
             }
