@@ -80,6 +80,9 @@ public class ParquetBloomFilter {
             for (FileStatus host : hostsDir) {
                 String hostName = host.getPath().getName();
                 Path projectFiltersFile = QueryFiltersCollector.getProjectFiltersFile(hostName, project);
+                if (!fs.exists(projectFiltersFile)) {
+                    continue;
+                }
                 Map<String, Map<String, Integer>> modelColumns = JsonUtil.readValue(
                         HadoopUtil.readStringFromHdfs(fs, projectFiltersFile), Map.class);
                 if (modelColumns.containsKey(modelId)) {
@@ -91,7 +94,7 @@ public class ParquetBloomFilter {
             }
             columnsHits.forEach((column, hit) -> columnFilters.add(new ColumnFilter(column, hit)));
             String columnFiltersLog = Arrays.toString(columnFilters.toArray());
-            LOGGER.info("register BloomFilter info : {}", columnFiltersLog);
+            LOGGER.info("Register BloomFilter info from HDFS: {}", columnFiltersLog);
         } catch (Exception e) {
             LOGGER.error("Error when register BloomFilter.", e);
         }
