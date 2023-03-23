@@ -56,6 +56,10 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MetadataChecker;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
+import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.tool.CancelableTask;
 import org.apache.kylin.tool.HDFSMetadataTool;
@@ -63,10 +67,6 @@ import org.apache.kylin.tool.garbage.StorageCleaner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-
-import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import lombok.val;
 import lombok.var;
 
@@ -102,12 +102,12 @@ public class MetadataToolHelper extends CancelableTask {
         new MetadataToolHelper().backup(kylinConfig, project, dir, folder, true, false);
     }
 
-    public void backup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
+    public Pair<String, String> backup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
             boolean excludeTableExd) throws Exception {
         boolean isGlobal = null == project;
         long startAt = System.currentTimeMillis();
         try {
-            doBackup(kylinConfig, project, path, folder, compress, excludeTableExd);
+            return doBackup(kylinConfig, project, path, folder, compress, excludeTableExd);
         } catch (Exception be) {
             if (isGlobal) {
                 MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.GLOBAL, GLOBAL);
@@ -128,7 +128,7 @@ public class MetadataToolHelper extends CancelableTask {
         }
     }
 
-    void doBackup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
+    Pair<String, String> doBackup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
             boolean excludeTableExd) throws Exception {
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         boolean isUTEnv = kylinConfig.isUTEnv();
@@ -158,7 +158,7 @@ public class MetadataToolHelper extends CancelableTask {
                         System.currentTimeMillis(), -1);
                 var projectFolders = resourceStore.listResources("/");
                 if (projectFolders == null) {
-                    return;
+                    return Pair.newPair(backupPath, folder);
                 }
                 UnitOfWork.doInTransactionWithRetry(() -> {
                     backupProjects(projectFolders, resourceStore, backupResourceStore, excludeTableExd);
@@ -191,6 +191,7 @@ public class MetadataToolHelper extends CancelableTask {
             backupMetadataStore.dump(backupResourceStore);
             logger.info("backup successfully at {}", backupPath);
         }
+        return Pair.newPair(backupPath, folder);
     }
 
     public String getMetadataUrl(String rootPath, boolean compressed, KylinConfig kylinConfig) {

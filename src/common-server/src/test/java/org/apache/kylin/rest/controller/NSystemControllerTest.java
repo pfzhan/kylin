@@ -20,9 +20,11 @@ package org.apache.kylin.rest.controller;
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.junit.rule.TransactionExceptedException;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.MetadataBackupRequest;
 import org.apache.kylin.rest.service.SystemService;
 import org.junit.After;
 import org.junit.Before;
@@ -100,5 +102,26 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController).simulateInsertMeta(Mockito.anyInt(), Mockito.anyLong());
+    }
+
+    @Test
+    public void broadcastMetadataBackup() throws Exception {
+        MetadataBackupRequest request = new MetadataBackupRequest();
+        Mockito.doAnswer(x -> null).when(nSystemController).broadcastMetadataBackup(Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/broadcast_metadata_backup")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))
+                .content(JsonUtil.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).broadcastMetadataBackup(Mockito.any(MetadataBackupRequest.class));
+    }
+
+    @Test
+    public void downloadMetadataBackTmpFile() throws Exception {
+        MetadataBackupRequest request = new MetadataBackupRequest();
+        Mockito.doAnswer(x -> null).when(nSystemController).downloadMetadataBackTmpFile(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/metadata_backup_tmp_file")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))
+                .content(JsonUtil.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).downloadMetadataBackTmpFile(Mockito.any(MetadataBackupRequest.class),
+                Mockito.any());
     }
 }

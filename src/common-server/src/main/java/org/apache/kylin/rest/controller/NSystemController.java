@@ -18,17 +18,20 @@
 
 package org.apache.kylin.rest.controller;
 
+import static org.apache.kylin.common.constant.Constants.METADATA_FILE;
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -36,9 +39,12 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.request.MetadataBackupRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.FileService;
 import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.ScheduleService;
 import org.apache.kylin.rest.service.SystemService;
@@ -46,15 +52,15 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -78,6 +84,9 @@ public class NSystemController extends NBasicController {
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
+
+    @Autowired
+    private FileService fileService;
 
     @VisibleForTesting
     public void setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -167,5 +176,39 @@ public class NSystemController extends NBasicController {
                     }).build());
         }
         return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    /**
+     * RPC Call
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping(value = "broadcast_metadata_backup")
+    @ResponseBody
+    public EnvelopeResponse<String> broadcastMetadataBackup(@RequestBody MetadataBackupRequest request) {
+        log.info("ResourceGroup[{}] broadcastMetadataBackup tmpFilePath : {}", request.getResourceGroupId(),
+                request.getTmpFilePath());
+        fileService.saveBroadcastMetadataBackup(request.getBackupDir(), request.getTmpFilePath(),
+                request.getTmpFileSize(), request.getResourceGroupId());
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    /**
+     * RPC Call
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping(value = "metadata_backup_tmp_file")
+    @ResponseBody
+    public EnvelopeResponse<String> downloadMetadataBackTmpFile(@RequestBody MetadataBackupRequest request,
+            HttpServletResponse response) throws IOException {
+        log.info("ResourceGroup[{}] downloadMetadataBackTmpFile tmpFilePath : {}", request.getResourceGroupId(),
+                request.getTmpFilePath());
+        InputStream backupInputStream = fileService.getMetadataBackupFromTmpPath(request.getTmpFilePath(),
+                request.getTmpFileSize());
+        setDownloadResponse(backupInputStream, METADATA_FILE, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }
