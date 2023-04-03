@@ -77,6 +77,10 @@ public class ResourceAcquirer {
         registers.remove(jobExecutable.getJobId());
     }
 
+    public static double currentAvailableMem() {
+        return 1.0 * memorySemaphore.availablePermits();
+    }
+
     public void start() {
         // do nothing
     }
