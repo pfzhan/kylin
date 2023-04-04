@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.tool.util;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -28,29 +28,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.io.FileUtils;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.logging.LogOutputStream;
-import org.apache.kylin.common.persistence.RawResource;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.metadata.MetadataStore;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
-import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.helper.MetadataToolHelper;
-import org.apache.kylin.job.execution.DumpInfo;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,8 +48,6 @@ import lombok.extern.slf4j.Slf4j;
 public class MetadataUtil {
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
-
-    private static final String EMPTY = "";
 
     private static MetadataToolHelper metadataToolHelper = new MetadataToolHelper();
 
@@ -117,57 +105,5 @@ public class MetadataUtil {
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes(DEFAULT_CHARSET)),
                     DEFAULT_CHARSET));
         }
-    }
-
-    public static void dumpMetadata(DumpInfo info) throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        String metaDumpUrl = info.getDistMetaUrl();
-
-        if (org.apache.commons.lang.StringUtils.isEmpty(metaDumpUrl)) {
-            throw new RuntimeException("Missing metaUrl");
-        }
-
-        final Properties props = config.exportToProperties();
-        props.setProperty("kylin.metadata.url", metaDumpUrl);
-
-        KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
-        MetadataStore dstMetadataStore = MetadataStore.createMetadataStore(dstConfig);
-
-        if (info.getType() == DumpInfo.DumpType.DATA_LOADING) {
-            dumpMetadataViaTmpDir(config, dstMetadataStore, info);
-        } else if (info.getType() == DumpInfo.DumpType.ASYNC_QUERY) {
-            dstMetadataStore.dump(ResourceStore.getKylinMetaStore(config), info.getMetadataDumpList());
-        }
-        log.debug("Dump metadata finished.");
-    }
-
-    private static void dumpMetadataViaTmpDir(KylinConfig config, MetadataStore dstMetadataStore, DumpInfo info)
-            throws IOException {
-        File tmpDir = File.createTempFile("kylin_job_meta", EMPTY);
-        FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
-
-        // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-        Map<String, RawResource> dumpMap = EnhancedUnitOfWork
-                .doInTransactionWithCheckAndRetry(UnitOfWorkParams.<Map<String, RawResource>> builder().readonly(true)
-                        .unitName(info.getProject()).maxRetry(1).processor(() -> {
-                            Map<String, RawResource> retMap = Maps.newHashMap();
-                            for (String resPath : info.getMetadataDumpList()) {
-                                ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
-                                RawResource rawResource = resourceStore.getResource(resPath);
-                                retMap.put(resPath, rawResource);
-                            }
-                            return retMap;
-                        }).build());
-
-        if (Objects.isNull(dumpMap) || dumpMap.isEmpty()) {
-            return;
-        }
-        // dump metadata
-        ResourceStore.dumpResourceMaps(tmpDir, dumpMap);
-        // copy metadata to target metaUrl
-        dstMetadataStore.uploadFromFile(tmpDir);
-        // clean up
-        log.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
-        FileUtils.forceDelete(tmpDir);
     }
 }

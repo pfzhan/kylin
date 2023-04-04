@@ -38,13 +38,13 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.engine.spark.job.DefaultSparkBuildJobHandler;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.query.util.QueryParams;
-import org.apache.kylin.rest.feign.MetadataInvoker;
+import org.apache.kylin.util.DumpInfo;
+import org.apache.kylin.util.MetadataDumpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,7 +170,7 @@ public class AsyncQueryJob extends NSparkExecutable {
             dumpKylinProps(config);
             // dump metadata to HDFS
             DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.ASYNC_QUERY);
-            MetadataInvoker.getInstance().dumpMetadata(project, dumpInfo);
+            MetadataDumpUtil.dumpMetadata(dumpInfo);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }

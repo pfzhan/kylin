@@ -135,7 +135,6 @@ import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.ExecutableHandler.HandlerType;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -265,7 +264,6 @@ import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.kylin.streaming.event.StreamingJobDropEvent;
 import org.apache.kylin.streaming.event.StreamingJobKillEvent;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
-import org.apache.kylin.tool.util.MetadataUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
@@ -2001,10 +1999,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             }
         }
         return true;
-    }
-
-    public void dumpMetadata(String project, DumpInfo info) throws Exception {
-        MetadataUtil.dumpMetadata(info);
     }
 
     public void checkAndAutoMergeSegments(String project, String modelId, String owner) {

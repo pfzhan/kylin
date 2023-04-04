@@ -63,7 +63,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.view.LogicalView;
 import org.apache.kylin.metadata.view.LogicalViewManager;
-import org.apache.kylin.rest.feign.MetadataInvoker;
+import org.apache.kylin.util.DumpInfo;
+import org.apache.kylin.util.MetadataDumpUtil;
 import org.apache.spark.sql.KylinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -268,7 +269,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             dumpKylinProps(config);
             if (!isResumable()) {
                 DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.DATA_LOADING);
-                MetadataInvoker.getInstance().dumpMetadata(project, dumpInfo);
+                MetadataDumpUtil.dumpMetadata(dumpInfo);
             }
         } catch (Exception e) {
             throw new ExecuteException("meta dump failed", e);
@@ -492,7 +493,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     public void attachMetadataAndKylinProps(KylinConfig config) throws Exception {
         dumpKylinProps(config);
         DumpInfo dumpInfo = generateDumpInfo(config, DumpInfo.DumpType.DATA_LOADING);
-        MetadataInvoker.getInstance().dumpMetadata(getProject(), dumpInfo);
+        MetadataDumpUtil.dumpMetadata(dumpInfo);
     }
 
     protected Set<String> getLogicalViewMetaDumpList(KylinConfig config) {

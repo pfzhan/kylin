@@ -39,7 +39,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinRuntimeException;
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
@@ -867,13 +866,6 @@ public class NModelController extends NBasicController {
             @RequestParam("segmentId") String segmentId,
             @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount) {
         modelService.makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
-    }
-
-    @PostMapping(value = "/feign/dump_metadata")
-    @ResponseBody
-    public void attachMetadataAndKylinProps(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo)
-            throws Exception {
-        modelService.dumpMetadata(project, dumpInfo);
     }
 
     @PostMapping(value = "/feign/merge_metadata_for_sampling_or_snapshot")

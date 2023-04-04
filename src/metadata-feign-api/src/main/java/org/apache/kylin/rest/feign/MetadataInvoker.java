@@ -21,7 +21,6 @@ package org.apache.kylin.rest.feign;
 import java.util.List;
 
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.rest.util.SpringContext;
@@ -68,10 +67,6 @@ public class MetadataInvoker {
 
     public void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount) {
         getDelegate().makeSegmentReady(project, modelId, segmentId, errorOrPausedJobCount);
-    }
-
-    public void dumpMetadata(String project, DumpInfo dumpInfo) throws Exception {
-        getDelegate().dumpMetadata(project, dumpInfo);
     }
 
     public void checkAndAutoMergeSegments(String project, String modelId, String owner) {

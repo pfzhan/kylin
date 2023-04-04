@@ -20,7 +20,6 @@ package org.apache.kylin.rest.feign;
 
 import java.util.List;
 
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -38,9 +37,6 @@ public interface MetadataRPC extends MetadataContract{
     void makeSegmentReady(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
             @RequestParam("segmentId") String segmentId,
             @RequestParam("errorOrPausedJobCount") int errorOrPausedJobCount);
-
-    @PostMapping(value = "/dump_metadata")
-    void dumpMetadata(@RequestParam("project") String project, @RequestBody DumpInfo dumpInfo);
 
     @PostMapping(value = "/merge_metadata_for_sampling_or_snapshot")
     void mergeMetadataForSamplingOrSnapshot(@RequestParam("project") String project,

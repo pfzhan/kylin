@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.execution;
+package org.apache.kylin.util;
 
 import java.util.Set;
 

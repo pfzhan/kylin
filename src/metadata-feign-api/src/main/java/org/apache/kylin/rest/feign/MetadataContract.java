@@ -20,7 +20,6 @@ package org.apache.kylin.rest.feign;
 
 import java.util.List;
 
-import org.apache.kylin.job.execution.DumpInfo;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 
@@ -30,8 +29,6 @@ public interface MetadataContract {
     List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo);
 
     void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
-
-    void dumpMetadata(String project, DumpInfo dumpInfo) throws Exception;
 
     void checkAndAutoMergeSegments(String project, String modelId, String owner);
 }
