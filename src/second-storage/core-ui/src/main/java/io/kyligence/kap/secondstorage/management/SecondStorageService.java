@@ -975,6 +975,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }
     }
 
+    public void isProjectOperationDesign(String project) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            aclEvaluate.checkProjectOperationDesignPermission(project);
+        }
+    }
+
     public void isGlobalAdmin() {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             aclEvaluate.checkIsGlobalAdmin();
@@ -999,7 +1005,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
 
     public UpdateIndexResponse updateIndexByColumnName(String project, String modelId, List<String> primaryIndexNames,
             Set<String> secondaryColumnNames) {
-        isProjectAdmin(project);
+        isProjectOperationDesign(project);
         checkUpdateIndex(project, modelId);
         checkColumnExist(project, modelId, primaryIndexNames);
         checkColumnExist(project, modelId, secondaryColumnNames);
@@ -1069,7 +1075,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     public void deletePrimaryIndex(String project, String modelId, long layoutId) {
-        isProjectAdmin(project);
+        isProjectOperationDesign(project);
         checkUpdateIndex(project, modelId);
         val layoutEntity = checkoutLayoutId(project, modelId, layoutId);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -1079,7 +1085,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     }
 
     public String deleteSecondaryIndex(String project, String modelId, long layoutId) {
-        isProjectAdmin(project);
+        isProjectOperationDesign(project);
         checkUpdateIndex(project, modelId);
         val layoutEntity = checkoutLayoutId(project, modelId, layoutId);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
