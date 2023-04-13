@@ -53,6 +53,11 @@ import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.engine.spark.job.ISparkJobHandler;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.engine.spark.job.SparkAppDescription;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
@@ -68,12 +73,6 @@ import org.apache.kylin.util.MetadataDumpUtil;
 import org.apache.spark.sql.KylinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import io.kyligence.kap.plugin.asyncprofiler.BuildAsyncProfilerSparkPlugin;
 import lombok.val;
@@ -505,10 +504,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         String dataflowId = getDataflowId();
         LogicalViewManager viewManager = LogicalViewManager.getInstance(config);
         if (StringUtils.isNotBlank(dataflowId)) {
-            Set<String> viewsMeta = viewManager
-                    .findLogicalViewsInModel(getProject(), getDataflowId())
-                    .stream().map(LogicalView::getResourcePath)
-                    .collect(Collectors.toSet());
+            Set<String> viewsMeta = viewManager.findLogicalViewsInModel(getProject(), getDataflowId()).stream()
+                    .map(LogicalView::getResourcePath).collect(Collectors.toSet());
             dumpList.addAll(viewsMeta);
         }
         if (StringUtils.isNotBlank(table)) {

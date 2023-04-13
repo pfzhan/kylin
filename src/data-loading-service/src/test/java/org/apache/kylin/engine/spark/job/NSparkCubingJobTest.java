@@ -49,6 +49,7 @@ import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.engine.spark.builder.SnapshotBuilder;
 import org.apache.kylin.engine.spark.storage.ParquetStorage;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -96,8 +97,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sparkproject.guava.collect.Sets;
-
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;

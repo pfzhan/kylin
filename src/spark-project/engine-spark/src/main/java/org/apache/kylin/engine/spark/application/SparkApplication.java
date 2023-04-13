@@ -76,6 +76,10 @@ import org.apache.kylin.engine.spark.utils.HDFSUtils;
 import org.apache.kylin.engine.spark.utils.JobMetricsUtils;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
 import org.apache.kylin.job.constant.ExecutableConstants;
+
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NDataModel;
@@ -105,9 +109,6 @@ import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.SegmentBuildJob;
 import lombok.val;
