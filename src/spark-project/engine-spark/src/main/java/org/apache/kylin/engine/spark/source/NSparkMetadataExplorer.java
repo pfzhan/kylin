@@ -42,6 +42,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -61,7 +62,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.clearspring.analytics.util.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 
@@ -101,14 +101,14 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public List<String> listDatabases() throws Exception {
         Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases").select("namespace");
-        List<String> databases =
-            dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+        List<String> databases = dataset.collectAsList().stream().map(row -> row.getString(0))
+                .collect(Collectors.toList());
         if (KylinConfig.getInstanceFromEnv().isDDLLogicalViewEnabled()) {
             String logicalViewDB = KylinConfig.getInstanceFromEnv().getDDLLogicalViewDB();
             databases.forEach(db -> {
                 if (db.equalsIgnoreCase(logicalViewDB)) {
-                    throw new KylinException(DDL_CHECK_ERROR, "Logical view database should not be duplicated "
-                        + "with normal hive database!!!");
+                    throw new KylinException(DDL_CHECK_ERROR,
+                            "Logical view database should not be duplicated " + "with normal hive database!!!");
                 }
             });
             List<String> databasesWithLogicalDB = Lists.newArrayList();
@@ -200,7 +200,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             isAccess = false;
             try {
                 logger.error("Read hive database {} error:{}, ugi name: {}.", database, e.getMessage(),
-                    UserGroupInformation.getCurrentUser().getUserName());
+                        UserGroupInformation.getCurrentUser().getUserName());
             } catch (IOException ex) {
                 logger.error("fetch user curr ugi info error.", e);
             }
@@ -320,7 +320,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     public boolean checkDatabaseAccess(String database) throws Exception {
         boolean hiveDBAccessFilterEnable = KapConfig.getInstanceFromEnv().getDBAccessFilterEnable();
         String viewDB = KylinConfig.getInstanceFromEnv().getDDLLogicalViewDB();
-        if(viewDB.equalsIgnoreCase(database)){
+        if (viewDB.equalsIgnoreCase(database)) {
             return true;
         }
         if (hiveDBAccessFilterEnable) {

@@ -27,9 +27,11 @@ import org.apache.spark.sql.execution.command._
 import org.apache.spark.sql.execution.datasources.v2.{CreateNamespaceExec, DropNamespaceExec, ShowCreateTableExec}
 import org.apache.spark.sql.execution.{CommandExecutionMode, CommandResultExec, QueryExecution, SparkPlan}
 import org.apache.spark.sql.types.StructField
-
 import java.lang.{String => JString}
 import java.util.{List => JList}
+
+import org.apache.spark.sql.delta.DeltaTableUtils
+
 import scala.collection.JavaConverters._
 
 
@@ -119,7 +121,13 @@ object DdlOperation extends Logging {
 
   def getTableDesc(database: String, table: String): String = {
     var sql = s"SHOW CREATE TABLE $database.$table"
-    sql = if (isHiveTable(database, table)) sql + " AS SERDE" else sql
+    var tableMetadata = SparderEnv.getSparkSession.sessionState.catalog
+      .getTableRawMetadata(TableIdentifier(table, Some(database)))
+    if (DeltaTableUtils.isDeltaTable(tableMetadata)) {
+      return  new ShowCreateTableCommand(TableIdentifier(table, Some(database)), Seq.empty).
+        run(SparderEnv.getSparkSession).toList.take(1).head.getString(0);
+    }
+    sql = if (DDLUtils.isHiveTable(tableMetadata)) sql + " AS SERDE" else sql
     val logicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(sql)
     val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan,
       CommandExecutionMode.SKIP)
@@ -134,11 +142,6 @@ object DdlOperation extends Logging {
     }
   }
 
-  def isHiveTable(database: String, table: String): Boolean = {
-    val tableMetadata = SparderEnv.getSparkSession.sessionState.catalog
-      .getTableRawMetadata(TableIdentifier(table, Some(database)))
-    !DDLUtils.isDatasourceTable(tableMetadata)
-  }
 
   def collectDDL(tableIdentifier: TableIdentifier, sql: String): String = {
     val catalog: SessionCatalog = SparderEnv.getSparkSession.sessionState.catalog
