@@ -2717,10 +2717,16 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.engine.persist-flattable-enabled", TRUE));
     }
 
+    public boolean isFlatTableRedistributionEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.redistribution-flattable-enabled", FALSE));
+    }
     public boolean isPersistFlatViewEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.persist-flatview", FALSE));
     }
 
+    public boolean isPersistFlatUseSnapshotEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.persist-flat-use-snapshot-enabled", TRUE));
+    }
     public boolean isBuildExcludedTableEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.build-excluded-table", FALSE));
     }
