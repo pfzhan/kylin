@@ -49,7 +49,7 @@ public class ResourceAcquirer {
             if (Integer.MAX_VALUE == memorySemaphore.availablePermits()) {
                 memorySemaphore = new Semaphore((int) (memoryRatio * SystemInfoCollector.getAvailableMemoryInfo()));
             }
-            logger.info("Init memorySemaphore:{} MB, memoryRatio: {}" + memorySemaphore.availablePermits(), memoryRatio);
+            logger.info("Init memorySemaphore:{} MB, memoryRatio: {}", memorySemaphore.availablePermits(), memoryRatio);
         }
         registers = Maps.newConcurrentMap();
     }
