@@ -23,9 +23,7 @@ import static org.apache.kylin.tool.constant.DiagSubTaskEnum.SOURCE_TABLE_STATS;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.YARN;
 
 import java.io.File;
-import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
@@ -38,10 +36,8 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.tool.snapshot.SnapshotSourceTableStatsTool;
 import org.apache.kylin.tool.util.DiagnosticFilesChecker;
 import org.slf4j.Logger;
@@ -226,15 +222,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
     @VisibleForTesting
     public ExecutablePO getJobByJobId(String jobId) {
-        val projects = NProjectManager.getInstance(getKylinConfig()).listAllProjects().stream()
-                .map(ProjectInstance::getName).collect(Collectors.toList());
-        for (String project : projects) {
-            JobMapperFilter filter = JobMapperFilter.builder().project(project).jobId(jobId).build();
-            List<ExecutablePO> jobs = JobMetadataInvoker.getInstance().getExecutablePOsByFilter(filter);
-            if (!jobs.isEmpty()) {
-                return jobs.get(0);
-            }
-        }
-        return null;
+        return JobContextUtil.getJobInfoDao(getKylinConfig()).getExecutablePOByUuid(jobId);
     }
 }

@@ -22,265 +22,35 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exception.FeignRpcException;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.util.AddressUtil;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
-import org.apache.kylin.job.domain.JobInfo;
-import org.apache.kylin.job.domain.JobLock;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.service.JobInfoService;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.aspect.WaitForSyncBeforeRPC;
 import org.apache.kylin.rest.controller.BaseController;
-import org.apache.kylin.tool.restclient.RestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 @Controller
 @RequestMapping(value = "/api/job_delegate", produces = { HTTP_VND_APACHE_KYLIN_JSON})
 public class JobMetadataDelegateController extends BaseController {
 
     @Autowired
-    private JobMetadataDelegate jobMetadataDelegate;
-
-    @Autowired
     private JobInfoService jobInfoService;
 
-    @PostMapping(value = "/feign/add_index_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String addIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        try {
-            return jobMetadataDelegate.addIndexJob(jobMetadataRequest);
-        } catch (KylinException e) {
-            throw new FeignRpcException(e);
-        }
-    }
-
-    @PostMapping(value = "/feign/add_second_storage_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String addSecondStorageJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.addSecondStorageJob(jobMetadataRequest);
-    }
-
-    @PostMapping(value = "/feign/add_segment_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String addSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.addSegmentJob(jobMetadataRequest);
-    }
-
-    @PostMapping(value = "/feign/build_partition_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String buildPartitionJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.buildPartitionJob(jobMetadataRequest);
-    }
-
-    @PostMapping(value = "/feign/add_related_index_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String addRelatedIndexJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        try {
-            return jobMetadataDelegate.addRelatedIndexJob(jobMetadataRequest);
-        } catch (KylinException e) {
-            throw new FeignRpcException(e);
-        }
-    }
-
-    @PostMapping(value = "/feign/add_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String addJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.addJob(jobMetadataRequest);
-    }
-
-    @PostMapping(value = "/feign/fetch_job_list")
-    @ResponseBody
-    public List<JobInfo> fetchJobList(@RequestBody JobMapperFilter jobMapperFilter) {
-        return jobMetadataDelegate.fetchJobList(jobMapperFilter);
-    }
-
-    @PostMapping(value = "/feign/fetch_all_job_lock")
-    @ResponseBody
-    public List<JobLock> fetchAllJobLock() {
-        return jobMetadataDelegate.fetchAllJobLock();
-    }
-
-    @PostMapping(value = "/feign/fetch_not_final_jobs_by_types")
-    @ResponseBody
-    public List<JobInfo> fetchNotFinalJobsByTypes(@RequestParam("project") String project,
-                                                  @RequestParam("jobTypes") List<String> jobTypes,
-                                                  @RequestBody(required = false) List<String> subjects) {
-        return jobMetadataDelegate.fetchNotFinalJobsByTypes(project, jobTypes, subjects);
-    }
-
-
-    @PostMapping(value = "/feign/merge_segment_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String mergeSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest) {
-        return jobMetadataDelegate.mergeSegmentJob(jobMetadataRequest);
-    }
-
-    @PostMapping(value = "/feign/refresh_segment_job")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public String refreshSegmentJob(@RequestBody JobMetadataRequest jobMetadataRequest,
-                                    @RequestParam("refreshAllLayouts") boolean refreshAllLayouts) {
-        return jobMetadataDelegate.refreshSegmentJob(jobMetadataRequest, refreshAllLayouts);
-    }
-
-    @PostMapping(value = "/feign/get_layouts_by_running_jobs")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public Set<Long> getLayoutsByRunningJobs(@RequestParam("project") String project,
-            @RequestParam("modelId") String modelId) {
-        return jobMetadataDelegate.getLayoutsByRunningJobs(project, modelId);
-    }
-
-    @PostMapping(value = "/feign/count_by_model_and_status")
-    @ResponseBody
-    public long countByModelAndStatus(@RequestParam("project") String project, @RequestParam("model") String model,
-            @RequestParam("status") String status,
-            @RequestParam(value = "jobTypes", required = false) JobTypeEnum... jobTypes) {
-        return jobMetadataDelegate.countByModelAndStatus(project, model, status, jobTypes);
-    }
-
-    @PostMapping(value = "/feign/get_job_executables")
-    @ResponseBody
-    public List<ExecutablePO> getJobExecutablesPO(@RequestParam("project") String project) {
-        return jobMetadataDelegate.getJobExecutablesPO(project);
-    }
-
-    @PostMapping(value = "/feign/list_partial_exec")
-    @ResponseBody
-    public List<ExecutablePO> listPartialExec(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
-                                              @RequestParam("state") String state,
-                                              @RequestParam("jobTypes") JobTypeEnum... jobTypes) {
-        return jobMetadataDelegate.listPartialExec(project, modelId, state, jobTypes);
-    }
-
-    @PostMapping(value = "/feign/list_exec_by_job_type_and_status")
-    @ResponseBody
-    public List<ExecutablePO> listExecPOByJobTypeAndStatus(@RequestParam("project") String project,
-            @RequestParam("state") String state, @RequestParam("jobTypes") JobTypeEnum... jobTypes) {
-        return jobMetadataDelegate.listExecPOByJobTypeAndStatus(project, state, jobTypes);
-    }
-
-    @PostMapping(value = "/feign/get_exec_by_status")
-    @ResponseBody
-    public List<ExecutablePO> getExecutablePOsByStatus(@RequestParam("project") String project,
-            @RequestParam("status") ExecutableState... status) {
-        return jobMetadataDelegate.getExecutablePOsByStatus(project, status);
-    }
-
-    @PostMapping(value = "/feign/get_exec_by_filter")
-    @ResponseBody
-    public List<ExecutablePO> getExecutablePOsByFilter(@RequestBody JobMapperFilter filter) {
-        return jobMetadataDelegate.getExecutablePOsByFilter(filter);
-    }
-
-    @PostMapping(value = "/feign/restore_job_info")
-    @ResponseBody
-    public void restoreJobInfo(@RequestBody List<JobInfo> jobInfos, @RequestParam("project") String project,
-                               @RequestParam("afterTruncate") boolean afterTruncate) {
-        jobMetadataDelegate.restoreJobInfo(jobInfos, project, afterTruncate);
-    }
-
-    @PostMapping(value = "/feign/discard_job")
+    @PostMapping(value = "/discard_job")
     @ResponseBody
     public void discardJob(@RequestParam("project") String project, @RequestParam("jobId") String jobId,
             @RequestHeader HttpHeaders headers) throws IOException {
         List<String> jobIdList = Lists.newArrayList(jobId.split(","));
-        if ("true".equals(headers.getFirst(RestClient.ROUTED))) {
-            doDiscardJob(project, jobIdList);
-            return;
-        }
-        String local = AddressUtil.getLocalInstance();
-        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobIdList);
-        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
-            if (local.equals(entry.getKey())) {
-                doDiscardJob(project, entry.getValue());
-            } else {
-                remoteDiscardJob(entry.getKey(), headers, project, StringUtils.join(entry.getValue(), ","));
-            }
-        }
-    }
-    
-    private void doDiscardJob(String project, List<String> jobIdList) {
-        for (String jobId : jobIdList) {
-            jobMetadataDelegate.discardJob(project, jobId);
-        }
-    }
-    
-    private void remoteDiscardJob(String targetHost, HttpHeaders headers, String project, String jobId)
-            throws IOException {
-        Map<String, String> form = Maps.newHashMap();
-        form.put("project", project);
-        form.put("jobId", jobId);
-        RestClient client = new RestClient(targetHost);
-        client.forwardPostWithUrlEncodedForm("/job_delegate/feign/discard_job", headers, form);
-    }
-    
-
-    @PostMapping(value = "/feign/delete_job_by_ids")
-    @ResponseBody
-    public void deleteJobByIdList(@RequestParam("project") String project, @RequestParam("jobIdList") List<String> jobIdList) {
-        jobMetadataDelegate.deleteJobByIdList(project, jobIdList);
-    }
-
-    @PostMapping(value = "/feign/stop_batch_job")
-    @ResponseBody
-    public void stopBatchJob(@RequestParam("project") String project, @RequestBody TableDesc tableDesc,
-            @RequestHeader HttpHeaders headers) throws IOException {
-        List<String> fusionModelIds = jobInfoService.getFusionModelsByTableDesc(project, tableDesc);
-        if (CollectionUtils.isEmpty(fusionModelIds)) {
-            return;
-        }
-        List<String> jobIdList = jobInfoService.getBatchModelJobIdsOfFusionModel(project, fusionModelIds);
-        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobIdList);
-        String local = AddressUtil.getLocalInstance();
-        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
-            if (local.equals(entry.getKey())) {
-                doDiscardJob(project, entry.getValue());
-            } else {
-                remoteDiscardJob(entry.getKey(), headers, project, StringUtils.join(entry.getValue(), ","));
-            }
-        }
-    }
-
-    @PostMapping(value = "/feign/clear_project_jobs")
-    @ResponseBody
-    public void clearJobsByProject(@RequestParam("project") String project){
-        jobMetadataDelegate.clearJobsByProject(project);
-    }
-
-    @PostMapping(value = "/feign/check_suicide_job_of_model")
-    @ResponseBody
-    @WaitForSyncBeforeRPC
-    public void checkSuicideJobOfModel(@RequestParam("project") String project,
-            @RequestParam("modelId") String modelId) {
-        jobMetadataDelegate.checkSuicideJobOfModel(project, modelId);
+        jobIdList.stream().forEach(eachJobId -> ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .discardJob(eachJobId));
     }
 }

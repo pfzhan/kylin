@@ -33,12 +33,7 @@ import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.rest.delegate.JobMetadataBaseDelegate;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.DiagProgressRequest;
 import org.apache.kylin.rest.response.DiagStatusResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -214,7 +209,6 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(systemService, "aclEvaluate", aclEvaluate);
         Mockito.doNothing().when(aclEvaluate).checkProjectAdminPermission(null);
         Mockito.doNothing().when(aclEvaluate).checkIsGlobalAdmin();
-        JobMetadataInvoker.setDelegate(new JobMetadataContractTest());
         systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", "", null);
         systemService.dumpLocalDiagPackage(null, null, "dd5a6451-0743-4b32-b84d-2ddc80524276", null, "test", null);
         systemService.dumpLocalDiagPackage(null, null, null, "5bc63cbe-a2fe-fa4e-3142-1bb4ebab8f98", "test", null);
@@ -282,19 +276,6 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
                 "Please fill in the project parameters.");
         assertKylinExeption(() -> systemService.getReadOnlyConfig("noexistProject", modelName),
                 "Please confirm and try again later.");
-    }
-
-    public static class JobMetadataContractTest extends JobMetadataBaseDelegate implements JobMetadataContract {
-
-        @Override
-        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
-            return null;
-        }
-
-        @Override
-        public void stopBatchJob(String project, TableDesc tableDesc) {
-
-        }
     }
 
 }

@@ -27,12 +27,15 @@ import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Maps;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 public class JdbcDataSource {
     private JdbcDataSource() {
     }
 
     private static Map<Properties, DataSource> instances = Maps.newConcurrentMap();
+
+    private static Map<DataSource, DataSourceTransactionManager> tmManagerMap = Maps.newConcurrentMap();
 
     public static DataSource getDataSource(Properties props) throws Exception {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
@@ -43,6 +46,22 @@ public class JdbcDataSource {
         }
         instances.putIfAbsent(props, BasicDataSourceFactory.createDataSource(props));
         return instances.get(props);
+    }
+
+    public static DataSourceTransactionManager getTransactionManager(DataSource dataSource) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return new DataSourceTransactionManager(dataSource);
+        }
+        if (tmManagerMap.containsKey(dataSource)) {
+            return tmManagerMap.get(dataSource);
+        }
+        tmManagerMap.putIfAbsent(dataSource, new DataSourceTransactionManager(dataSource));
+        return tmManagerMap.get(dataSource);
+    }
+
+    public static DataSourceTransactionManager getTransactionManager(Properties props) throws Exception {
+        DataSource dataSource = getDataSource(props);
+        return getTransactionManager(dataSource);
     }
 
     public static Collection<DataSource> getDataSources() {

@@ -49,12 +49,15 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.engine.spark.smarter.IndexDependencyParser;
 import org.apache.kylin.job.common.SegmentUtil;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
@@ -76,12 +79,9 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.model.FuzzyKeySearcher;
 import org.apache.kylin.rest.request.AggShardByColumnsRequest;
 import org.apache.kylin.rest.request.CreateBaseIndexRequest;
@@ -165,6 +165,7 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         return newRuleBasedCuboid;
     }
 
+    @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -175,15 +176,13 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
             val model = modelManager.getDataModelDesc(request.getModelId());
 
             Preconditions.checkNotNull(model);
-            IndexPlan indexPlan = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                val indexPlanManager = getManager(NIndexPlanManager.class, project);
-                return indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-                    RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
-                    ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
-                    copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
-                            request.isRestoreDeletedIndex());
-                });
-            }, project);
+            val indexPlanManager = getManager(NIndexPlanManager.class, project);
+            val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
+                RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
+                ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
+                copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
+                        request.isRestoreDeletedIndex());
+            });
 
             BuildIndexResponse response = new BuildIndexResponse();
             if (request.isLoadData()) {
@@ -309,16 +308,9 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                final JobParam jobParam = new JobParam(indexPlan.getUuid(), BasicService.getUsername());
-                jobParam.setProject(project);
-                if (UnitOfWork.isAlreadyInTransaction()) {
-                    UnitOfWork.get().doAfterUnit(() -> getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
-                } else {
-                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                            () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
-                }
-
+                getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                        () -> getManager(JobManager.class, project)
+                                .addIndexJob(new JobParam(indexPlan.getUuid(), BasicService.getUsername())));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -585,10 +577,9 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
                     .collect(Collectors.toList()));
         });
         if (request.isLoadData()) {
-            final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
-            jobParam.setProject(project);
+            val jobManager = getManager(JobManager.class, project);
             getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                    () -> jobManager.addIndexJob(new JobParam(modelId, BasicService.getUsername())));
         }
     }
 
@@ -607,9 +598,9 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
         Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING,
                 SegmentStatusEnum.NEW);
 
-        val executablesCount = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, modelId,
-                "isProgressing", JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH,
-                JobTypeEnum.INDEX_MERGE);
+        val executableManager = getManager(ExecutableManager.class, project);
+        val executablesCount = executableManager.countByModelAndStatus(modelId, ExecutableState::isProgressing,
+                JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
 
         if (segments.isEmpty() && executablesCount == 0) {
             result.setShowLoadData(false);
@@ -831,7 +822,15 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @VisibleForTesting
     public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
-        return JobMetadataBaseInvoker.getInstance().getLayoutsByRunningJobs(project, modelId);
+        List<AbstractExecutable> runningJobList = ExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getPartialExecutablesByStatusList(
+                        Sets.newHashSet(ExecutableState.READY, ExecutableState.PENDING, ExecutableState.RUNNING,
+                                ExecutableState.PAUSED, ExecutableState.ERROR), //
+                        modelId);
+
+        return runningJobList.stream()
+                .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
+                .map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream).collect(Collectors.toSet());
     }
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {

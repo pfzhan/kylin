@@ -47,7 +47,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -80,8 +79,8 @@ import org.apache.kylin.common.util.JdbcUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
@@ -96,8 +95,6 @@ import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.initialize.ProjectDropListener;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
 import org.apache.kylin.rest.request.GarbageCleanUpConfigRequest;
 import org.apache.kylin.rest.request.JdbcRequest;
@@ -187,9 +184,6 @@ public class ProjectService extends BasicService {
 
     @Autowired
     UserService userService;
-
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
 
     @Autowired
     private ClusterManager clusterManager;
@@ -918,14 +912,10 @@ public class ProjectService extends BasicService {
         }
 
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<String> jobIds = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project).stream()
-                .map(executableManager::fromPO).filter(Objects::nonNull)
-                .filter(executable -> (executable.getStatusInMem().toJobStatus() == JobStatusEnum.RUNNING)
-                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.PENDING)
-                        // yinglong dataloading-scheduler, READY --> READY
-                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.READY)
-                        || (executable.getStatusInMem().toJobStatus() == JobStatusEnum.STOPPED))
-                .map(AbstractExecutable::getId).collect(Collectors.toList());
+        List<String> jobIds = executableManager
+                .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.RUNNING, ExecutableState.PENDING,
+                        ExecutableState.READY, ExecutableState.PAUSED))
+                .stream().map(executablePO -> executablePO.getId()).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
                 JobStatusEnum.STOPPING);
         val streamingJobList = getManager(StreamingJobManager.class, project).listAllStreamingJobMeta().stream()

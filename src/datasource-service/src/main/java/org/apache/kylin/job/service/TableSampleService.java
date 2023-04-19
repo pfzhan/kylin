@@ -22,12 +22,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.TableSamplingSupporter;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -48,8 +49,8 @@ public class TableSampleService extends BasicService implements TableSamplingSup
     }
 
     private List<JobInfo> existingRunningSamplingJobs(String project, String table) {
-        return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project,
-                Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()), Lists.newArrayList(table));
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).fetchNotFinalJobsByTypes(
+                project, Lists.newArrayList(JobTypeEnum.TABLE_SAMPLING.name()), Lists.newArrayList(table));
     }
 
     @Override
@@ -67,7 +68,7 @@ public class TableSampleService extends BasicService implements TableSamplingSup
                     .withJobTypeEnum(JobTypeEnum.TABLE_SAMPLING)
                     .withTag(tag)
                     .addExtParams(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
-            jobIds.add(JobMetadataBaseInvoker.getInstance().addJob(new JobMetadataRequest(jobParam)));
+            jobIds.add(getManager(JobManager.class, project).addJob(jobParam));
         }
         return jobIds;
     }

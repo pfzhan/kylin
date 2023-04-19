@@ -70,7 +70,6 @@ import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.tool.util.ProjectTemporaryTableCleanerHelper;
 
 import com.google.common.collect.Lists;
@@ -680,7 +679,8 @@ public class StorageCleaner {
 
         private void collectJobTmp(String project) {
             val config = KylinConfig.getInstanceFromEnv();
-            List<ExecutablePO> executablePOList = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(project);
+            val executableManager = ExecutableManager.getInstance(config, project);
+            List<ExecutablePO> executablePOList = executableManager.getAllJobs();
             Set<String> activeJobs = executablePOList.stream()
                     .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
             for (StorageItem item : allFileSystems) {
@@ -800,9 +800,8 @@ public class StorageCleaner {
                 Set<String> jobTempTables = jobTemps.stream()
                         .map(node -> tableCleanerHelper.getJobTransactionalTable(project, node.getName()))
                         .flatMap(Collection::stream).collect(Collectors.toSet());
-
-                List<ExecutablePO> discardedExecutablePOs = JobMetadataBaseInvoker.getInstance().getExecutablePOsByStatus(project,
-                        ExecutableState.DISCARDED);
+                List<ExecutablePO> discardedExecutablePOs = ExecutableManager.getInstance(config, project)
+                        .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.DISCARDED));
                 ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
                 Set<String> discardTempTables = discardedExecutablePOs.stream()
                         .map(executablePO -> executableManager.fromPO(executablePO))

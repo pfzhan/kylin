@@ -43,8 +43,8 @@ public class JobModeCondition implements Condition {
             return false;
         }
 
-        if (kylinConfig.isDataLoadingNode()) {
-            log.info("load bean = {} on data-loading", beanName);
+        if (kylinConfig.isDataLoadingNode() || kylinConfig.isMetadataNode() || kylinConfig.isOpsNode()) {
+            log.info("load bean = {} on common/data-loading/ops", beanName);
             return true;
         }
 

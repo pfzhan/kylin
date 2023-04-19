@@ -27,9 +27,10 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 public class ExecutableCleaner extends MetadataCleaner {
 
@@ -49,9 +50,8 @@ public class ExecutableCleaner extends MetadataCleaner {
         long expirationTime = config.getExecutableSurvivalTimeThreshold();
 
         ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
-
-        List<ExecutablePO> finalExecutablePOs = JobMetadataBaseInvoker.getInstance().getExecutablePOsByStatus(project,
-                ExecutableState.getFinalStates());
+        List<ExecutablePO> finalExecutablePOs = executableManager
+                .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.getFinalStates()));
 
         List<AbstractExecutable> filteredExecutables = finalExecutablePOs.stream().filter(executablePO -> {
             AbstractExecutable job = executableManager.fromPO(executablePO);
@@ -69,7 +69,7 @@ public class ExecutableCleaner extends MetadataCleaner {
             logger.info("No executables need to clean in project {}", project);
             return;
         }
-        JobMetadataBaseInvoker.getInstance().deleteJobByIdList(project, jobsToBeDelete);
+        executableManager.deleteJobByIdList(jobsToBeDelete);
         logger.info("Clean executable in project {} finished", project);
     }
 

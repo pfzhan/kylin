@@ -26,13 +26,18 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.lang.StringUtils;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
@@ -48,19 +53,27 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.logging.LogOutputStream;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.config.JobTableInterceptor;
 import org.apache.kylin.job.dao.JobInfoDao;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.metadata.transaction.SpringManagedTransactionFactory;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.apache.kylin.rest.util.SpringContext;
+import org.apache.kylin.tool.restclient.RestClient;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import com.google.common.collect.Maps;
+
+import lombok.SneakyThrows;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -85,6 +98,18 @@ public class JobContextUtil {
     private static DataSourceTransactionManager transactionManager;
 
     private static JobTableInterceptor jobTableInterceptor = new JobTableInterceptor();
+    
+    static {
+        val config = KylinConfig.getInstanceFromEnv();
+        if (!config.isUTEnv()) {
+            val props = JdbcUtil.datasourceParameters(config.getMetadataUrl());
+            try {
+                transactionManager = JdbcDataSource.getTransactionManager(props);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to set 'transactionManager' for JobContextUtil.");
+            }
+        }
+    }
 
     synchronized public static JobInfoDao getJobInfoDaoForTest(KylinConfig config) {
         initMappers(config);
@@ -248,16 +273,53 @@ public class JobContextUtil {
         }
     }
 
+    public static Map<String, List<String>> splitJobIdsByScheduleInstance(List<String> ids) {
+        Map<String, List<String>> nodeWithJobs = new HashMap<>();
+        for (String jobId : ids) {
+            String host = getJobSchedulerHost(jobId);
+            List<String> jobIds = nodeWithJobs.getOrDefault(host, new ArrayList<>());
+            jobIds.add(jobId);
+            nodeWithJobs.put(host, jobIds);
+        }
+        return nodeWithJobs;
+    }
+
+    public static String getJobSchedulerHost(String jobId) {
+        JobContext jobContext = getJobContext(KylinConfig.getInstanceFromEnv());
+        String jobNode = jobContext.getJobLockMapper().findNodeByLockId(jobId);
+        if (Objects.isNull(jobNode)) {
+            return jobContext.getServerNode();
+        }
+        return jobNode;
+    }
+
+    @SneakyThrows
+    public static void remoteDiscardJob(String project, List<String> jobIdList) {
+        Map<String, List<String>> nodeWithJobs = JobContextUtil.splitJobIdsByScheduleInstance(jobIdList);
+        String local = AddressUtil.getLocalInstance();
+        for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
+            if (local.equals(entry.getKey())) {
+                val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                entry.getValue().stream().forEach(jobId -> executableManager.discardJob(jobId));
+                continue;
+            }
+            Map<String, String> form = Maps.newHashMap();
+            form.put("project", project);
+            form.put("jobId", StringUtils.join(entry.getValue(), ","));
+            RestClient client = new RestClient(entry.getKey());
+            client.forwardPostWithUrlEncodedForm("/job_delegate/discard_job", null, form);
+        }
+    }
+
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer) {
         return withTxAndRetry(consumer, 3);
     }
 
+    @SneakyThrows
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer, int retryLimit) {
-        DataSourceTransactionManager txManager = transactionManager;
-        if (txManager == null) {
-            // not init, use spring-context
-            txManager = SpringContext.getBean(DataSourceTransactionManager.class);
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            return consumer.handle();
         }
-        return JdbcUtil.withTxAndRetry(txManager, consumer, retryLimit);
+        return JdbcUtil.withTxAndRetry(transactionManager, consumer, retryLimit);
     }
 }

@@ -29,10 +29,9 @@ import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.service.AclTCRServiceSupporter;
 import org.apache.kylin.rest.service.FusionModelService;
+import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.SourceTestCase;
 import org.apache.kylin.rest.service.TableExtService;
 import org.apache.kylin.rest.service.TableService;
@@ -75,8 +74,8 @@ public class ModelBrokenListenerTest extends SourceTestCase {
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
-    @Mock
-    private final JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
+    @InjectMocks
+    private JobSupporter jobInfoService = Mockito.spy(JobSupporter.class);
 
     @Before
     public void setup() {
@@ -90,10 +89,8 @@ public class ModelBrokenListenerTest extends SourceTestCase {
         ReflectionTestUtils.setField(tableExtService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
-        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
-        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
-        JobMetadataInvoker.setDelegate(jobMetadataContract);
     }
 
     @After

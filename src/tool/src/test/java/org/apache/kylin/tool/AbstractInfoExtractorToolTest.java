@@ -39,11 +39,6 @@ import org.apache.kylin.job.execution.DefaultExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.util.JobContextUtil;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.delegate.JobMetadataBaseDelegate;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -55,7 +50,6 @@ import org.junit.rules.TestName;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import lombok.val;
-import lombok.experimental.Delegate;
 
 public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     private JdbcTemplate jdbcTemplate;
@@ -239,7 +233,6 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     }
     
     public ExecutablePO createJob() {
-        JobMetadataInvoker.setDelegate(new JobDelegate());
         DefaultExecutable job = new DefaultExecutableOnModel();
         job.setName(JobTypeEnum.INDEX_BUILD.toString());
         job.setJobType(JobTypeEnum.INDEX_BUILD);
@@ -248,21 +241,6 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         job.setPriority(1);
         val po = ExecutableManager.toPO(job, "default");
         return JobContextUtil.getJobInfoDao(getTestConfig()).addJob(po);
-    }
-    
-    public static class JobDelegate implements JobMetadataContract {
-        @Delegate
-        private JobMetadataBaseDelegate jobMetadataBaseDelegate = new JobMetadataBaseDelegate();
-
-        @Override
-        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
-            return null;
-        }
-
-        @Override
-        public void stopBatchJob(String project, TableDesc tableDesc) {
-
-        }
     }
 
     static class MockInfoExtractorTool extends AbstractInfoExtractorTool {

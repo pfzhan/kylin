@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.manager.JobManager;
@@ -35,7 +34,6 @@ import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -137,10 +135,6 @@ public class IncrementalTest implements JobWaiter {
         ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
 
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageEndpoint.setModelService(modelService);

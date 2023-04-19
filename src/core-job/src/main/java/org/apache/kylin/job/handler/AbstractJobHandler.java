@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
 import org.apache.kylin.job.exception.JobSubmissionException;
@@ -71,7 +72,6 @@ public abstract class AbstractJobHandler {
     }
 
     public final void doHandle(JobParam jobParam) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (needComputeJobBucket()) {
             ExecutableUtil.computeJobBucket(jobParam);
         }
@@ -86,6 +86,12 @@ public abstract class AbstractJobHandler {
         job.setTag(jobParam.getTag());
         log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();
+        UnitOfWork.doAfterUpdate(() -> persistJob(project, job));
+        updateStatistics(project, jobParam, job);
+    }
+    
+    private void persistJob(String project, AbstractExecutable job) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val po = ExecutableManager.toPO(job, project);
         ExecutableManager executableManager = getExecutableManager(project, kylinConfig);
         executableManager.addJob(po);
@@ -99,6 +105,11 @@ public abstract class AbstractJobHandler {
                 executableManager.updateJobOutput(po.getId(), null, info, null, null);
                 return true;
             });
+        }
+    }
+
+    private void updateStatistics(String project, JobParam jobParam, AbstractExecutable job) {
+        if (job instanceof ChainedExecutable) {
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
             JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
         }

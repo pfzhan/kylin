@@ -79,8 +79,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.streaming.KafkaConfig;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.DateRangeRequest;
 import org.apache.kylin.rest.request.TopTableRequest;
@@ -129,9 +127,6 @@ public class TableServiceTest extends CSVSourceTestCase {
     private final TableService tableService = Mockito.spy(new TableService());
 
     @Mock
-    private final JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
-
-    @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
     @Mock
@@ -161,14 +156,15 @@ public class TableServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
 
+    @InjectMocks
+    private JobSupporter jobInfoService = Mockito.spy(JobSupporter.class);
+
     private final StreamingJobListener eventListener = new StreamingJobListener();
 
     @Before
     public void setup() {
         super.setup();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
-        JobMetadataInvoker.setDelegate(jobMetadataContract);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
@@ -178,11 +174,11 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
-        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(userAclService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "userAclService", userAclService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(tableService, "accessService", accessService);
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();

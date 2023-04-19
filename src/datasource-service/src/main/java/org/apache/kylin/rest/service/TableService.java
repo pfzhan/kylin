@@ -89,8 +89,10 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.job.service.TableSampleService;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -137,9 +139,6 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.constant.JobInfoEnum;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.DateRangeRequest;
 import org.apache.kylin.rest.request.S3TableExtInfo;
@@ -225,8 +224,9 @@ public class TableService extends BasicService {
     @Qualifier("aclTCRService")
     private AclTCRServiceSupporter aclTCRService;
 
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
+    @Autowired(required = false)
+    @Qualifier("jobInfoService")
+    private JobSupporter jobInfoService;
 
     @Autowired
     private ClusterManager clusterManager;
@@ -712,7 +712,7 @@ public class TableService extends BasicService {
         final JobParam jobParam = new JobParam(newSegment, model, getUsername());
         jobParam.setProject(project);
         getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)));
+                () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam));
     }
 
     public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
@@ -798,17 +798,17 @@ public class TableService extends BasicService {
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getManager(ExecutableManager.class, project);
+        val executables = execManager.listExecByModelAndStatus(null, ExecutableState::isRunning, SNAPSHOT_BUILD,
+                SNAPSHOT_REFRESH);
 
-        val executables = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(project, "isRunning",
-                SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
-
-        List<AbstractExecutable> conflictJobs = executables.stream().map(execManager::fromPO)
+        List<AbstractExecutable> conflictJobs = executables.stream()
                 .filter(exec -> table.equalsIgnoreCase(exec.getParam(NBatchConstants.P_TABLE_NAME)))
                 .collect(Collectors.toList());
 
-        conflictJobs.forEach(job -> {
-            JobMetadataBaseInvoker.getInstance().discardJob(project, job.getId());
-        });
+        List<String> conflictJobIds = conflictJobs.stream().map(executable -> executable.getJobId())
+                .collect(Collectors.toList());
+        JobContextUtil.remoteDiscardJob(project, conflictJobIds);
+
         return conflictJobs;
     }
 
@@ -832,7 +832,7 @@ public class TableService extends BasicService {
             unloadKafkaTableUsingTable(project, tableDesc);
         } else {
             stopStreamingJobByTable(project, tableDesc);
-            jobMetadataInvoker.stopBatchJob(project, tableDesc);
+            jobInfoService.stopBatchJob(project, tableDesc);
         }
 
         unloadTable(project, table);
@@ -892,6 +892,7 @@ public class TableService extends BasicService {
         val response = new PreUnloadTableResponse();
         val dataflowManager = getManager(NDataflowManager.class, project);
         val tableMetadataManager = getManager(NTableMetadataManager.class, project);
+        val executableManager = getManager(ExecutableManager.class, project);
 
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         if (Objects.isNull(tableDesc)) {
@@ -914,8 +915,9 @@ public class TableService extends BasicService {
         storageSize += getSnapshotSize(project, tableIdentity, fs);
         response.setStorageSize(storageSize);
 
-        response.setHasJob(JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, tableIdentity, "RUNNING",
-                null) > 0);
+        response.setHasJob(
+                executableManager.countByModelAndStatus(tableIdentity, state -> state == ExecutableState.RUNNING) > 0);
+
         response.setHasSnapshot(tableDesc.getLastSnapshotPath() != null);
 
         return response;
@@ -1224,24 +1226,19 @@ public class TableService extends BasicService {
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
             int maxRows, boolean needBuild, int priority, String yarnQueue) {
         aclEvaluate.checkProjectWritePermission(projectName);
-        Pair<String, List<String>> result = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
             List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild, null);
             pair.setSecond(buildingJobs);
-            return pair;
-        }, projectName);
-        try {
             if (needSample && maxRows > 0) {
                 List<String> jobIds = tableSampleService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows,
                         priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
-                    result.setFirst(jobIds.get(0));
+                    pair.setFirst(jobIds.get(0));
                 }
             }
-        } catch (Throwable t) {
-            throw new RuntimeException("Reload table successfully, but failed to submit sampling job.", t);
-        }
-        return result;
+            return pair;
+        }, projectName);
     }
 
     public Pair<String, List<String>> reloadAWSTableCompatibleCrossAccount(String projectName,
@@ -1364,7 +1361,7 @@ public class TableService extends BasicService {
             final JobParam jobParam = new JobParam(model.getId(), getUsername());
             jobParam.setProject(projectName);
             return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                    () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                    () -> getManager(JobManager.class, projectName).addIndexJob(jobParam));
         }
         return null;
     }
@@ -1413,7 +1410,7 @@ public class TableService extends BasicService {
                 final JobParam jobParam = new JobParam(model.getId(), getUsername());
                 jobParam.setProject(projectName);
                 return getManager(SourceUsageManager.class).licenseCheckWrap(projectName,
-                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                        () -> getManager(JobManager.class, projectName).addIndexJob(jobParam));
             }
         }
         return null;
@@ -1556,10 +1553,10 @@ public class TableService extends BasicService {
     }
 
     private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
-        val notFinalStateJobs = JobMetadataBaseInvoker.getInstance().getJobExecutablesPO(newTableDesc.getProject()).stream()
-                .filter(job -> !ExecutableState.valueOf(job.getOutput().getStatus()).isFinalState())
-                .map(job -> getManager(ExecutableManager.class, job.getProject()).fromPO(job))
-                .collect(Collectors.toList());
+        val executableManager = ExecutableManager.getInstance(KylinConfig.readSystemKylinConfig(),
+                newTableDesc.getProject());
+        val notFinalStateJobs = executableManager.getExecutablePOsByStatus(ExecutableState.getNotFinalStates()).stream()
+                .map(job -> executableManager.fromPO(job)).collect(Collectors.toList());
 
         List<String> effectedJobs = Lists.newArrayList();
         notFinalStateJobs.forEach(job -> {

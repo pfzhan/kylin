@@ -22,8 +22,8 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -37,15 +37,13 @@ import org.apache.kylin.metadata.model.util.scd2.SCD2CondChecker;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -154,8 +152,8 @@ public class ModelBrokenListener {
                 final JobParam jobParam = new JobParam(model.getId(), "ADMIN");
                 jobParam.setProject(project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
-                UnitOfWork.get().doAfterUnit(() -> sourceUsageManager.licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam))));
+                sourceUsageManager.licenseCheckWrap(project,
+                        () -> JobManager.getInstance(config, project).addIndexJob(jobParam));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

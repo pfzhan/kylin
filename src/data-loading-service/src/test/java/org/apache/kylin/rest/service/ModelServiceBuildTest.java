@@ -55,7 +55,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableParams;
@@ -95,7 +94,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
@@ -153,6 +151,9 @@ public class ModelServiceBuildTest extends SourceTestCase {
     private final TableService tableService = Mockito.spy(new TableService());
 
     @InjectMocks
+    private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
+
+    @InjectMocks
     private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @InjectMocks
@@ -187,8 +188,6 @@ public class ModelServiceBuildTest extends SourceTestCase {
     private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     private StreamingJobListener eventListener = new StreamingJobListener();
-    
-    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
 
     private final TimeZone defaultTimeZone = TimeZone.getDefault();
 
@@ -217,21 +216,16 @@ public class ModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
 
         ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
         ModelMetadataInvoker.setDelegate(modelService);
-        JobInfoService jobInfoService = new JobInfoService();
         JobContextUtil.cleanUp();
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
         ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
 
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
@@ -523,8 +517,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
         AbstractExecutable job = executables.get(0);
         Assert.assertEquals(0, job.getPriority());
         Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(
                 SEGMENT_STATUS.getMsg(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments()
                         .get(0).displayIdName(), SegmentStatusEnumToDisplay.LOADING.name()));
         modelBuildService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
@@ -839,10 +833,13 @@ public class ModelServiceBuildTest extends SourceTestCase {
 
     @Test
     public void testGetRelatedModels_HasErrorJobs() {
+        ExecutableManager executableManager = Mockito.spy(ExecutableManager.getInstance(getTestConfig(), "default"));
+        when(modelService.getManager(ExecutableManager.class, "default")).thenReturn(executableManager);
         List<AbstractExecutable> jobs = mockJobs();
         List<ExecutablePO> executablePOS = jobs.stream().map(job -> ExecutableManager.toPO(job, "default"))
                 .collect(Collectors.toList());
-        when(jobMetadataInvoker.getExecutablePOsByStatus("default", ExecutableState.ERROR)).thenReturn(executablePOS);
+        when(executableManager.getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.ERROR)))
+                .thenReturn(executablePOS);
         List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, responses.size());
@@ -1255,9 +1252,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     false, 0, null, null);
             Assert.fail();
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            Assert.assertTrue(cause instanceof KylinException);
-            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), cause.getMessage());
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE.getMsg(), e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -1514,9 +1510,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment5.getId(), dataSegment6.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            Assert.assertTrue(cause instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), cause.getMessage());
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // index is not aligned in segment3, segment4
@@ -1525,9 +1520,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment3.getId(), dataSegment4.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            Assert.assertTrue(cause instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), cause.getMessage());
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_INDEX_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // partitions are not aligned in segment2, segment3
@@ -1536,9 +1530,8 @@ public class ModelServiceBuildTest extends SourceTestCase {
                     new String[] { dataSegment2.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            Assert.assertTrue(cause instanceof KylinException);
-            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), cause.getMessage());
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(SEGMENT_MERGE_CHECK_PARTITION_ILLEGAL.getMsg(), e.getMessage());
         }
 
         // success

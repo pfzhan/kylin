@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
@@ -42,8 +42,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -72,8 +70,7 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
 
         val models = NDataflowManager.getInstance(kylinConfig, project).getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(models)) {
-
-            Pair<List<JobParam>, List<JobParam>> pair = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 List<JobParam> addSegmentList = Lists.newArrayList();
                 List<JobParam> refreshSegmentList = Lists.newArrayList();
                 boolean first = true;
@@ -117,16 +114,17 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
                         Preconditions.checkState(firstRanges.equals(ranges));
                     }
                 }
-                return new Pair<>(addSegmentList, refreshSegmentList);
+                for (JobParam jobParam : addSegmentList) {
+                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam));
+                }
+                for (JobParam jobParam : refreshSegmentList) {
+                    getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                            () -> JobManager.getInstance(getConfig(), project).refreshSegmentJob(jobParam));
+                }
+                return true;
             }, project);
-            for (JobParam jobParam : pair.getFirst()) {
-                getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () ->JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam)));
-            }
-            for (JobParam jobParam : pair.getSecond()) {
-                getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().refreshSegmentJob(new JobMetadataRequest(jobParam)));
-            }
+
         }
     }
 

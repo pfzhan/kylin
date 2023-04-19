@@ -17,11 +17,11 @@
  */
 package org.apache.kylin.common.persistence.transaction;
 
-import com.google.common.base.Preconditions;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.exception.KylinException;
@@ -44,10 +44,12 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.Unsafe;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -251,22 +253,27 @@ public class UnitOfWork {
             }
         }).collect(Collectors.<Event> toList());
 
-        //clean rs and config
-        work.cleanResource();
-
-        val originConfig = KylinConfig.getInstanceFromEnv();
-        // publish events here
-        val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
-        val writeInterceptor = params.getWriteInterceptor();
-        val unitMessages = packageEvents(eventList, get().getProject(), traceId, writeInterceptor);
-        long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
-                .count();
-        try (SetLogCategory ignored = new SetLogCategory(LogConstant.METADATA_CATEGORY)) {
-            log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
+        UnitMessages unitMessages = null;
+        long entitiesSize = 0;
+        KylinConfig originConfig = work.getOriginConfig();
+        try {
+            // publish events here
+            val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
+            val writeInterceptor = params.getWriteInterceptor();
+            unitMessages = packageEvents(eventList, get().getProject(), traceId, writeInterceptor);
+            entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
+                    .count();
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.METADATA_CATEGORY)) {
+                log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
+            }
+            checkEpoch(params);
+            val unitName = params.getUnitName();
+            metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, params.getEpochId());
+        } finally {
+            //clean rs and config
+            work.cleanResource();
         }
-        checkEpoch(params);
-        val unitName = params.getUnitName();
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, params.getEpochId());
+
         if (entitiesSize != 0 && !params.isReadonly() && !params.isSkipAuditLog() && !config.isUTEnv()) {
             factory.postAsync(new AuditLogBroadcastEventNotifier());
         }
@@ -328,6 +335,20 @@ public class UnitOfWork {
 
     public static boolean isAlreadyInTransaction() {
         return threadLocals.get() != null;
+    }
+
+    public static void doAfterUpdate(UnitOfWorkContext.UnitTask task) {
+        if (isAlreadyInTransaction()) {
+            get().doAfterUpdate(task);
+            return;
+        }
+        try {
+            task.run();
+        } catch (KylinException e) {
+          throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Execute 'doAfterUpdate' failed.", e);
+        }
     }
 
     public static boolean isReplaying() {

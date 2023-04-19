@@ -86,8 +86,12 @@ public enum ExecutableState {
         return new ExecutableState[] {SUCCEED, DISCARDED, SUICIDAL};
     }
 
+    public static List<ExecutableState> getNotFinalStates() {
+        return Arrays.stream(values()).filter(o -> !o.isFinalState()).collect(Collectors.toList());
+    }
+
     public static List<String> getNotFinalStateNames() {
-        return Arrays.stream(values()).filter(o -> !o.isFinalState()).map(Enum::name).collect(Collectors.toList());
+        return getNotFinalStates().stream().map(Enum::name).collect(Collectors.toList());
     }
 
     public boolean isProgressing() {

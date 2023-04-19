@@ -33,17 +33,12 @@ import org.apache.kylin.junit.rule.TransactionExceptedException;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.NDataModel;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.kylin.metadata.query.QueryTimesResponse;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
-import org.apache.kylin.rest.delegate.JobMetadataBaseDelegate;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.FusionModelResponse;
 import org.apache.kylin.rest.response.NDataModelResponse;
@@ -103,8 +98,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
     private StreamingJobListener eventListener = new StreamingJobListener();
 
-    private JobMetadataInvoker jobMetadataInvoker = Mockito.spy(new JobMetadataInvoker());
-
     protected String getProject() {
         return "default";
     }
@@ -128,8 +121,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
                     ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
                 }));
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
-        JobMetadataInvoker.setDelegate(new JobMetadataContractTest());
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
@@ -149,19 +140,6 @@ public class ModelServiceQueryTest extends SourceTestCase {
         EventBusFactory.getInstance().register(modelBrokenListener, false);
 
         ExecutableUtils.initJobFactory();
-    }
-
-    private class JobMetadataContractTest extends JobMetadataBaseDelegate implements JobMetadataContract {
-
-        @Override
-        public String addSecondStorageJob(JobMetadataRequest jobMetadataRequest) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void stopBatchJob(String project, TableDesc tableDesc) {
-            throw new UnsupportedOperationException();
-        }
     }
 
     @After

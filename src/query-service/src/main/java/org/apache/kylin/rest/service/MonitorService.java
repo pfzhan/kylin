@@ -49,7 +49,6 @@ import org.apache.kylin.metadata.state.QueryShareStateManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.initialize.AfterMetadataReadyEvent;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.monitor.AbstractMonitorCollectTask;
 import org.apache.kylin.rest.monitor.MonitorReporter;
 import org.apache.kylin.rest.monitor.SparkContextCanary;
@@ -90,9 +89,6 @@ public class MonitorService extends BasicService implements ApplicationListener<
     @Setter
     @Autowired
     private ClusterManager clusterManager;
-
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
 
     @VisibleForTesting
     public List<ProjectInstance> getReadableProjects() {
@@ -154,7 +150,7 @@ public class MonitorService extends BasicService implements ApplicationListener<
         for (ProjectInstance project : getReadableProjects()) {
             val executableManager = getManager(ExecutableManager.class, project.getName());
 
-            for (ExecutablePO executablePO : jobMetadataInvoker.getJobExecutablesPO(project.getName())) {
+            for (ExecutablePO executablePO : executableManager.getAllJobs()) {
                 AbstractExecutable executable = executableManager.fromPO(executablePO);
                 if (executable.getStatusInMem().isFinalState()) {
                     finishedJobs.add(executable);

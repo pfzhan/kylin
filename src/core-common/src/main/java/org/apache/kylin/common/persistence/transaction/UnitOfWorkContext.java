@@ -59,6 +59,10 @@ public class UnitOfWorkContext {
         onUpdatedTasks.add(task);
     }
 
+    KylinConfig getOriginConfig() {
+        return localConfig.getOriginConfig();
+    }
+
     void cleanResource() {
         if (localConfig == null) {
             return;

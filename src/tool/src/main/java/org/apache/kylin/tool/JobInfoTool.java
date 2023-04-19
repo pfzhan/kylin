@@ -33,21 +33,23 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 public class JobInfoTool extends CancelableTask {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -81,12 +83,13 @@ public class JobInfoTool extends CancelableTask {
                 jobInfos.add(jobInfo);
             }
         }
-        JobMetadataInvoker.getInstance().restoreJobInfo(jobInfos, project, afterTruncate);
+        JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv()).restoreJobInfo(jobInfos, project, afterTruncate);
     }
 
     public void extractFull(File dir) {
         JobMapperFilter filter = JobMapperFilter.builder().build();
-        List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+        List<JobInfo> jobs = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                .getJobInfoListByFilter(filter);
         for (JobInfo job : jobs) {
             saveJobToFile(job, dir);
         }
@@ -96,7 +99,8 @@ public class JobInfoTool extends CancelableTask {
         Date startDate = new Date(startTime);
         Date endDate = new Date(endTime);
         JobMapperFilter filter = JobMapperFilter.builder().timeRange(Arrays.asList(startDate, endDate)).build();
-        List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+        List<JobInfo> jobs = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                .getJobInfoListByFilter(filter);
         for (JobInfo job : jobs) {
             saveJobToFile(job, dir);
         }
@@ -104,7 +108,8 @@ public class JobInfoTool extends CancelableTask {
 
     public void extractJob(File dir, String project, String jobId) {
         JobMapperFilter filter = JobMapperFilter.builder().project(project).jobId(jobId).build();
-        List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+        List<JobInfo> jobs = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                .getJobInfoListByFilter(filter);
         if (!jobs.isEmpty()) {
             saveJobToFile(jobs.get(0), dir);
         } else {
@@ -124,7 +129,7 @@ public class JobInfoTool extends CancelableTask {
     }
 
     public void extractJobLock(File dir) throws Exception {
-        List<JobLock> jobLocks = JobMetadataInvoker.getInstance().fetchAllJobLock();
+        List<JobLock> jobLocks = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv()).fetchAllJobLock();
         File jobLockFile = new File(dir, "job_lock");
         try (OutputStream os = new FileOutputStream(jobLockFile);
                 BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os, Charset.defaultCharset()))) {
@@ -146,7 +151,8 @@ public class JobInfoTool extends CancelableTask {
              ZipOutputStream zos = new ZipOutputStream(fos);
              BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, Charset.defaultCharset()))) {
             JobMapperFilter filter = JobMapperFilter.builder().project(project).build();
-            List<JobInfo> jobs = JobMetadataInvoker.getInstance().fetchJobList(filter);
+            List<JobInfo> jobs = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                    .getJobInfoListByFilter(filter);
             for (JobInfo job : jobs) {
                 zos.putNextEntry(new ZipEntry(job.getJobId() + ".json"));
                 String value = JsonUtil.writeValueAsString(new JobInfoHelper(job));

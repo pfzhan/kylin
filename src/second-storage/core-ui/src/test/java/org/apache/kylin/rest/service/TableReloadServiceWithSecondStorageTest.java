@@ -31,7 +31,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
@@ -44,8 +43,6 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -145,11 +142,6 @@ public class TableReloadServiceWithSecondStorageTest extends NLocalFileMetadataT
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        JobMetadataInvoker jobMetadataInvoker = new JobMetadataInvoker();
-        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
-        PowerMockito.when(SpringContext.getBean(JobMetadataContract.class))
-                .thenAnswer(invocation -> new JobMetadataDelegate());
 
         createTestMetadata();
         getTestConfig().setProperty("kylin.query.engine.sparder-additional-files",

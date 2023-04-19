@@ -32,9 +32,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
@@ -209,7 +209,8 @@ public class SegmentController extends NBasicController {
             modelMetadataInvoker.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
         try {
-            JobMetadataBaseInvoker.getInstance().checkSuicideJobOfModel(project, dataflowId);
+            ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).checkSuicideJobOfModel(project,
+                    dataflowId);
         } catch (Exception e) {
             log.warn("Failed to check if there's a job that need to suicide", e);
         }

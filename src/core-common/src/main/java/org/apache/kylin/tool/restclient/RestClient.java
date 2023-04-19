@@ -267,9 +267,11 @@ public class RestClient {
         String url = baseUrl + targetUrl;
         HttpPost httpPost = new HttpPost(url);
         httpPost.addHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
-        httpPost.addHeader(AUTHORIZATION, headers.getFirst(AUTHORIZATION));
         httpPost.addHeader(ROUTED, "true");
-        httpPost.addHeader(COOKIE, headers.getFirst(COOKIE));
+        if (null != headers) {
+            httpPost.addHeader(AUTHORIZATION, headers.getFirst(AUTHORIZATION));
+            httpPost.addHeader(COOKIE, headers.getFirst(COOKIE));
+        }
         List<NameValuePair> nameValuePairs = new ArrayList<>();
         if (null != form) {
             form.entrySet()

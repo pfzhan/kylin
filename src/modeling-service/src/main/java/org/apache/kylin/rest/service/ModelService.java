@@ -140,6 +140,10 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.MergerInfo;
+import org.apache.kylin.job.handler.SecondStorageIndexCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.job.util.JobInfoUtil;
@@ -206,10 +210,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
-import org.apache.kylin.rest.delegate.JobMetadataRequest.SecondStorageJobHandlerEnum;
 import org.apache.kylin.rest.delegate.ModelMetadataContract;
 import org.apache.kylin.rest.feign.MetadataContract;
 import org.apache.kylin.rest.request.AddSegmentRequest;
@@ -341,9 +341,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     @Autowired(required = false)
     @Qualifier("modelBuildService")
     private ModelBuildSupporter modelBuildService;
-
-    @Autowired
-    private JobMetadataInvoker jobMetadataInvoker;
 
     @Setter
     @Autowired(required = false)
@@ -988,17 +985,15 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     private List<AbstractExecutable> getAllRunningExecutable(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
-        return JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(project, "isRunning",
-                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO)
-                .collect(Collectors.toList());
+        return execManager.listExecByModelAndStatus(null, ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
+                JobTypeEnum.SUB_PARTITION_BUILD);
     }
 
     private List<AbstractExecutable> getPartialRunningExecutable(String project, String modelId) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, project);
-        return JobMetadataBaseInvoker.getInstance().listPartialExec(project, modelId, "isRunning",
-                JobTypeEnum.INDEX_BUILD, JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO)
-                .collect(Collectors.toList());
+        return execManager.listPartialExec(modelId, ExecutableState::isRunning, JobTypeEnum.INDEX_BUILD,
+                JobTypeEnum.SUB_PARTITION_BUILD).stream().map(execManager::fromPO).collect(Collectors.toList());
     }
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
@@ -1172,8 +1167,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         ExecutableManager execManager = getManager(ExecutableManager.class, project);
         List<String> jobTypes = Lists.newArrayList(INDEX_REFRESH.name(), INDEX_MERGE.name(), INDEX_BUILD.name(),
                 INC_BUILD.name());
-        List<JobInfo> jobInfoList = JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, jobTypes,
-                Lists.newArrayList());
+        List<JobInfo> jobInfoList = execManager.fetchNotFinalJobsByTypes(project, jobTypes, Lists.newArrayList());
         return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
                 .map(executablePO -> execManager.fromPO(executablePO)).collect(Collectors.toList());
     }
@@ -1377,8 +1371,9 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         val dataflowManager = getManager(NDataflowManager.class, project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
-        val errorExecutablePOs = jobMetadataInvoker.getExecutablePOsByStatus(project, ExecutableState.ERROR);
         ExecutableManager executableManager = getManager(ExecutableManager.class, project);
+        val errorExecutablePOs = executableManager.getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.ERROR));
+
         val errorExecutables = errorExecutablePOs.stream().map(executableManager::fromPO).collect(Collectors.toList());
         for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
@@ -2627,11 +2622,10 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                             .cleanTableData(tableData -> needDeleteLayoutIds.contains(tableData.getLayoutID())));
                     tablePlan.update(t -> t.cleanTable(needDeleteLayoutIds));
 
-                    final JobParam param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId,
-                            BasicService.getUsername(), new HashSet<>(indexIds), new HashSet<>(segmentIds));
-                    JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
-                    jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.INDEX_CLEAN.name());
-                    jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
+                    val jobHandler = new SecondStorageIndexCleanJobHandler();
+                    val param = SecondStorageJobParamUtil.layoutCleanParam(project, modelId, BasicService.getUsername(),
+                            new HashSet<>(indexIds), new HashSet<>(segmentIds));
+                    getManager(JobManager.class, project).addJob(param, jobHandler);
                 });
             }
             return null;
@@ -3032,11 +3026,10 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
         if (SecondStorageUtil.isModelEnable(project, model)) {
             SecondStorageUtil.cleanSegments(project, model, idsToDelete);
+            val jobHandler = new SecondStorageSegmentCleanJobHandler();
             final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model,
                     BasicService.getUsername(), idsToDelete);
-            JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
-            jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_CLEAN.name());
-            jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest);
+            getManager(JobManager.class, project).addJob(param, jobHandler);
         }
         removeSegment(project, dataflow.getUuid(), idsToDelete);
         offlineModelIfNecessary(dataflowManager, model);
@@ -3229,13 +3222,12 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         if (!SecondStorage.enabled()) {
             throw new KylinException(JobErrorCode.JOB_CONFIGURATION_ERROR, "!!!No Tiered Storage is installed!!!");
         }
+        val jobHandler = new SecondStorageSegmentLoadJobHandler();
 
         final JobParam param = SecondStorageJobParamUtil.of(project, model, BasicService.getUsername(),
                 Stream.of(segmentIds));
-        JobMetadataRequest jobMetadataRequest = new JobMetadataRequest(param);
-        jobMetadataRequest.setSecondStorageJobHandler(SecondStorageJobHandlerEnum.SEGMENT_LOAD.name());
         return Collections.singletonList(new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
-                jobMetadataInvoker.addSecondStorageJob(jobMetadataRequest)));
+                getManager(JobManager.class, project).addJob(param, jobHandler)));
     }
 
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
@@ -3299,8 +3291,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
                 if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
                     val targetSegments = SegmentUtil.getValidSegments(modelId, project).stream()
                             .map(NDataSegment::getId).collect(Collectors.toSet());
-                    UnitOfWork.get()
-                            .doAfterUnit(() -> semanticUpdater.buildForModelSegments(project, modelId, targetSegments));
+                    semanticUpdater.buildForModelSegments(project, modelId, targetSegments);
                 }
                 modelChangeSupporters.forEach(listener -> listener.onUpdate(project, modelId));
 
@@ -3784,7 +3775,8 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         val response = new PurgeModelAffectedResponse();
         val byteSize = getManager(NDataflowManager.class, project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
-        long jobSize = JobMetadataBaseInvoker.getInstance().countByModelAndStatus(project, model, "isProgressing");
+        long jobSize = getManager(ExecutableManager.class, project).countByModelAndStatus(model,
+                ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);
         return response;
     }

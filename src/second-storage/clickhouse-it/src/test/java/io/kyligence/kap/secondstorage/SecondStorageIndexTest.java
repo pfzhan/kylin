@@ -38,7 +38,6 @@ import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.service.JobInfoService;
@@ -58,7 +57,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.controller.NAdminController;
 import org.apache.kylin.rest.controller.NModelController;
 import org.apache.kylin.rest.controller.NQueryController;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -246,11 +244,6 @@ public class SecondStorageIndexTest implements JobWaiter {
         ReflectionTestUtils.setField(modelService, "semanticUpdater", modelSemanticHelper);
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
         ReflectionTestUtils.setField(modelService, "modelQuerySupporter", modelQueryService);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        JobMetadataInvoker jobMetadataInvoker = new JobMetadataInvoker();
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", jobMetadataInvoker);
 
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);

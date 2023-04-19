@@ -18,7 +18,6 @@
 
 package org.apache.kylin.job.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
@@ -55,8 +54,6 @@ import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkContext;
@@ -104,6 +101,7 @@ import org.apache.kylin.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.JobDriverUIUtil;
@@ -127,7 +125,7 @@ import lombok.val;
 import lombok.var;
 
 @Service("jobInfoService")
-public class JobInfoService extends BasicService {
+public class JobInfoService extends BasicService implements JobSupporter {
 
     private static final Logger logger = LoggerFactory.getLogger(LogConstant.BUILD_CATEGORY);
 
@@ -978,34 +976,7 @@ public class JobInfoService extends BasicService {
     public void stopBatchJob(String project, TableDesc tableDesc) {
         List<String> fusionModelIds = getFusionModelsByTableDesc(project, tableDesc);
         List<String> jobIdList = getBatchModelJobIdsOfFusionModel(project, fusionModelIds);
-        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        for (String jobId : jobIdList) {
-            executableManager.discardJob(jobId);
-        }
-    }
-
-    private ExecutableState parseToExecutableState(JobStatusEnum status) {
-        Message msg = MsgPicker.getMsg();
-        switch (status) {
-        case SUICIDAL:
-        case DISCARDED:
-            return ExecutableState.SUICIDAL;
-        case ERROR:
-            return ExecutableState.ERROR;
-        case FINISHED:
-            return ExecutableState.SUCCEED;
-        case NEW:
-        case READY:
-            return ExecutableState.READY;
-        case PENDING:
-            return ExecutableState.PENDING;
-        case RUNNING:
-            return ExecutableState.RUNNING;
-        case STOPPED:
-            return ExecutableState.PAUSED;
-        default:
-            throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
-        }
+        JobContextUtil.remoteDiscardJob(project, jobIdList);
     }
 
     public String getOriginTrackUrlByProjectAndStepId(String project, String stepId) {

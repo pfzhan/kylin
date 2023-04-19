@@ -53,6 +53,7 @@ import org.apache.kylin.common.util.ModifyTableNameSqlVisitor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -93,8 +94,6 @@ import org.apache.kylin.metadata.model.util.scd2.SimplifiedJoinDesc;
 import org.apache.kylin.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildIndexResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
@@ -1030,9 +1029,8 @@ public class ModelSemanticHelper extends BasicService {
 
         // new cuboid
         if (hasRulebaseLayoutChange(oldRule, newRule) || forceFireEvent) {
-            final JobParam jobParam = new JobParam(model, BasicService.getUsername());
-            jobParam.setProject(project);
-            String jobId = JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
+            val jobManager = JobManager.getInstance(kylinConfig, project);
+            String jobId = jobManager.addIndexJob(new JobParam(model, BasicService.getUsername()));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 
@@ -1067,7 +1065,7 @@ public class ModelSemanticHelper extends BasicService {
         if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
             final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
             jobParam.setProject(project);
-            JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam));
+            getManager(JobManager.class, project).addIndexJob(jobParam);
         }
     }
 
@@ -1078,7 +1076,7 @@ public class ModelSemanticHelper extends BasicService {
             final JobParam jobParam = new JobParam(modelId, BasicService.getUsername());
             jobParam.setProject(project);
             jobParam.withTargetSegments(targetSegments);
-            JobMetadataBaseInvoker.getInstance().addRelatedIndexJob(new JobMetadataRequest(jobParam));
+            getManager(JobManager.class, project).addRelatedIndexJob(jobParam);
         }
     }
 

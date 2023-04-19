@@ -33,7 +33,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.engine.spark.ExecutableUtils;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.ManagementType;
@@ -46,9 +45,6 @@ import org.apache.kylin.metadata.query.QueryTimesResponse;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
@@ -142,14 +138,8 @@ public class ModelServiceWithSecondStorageTest extends NLocalFileMetadataTestCas
                 .thenAnswer(invocation -> PowerMockito.mock(PermissionGrantingStrategy.class));
         PowerMockito.when(SpringContext.getBean(SecondStorageUpdater.class))
                 .thenAnswer(invocation -> new SecondStorageService());
-        PowerMockito.when(SpringContext.getBean(JobMetadataInvoker.class))
-                .thenAnswer(invocation -> new JobMetadataInvoker());
-        PowerMockito.when(SpringContext.getBean(JobMetadataBaseInvoker.class))
-                .thenAnswer(invocation -> new JobMetadataInvoker());
         PowerMockito.when(SpringContext.getBean(ModelMetadataBaseInvoker.class))
                 .thenAnswer(invocation -> new ModelMetadataBaseInvoker());
-        PowerMockito.when(SpringContext.getBean(JobMetadataContract.class))
-                .thenAnswer(invocation -> new JobMetadataDelegate());
 
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");

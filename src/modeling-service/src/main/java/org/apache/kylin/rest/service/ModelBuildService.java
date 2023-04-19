@@ -73,11 +73,8 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.aspect.Transaction;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.AddSegmentRequest;
-import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
 import org.apache.kylin.rest.response.BuildIndexResponse;
@@ -171,36 +168,43 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
             throw new IllegalArgumentException(MsgPicker.getMsg().getCanNotBuildSegment());
         }
 
-        NDataSegment segment = EnhancedUnitOfWork
-                .doInTransactionWithCheckAndRetry(() -> createFullSegment(params), params.getProject());
-        List<JobInfoResponse.JobInfo> res = Lists.newArrayList();
-        if (params.isNeedBuild()) {
-            if (segment == null) {
-                RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
-                        Lists.newArrayList(
-                                        getManager(NDataflowManager.class, project).getDataflow(modelId).getSegments().get(0).getId())
-                                .toArray(new String[0]),
-                        true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                        .withPriority(params.getPriority()) //
-                        .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                        .withTag(params.getTag());
-                res.addAll(refreshSegmentById(refreshSegmentParams));
-            } else {
-                JobParam jobParam = new JobParam(segment, modelId, getUsername())
-                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
-                        .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
-                addJobParamExtParams(jobParam, params);
-                res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                        getManager(SourceUsageManager.class).licenseCheckWrap(project, () -> JobMetadataBaseInvoker
-                                .getInstance().addSegmentJob(new JobMetadataRequest(jobParam)))));
-            }
-        }
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
+                .doInTransactionWithCheckAndRetry(() -> constructFullBuild(params), params.getProject());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
-        jobInfoResponse.setJobs(res);
+        jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
     }
 
+    private List<JobInfoResponse.JobInfo> constructFullBuild(FullBuildSegmentParams params) {
+        NDataSegment newFullSegment = createFullSegment(params);
+        String project = params.getProject();
+        String modelId = params.getModelId();
+        List<JobInfoResponse.JobInfo> res = Lists.newArrayList();
+        if (!params.isNeedBuild()) {
+            return res;
+        }
+        if (newFullSegment == null) {
+            RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
+                    Lists.newArrayList(getManager(NDataflowManager.class, project).getDataflow(modelId).getSegments()
+                            .get(0).getId()).toArray(new String[0]),
+                    true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                            .withPriority(params.getPriority()) //
+                            .withPartialBuild(params.isPartialBuild()) //
+                            .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
+                            .withTag(params.getTag());
+            res.addAll(refreshSegmentById(refreshSegmentParams));
+        } else {
+            JobParam jobParam = new JobParam(newFullSegment, modelId, getUsername())
+                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
+                    .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
+            addJobParamExtParams(jobParam, params);
+            String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                    () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam));
+            res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), jobId));
+        }
+        return res;
+    }
+    
     private NDataSegment createFullSegment(FullBuildSegmentParams params) {
         String project = params.getProject();
         String modelId = params.getModelId();
@@ -228,6 +232,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         }
     }
 
+    @Transaction(project = 0)
     public List<JobInfoResponse.JobInfo> refreshSegmentById(RefreshSegmentParams params) {
 
         aclEvaluate.checkProjectOperationPermission(params.getProject());
@@ -237,37 +242,31 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                 SegmentStatusEnumToDisplay.MERGING, SegmentStatusEnumToDisplay.LOCKED);
 
         List<JobInfoResponse.JobInfo> jobIds = new ArrayList<>();
-        List<NDataSegment> newSegments = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataflowManager dfMgr = getManager(NDataflowManager.class, params.getProject());
-            IndexPlan indexPlan = getIndexPlan(params.getModelId(), params.getProject());
-            NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
-            List<NDataSegment> segments = Lists.newArrayList();
-            for (String id : params.getSegmentIds()) {
-                NDataSegment segment = df.getSegment(id);
-                if (segment == null) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
-                }
-                NDataSegment seg = modelMetadataInvoker.refreshSegment(params.getProject(), indexPlan.getUuid(), id);
-                seg.setDataflow(df);
-                segments.add(seg);
+
+        NDataflowManager dfMgr = getManager(NDataflowManager.class, params.getProject());
+        IndexPlan indexPlan = getIndexPlan(params.getModelId(), params.getProject());
+        NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
+        List<NDataSegment> segments = Lists.newArrayList();
+        for (String id : params.getSegmentIds()) {
+            NDataSegment segment = df.getSegment(id);
+            if (segment == null) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
-            return segments;
-        }, params.getProject());
+            NDataSegment seg = modelMetadataInvoker.refreshSegment(params.getProject(), indexPlan.getUuid(), id);
+            seg.setDataflow(df);
+            segments.add(seg);
+        }
 
-
-        for (NDataSegment segment : newSegments) {
+        for (NDataSegment segment : segments) {
             JobParam jobParam = new JobParam(segment, params.getModelId(), getUsername())
                     .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                    .withPriority(params.getPriority())
-                    .withYarnQueue(params.getYarnQueue())
-                    .withTag(params.getTag())
-                    .withProject(params.getProject());
+                    .withPriority(params.getPriority()).withYarnQueue(params.getYarnQueue())
+                    .withTag(params.getTag()).withProject(params.getProject());
             addJobParamExtParams(jobParam, params);
             String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(params.getProject(),
-                    () -> JobMetadataBaseInvoker.getInstance().refreshSegmentJob(new JobMetadataRequest(jobParam),
+                    () -> JobManager.getInstance(getConfig(), params.getProject()).refreshSegmentJob(jobParam,
                             params.isRefreshAllLayouts()));
-
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), jobId));
         }
         return jobIds;
@@ -311,23 +310,20 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         copyModel.init(modelManager.getConfig(), project, modelManager.getCCRelatedModels(copyModel));
         String format = modelService.probeDateFormatIfNotExist(project, copyModel);
 
-        IncrementBuildSegmentParams buildSegmentParams = new IncrementBuildSegmentParams(project,
-                params.getModelId(), startFormat, endFormat, params.getPartitionDesc(),
-                params.getMultiPartitionDesc(), format, params.getSegmentHoles(), params.isNeedBuild(),
-                params.getMultiPartitionValues()) //
-                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                .withPriority(params.getPriority())
-                .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
-                .withPartialBuild(params.isPartialBuild()) //
-                .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
-                .withTag(params.getTag());
+        IncrementBuildSegmentParams buildSegmentParams = new IncrementBuildSegmentParams(project, params.getModelId(),
+                startFormat, endFormat, params.getPartitionDesc(), params.getMultiPartitionDesc(), format,
+                params.getSegmentHoles(), params.isNeedBuild(), params.getMultiPartitionValues()) //
+                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
+                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
+                        .withPartialBuild(params.isPartialBuild()) //
+                        .withBatchIndexIds(params.getBatchIndexIds()).withYarnQueue(params.getYarnQueue())
+                        .withTag(params.getTag());
 
-        List<JobParam> paramList = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() ->
-                createSegmentsAndJobParams(buildSegmentParams), project);
-        List<JobInfoResponse.JobInfo> jobIds = new LinkedList<>();
-        if (CollectionUtils.isNotEmpty(paramList)) {
-            jobIds = createJob(paramList);
-        }
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            List<JobParam> paramList = createSegmentsAndJobParams(buildSegmentParams);
+            return createJob(paramList);
+        }, project);
+
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
@@ -338,9 +334,8 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         for (JobParam params : jobParamList) {
             JobInfoResponse.JobInfo jobInfo = params == null ? null
                     : new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                            getManager(SourceUsageManager.class).licenseCheckWrap(params.getProject(),
-                                    () -> JobMetadataBaseInvoker.getInstance()
-                                            .addSegmentJob(new JobMetadataRequest(params))));
+                            getManager(SourceUsageManager.class).licenseCheckWrap(params.getProject(), () -> JobManager
+                                    .getInstance(getConfig(), params.getProject()).addSegmentJob(params)));
             res.add(jobInfo);
         }
         return res;
@@ -485,8 +480,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                     model.getMultiPartitionDesc().getPartitionIdsByValues(params.getMultiPartitionValues()));
         }
         return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getManager(SourceUsageManager.class)
-                .licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().addSegmentJob(new JobMetadataRequest(jobParam))));
+                .licenseCheckWrap(project, () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam)));
     }
 
     private void buildSegmentOverlapExceptionInfo(List<NDataSegment> overlapSegments) {
@@ -536,12 +530,13 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                 .withPriority(priority).withYarnQueue(yarnQueue).withTag(tag);
         jobParam.setProject(project);
         String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> JobMetadataBaseInvoker.getInstance().addIndexJob(new JobMetadataRequest(jobParam)));
+                () -> getManager(JobManager.class, project).addIndexJob(jobParam));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) ? BuildIndexResponse.BuildIndexType.NO_LAYOUT
                 : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
-
+    
+    @Transaction(project = 0)
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
             List<String[]> partitionValues, boolean parallelBuild, boolean buildAllPartitions, int priority,
             String yarnQueue, Object tag) {
@@ -550,30 +545,29 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         modelService.checkSegmentsExistById(modelId, project, new String[] { segmentId });
         modelService.checkModelIsMLP(modelId, project);
         List<String[]> finalPartitionValues = partitionValues == null ? Lists.newArrayList() : partitionValues;
-        Set<Long> partitionIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val dfm = getManager(NDataflowManager.class, project);
-            val df = dfm.getDataflow(modelId);
-            val segment = df.getSegment(segmentId);
-            val duplicatePartitions = segment.findDuplicatePartitions(finalPartitionValues);
-            if (!duplicatePartitions.isEmpty()) {
-                throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE);
-            }
-            if (buildAllPartitions) {
-                List<Long> oldPartitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
-                        .collect(Collectors.toList());
-                NDataModel model = modelService.getModelById(modelId, project);
-                List<String[]> oldPartitions = model.getMultiPartitionDesc().getPartitionValuesById(oldPartitionIds);
-                List<String[]> allPartitions = model.getMultiPartitionDesc().getPartitions().stream()
-                        .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
-                List<String[]> diffPartitions = MultiPartitionUtil.findDiffValues(allPartitions, oldPartitions);
-                finalPartitionValues.addAll(diffPartitions);
-            }
-            modelMetadataInvoker.appendPartitions(project, df.getId(), segment.getId(), finalPartitionValues);
-            return getManager(NDataModelManager.class, project).getDataModelDesc(modelId).getMultiPartitionDesc()
-                    .getPartitionIdsByValues(finalPartitionValues);
-        }, project);
 
-        return parallelBuildPartition(parallelBuild, project, modelId, segmentId, partitionIds, priority, yarnQueue,
+        val dfm = getManager(NDataflowManager.class, project);
+        val df = dfm.getDataflow(modelId);
+        val segment = df.getSegment(segmentId);
+        val duplicatePartitions = segment.findDuplicatePartitions(finalPartitionValues);
+        if (!duplicatePartitions.isEmpty()) {
+            throw new KylinException(JOB_CREATE_CHECK_MULTI_PARTITION_DUPLICATE);
+        }
+        if (buildAllPartitions) {
+            List<Long> oldPartitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
+                    .collect(Collectors.toList());
+            NDataModel model = modelService.getModelById(modelId, project);
+            List<String[]> oldPartitions = model.getMultiPartitionDesc().getPartitionValuesById(oldPartitionIds);
+            List<String[]> allPartitions = model.getMultiPartitionDesc().getPartitions().stream()
+                    .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+            List<String[]> diffPartitions = MultiPartitionUtil.findDiffValues(allPartitions, oldPartitions);
+            finalPartitionValues.addAll(diffPartitions);
+        }
+        modelMetadataInvoker.appendPartitions(project, df.getId(), segment.getId(), finalPartitionValues);
+        Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId)
+                .getMultiPartitionDesc().getPartitionIdsByValues(finalPartitionValues);
+
+        return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions, priority, yarnQueue,
                 tag);
     }
 
@@ -584,17 +578,17 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
             checkConcurrentSubmit(partitionIds.size(), project);
             partitionIds.forEach(partitionId -> {
                 val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(),
-                        Sets.newHashSet(partitionId), null).withPriority(priority).withYarnQueue(yarnQueue)
-                                .withTag(tag).withProject(project);
+                        Sets.newHashSet(partitionId), null).withPriority(priority).withYarnQueue(yarnQueue).withTag(tag)
+                                .withProject(project);
                 val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                        () -> JobMetadataBaseInvoker.getInstance().buildPartitionJob(new JobMetadataRequest(jobParam)));
+                        () -> getManager(JobManager.class, project).buildPartitionJob(jobParam));
                 jobIds.add(jobId);
             });
         } else {
             val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(), partitionIds, null)
                     .withPriority(priority).withYarnQueue(yarnQueue).withTag(tag).withProject(project);
             val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> JobMetadataBaseInvoker.getInstance().buildPartitionJob(new JobMetadataRequest(jobParam)));
+                    () -> getManager(JobManager.class, project).buildPartitionJob(jobParam));
             jobIds.add(jobId);
         }
         return JobInfoResponse.of(jobIds, JobTypeEnum.SUB_PARTITION_BUILD.toString());
@@ -661,34 +655,32 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                         .withYarnQueue(param.getYarnQueue()).withTag(param.getTag()).withProject(project);
 
         val jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> JobMetadataBaseInvoker.getInstance().refreshSegmentJob(new JobMetadataRequest(jobParam)));
+                () -> jobManager.refreshSegmentJob(jobParam));
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
     }
 
+    @Transaction(project = 0)
     public JobInfoResponse.JobInfo mergeSegmentsManually(MergeSegmentParams params) {
         val startAndEnd = modelService.checkMergeSegments(params);
 
         String project = params.getProject();
         String modelId = params.getModelId();
 
-        NDataSegment mergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val dfManager = getManager(NDataflowManager.class, project);
-            val indexPlan = getIndexPlan(modelId, project);
-            val df = dfManager.getDataflow(indexPlan.getUuid());
-            return modelMetadataInvoker.mergeSegments(project, new MergeSegmentRequest(indexPlan.getUuid(),
-                    new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()), true,
-                    null, null));
-        }, project);
-
-        JobParam jobParam = new JobParam(mergeSeg, modelId, getUsername())
-                .withPriority(params.getPriority())
-                .withYarnQueue(params.getYarnQueue())
-                .withTag(params.getTag())
-                .withProject(project);
+        val dfManager = getManager(NDataflowManager.class, project);
+        val jobManager = getManager(JobManager.class, project);
+        val indexPlan = getIndexPlan(modelId, project);
+        val df = dfManager.getDataflow(indexPlan.getUuid());
+        NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegments(
+                df, new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()),
+                true);
+        JobParam jobParam = new JobParam(mergeSeg, modelId, getUsername()).withPriority(params.getPriority())
+                .withYarnQueue(params.getYarnQueue()).withTag(params.getTag()).withProject(project);
+        val result = new JobInfoResponse.JobInfo();
         String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> JobMetadataBaseInvoker.getInstance().mergeSegmentJob(new JobMetadataRequest(jobParam)));
-
-        return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), jobId);
+                () -> jobManager.mergeSegmentJob(jobParam));
+        result.setJobName(JobTypeEnum.INDEX_MERGE.toString());
+        result.setJobId(jobId);
+        return result;
     }
 
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
@@ -724,8 +716,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                 }
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                                () -> JobMetadataBaseInvoker.getInstance()
-                                        .addRelatedIndexJob(new JobMetadataRequest(jobParam))));
+                                () -> getManager(JobManager.class, project).addRelatedIndexJob(jobParam)));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);
@@ -750,7 +741,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                         .withProject(project);
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                                () -> JobMetadataBaseInvoker.getInstance().addRelatedIndexJob(new JobMetadataRequest(jobParam))));
+                                () -> getManager(JobManager.class, project).addRelatedIndexJob(jobParam)));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);

@@ -33,11 +33,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.job.condition.JobModeCondition;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -45,6 +44,7 @@ import org.springframework.security.util.InMemoryResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
+import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,8 +53,6 @@ import lombok.extern.slf4j.Slf4j;
 @Conditional(JobModeCondition.class)
 public class JobMybatisConfig implements InitializingBean {
 
-    @Autowired
-    @Qualifier("jobDataSource")
     private DataSource dataSource;
 
     private String database;
@@ -68,9 +66,12 @@ public class JobMybatisConfig implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        StorageURL jobMetadataUrl = KylinConfig.getInstanceFromEnv().getJobMetadataUrl();
-        String keIdentified = jobMetadataUrl.getIdentifier();
-        if (StringUtils.isEmpty(jobMetadataUrl.getScheme())){
+        val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
+        val props = JdbcUtil.datasourceParameters(url);
+        dataSource = JdbcDataSource.getDataSource(props);
+
+        String keIdentified = url.getIdentifier();
+        if (StringUtils.isEmpty(url.getScheme())){
             log.info("metadata from file");
             keIdentified = "file";
         }
@@ -80,7 +81,6 @@ public class JobMybatisConfig implements InitializingBean {
 
         String jobInfoFile = "script/schema_job_info_mysql.sql";
         String jobLockFile = "script/schema_job_lock_mysql.sql";
-        // todo: add pg sql
 
         Method[] declaredMethods = ReflectionUtils.getDeclaredMethods(dataSource.getClass());
         List<Method> getDriverClassNameMethodList = Arrays.stream(declaredMethods)

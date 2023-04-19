@@ -134,27 +134,30 @@ public class JobContext implements InitializingBean, DisposableBean {
 
         kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        resourceAcquirer = new ResourceAcquirer(kylinConfig);
-        resourceAcquirer.start();
-
-        progressReporter = new SharedFileProgressReporter(kylinConfig);
-        progressReporter.start();
-
-        parallelLimiter = new ParallelLimiter(this);
-        parallelLimiter.start();
-
-        lockClient = new JdbcLockClient(this);
-        lockClient.start();
-
-        jobScheduler = new JdbcJobScheduler(this);
-        jobScheduler.start();
-
         projectReachQuotaLimitMap = Maps.newConcurrentMap();
         QuotaStorageCheckRunner quotaStorageCheckRunner = new QuotaStorageCheckRunner(this);
         JobCheckUtil.startQuotaStorageCheckRunner(quotaStorageCheckRunner);
+        
+        if (kylinConfig.isJobNode() || kylinConfig.isDataLoadingNode() || kylinConfig.isUTEnv()) {
 
-        JobCheckRunner jobCheckRunner = new JobCheckRunner(this);
-        JobCheckUtil.startJobCheckRunner(jobCheckRunner);
+            resourceAcquirer = new ResourceAcquirer(kylinConfig);
+            resourceAcquirer.start();
+
+            progressReporter = new SharedFileProgressReporter(kylinConfig);
+            progressReporter.start();
+
+            parallelLimiter = new ParallelLimiter(this);
+            parallelLimiter.start();
+
+            lockClient = new JdbcLockClient(this);
+            lockClient.start();
+
+            jobScheduler = new JdbcJobScheduler(this);
+            jobScheduler.start();
+
+            JobCheckRunner jobCheckRunner = new JobCheckRunner(this);
+            JobCheckUtil.startJobCheckRunner(jobCheckRunner);
+        }
     }
 
     public String getServerNode() {

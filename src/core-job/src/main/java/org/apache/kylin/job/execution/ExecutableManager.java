@@ -77,12 +77,13 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobInfo;
-import org.apache.kylin.job.domain.JobLock;
 import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -1656,6 +1657,32 @@ public class ExecutableManager {
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
     }
 
+    public void checkSuicideJobOfModel(String project, String modelId) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        jobMapperFilter.setStatuses(Lists.newArrayList(JobStatusEnum.ERROR.name(), JobStatusEnum.STOPPED.name(),
+                JobStatusEnum.STOPPING.name()));
+        List<JobInfo> errorJobInfoList = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .fetchJobsByFilter(jobMapperFilter);
+        if (CollectionUtils.isEmpty(errorJobInfoList)) {
+            log.info("No job need to suicide, project: {}, model id: {}", project, modelId);
+            return;
+        }
+        ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (JobInfo jobInfo : errorJobInfoList) {
+            String jobId = jobInfo.getJobId();
+            JobContextUtil.withTxAndRetry(() -> {
+                AbstractExecutable job = executableManager.getJob(jobId);
+                if (JobCheckUtil.checkSuicide(job)) {
+                    executableManager.suicideJob(jobId);
+                    log.info("Suicide job: {}, project: {}, model id: {}", jobId, project, modelId);
+                }
+                return true;
+            });
+        }
+    }
+
     // for ut
     public void resumeAllRunningJobs() {
         val jobs = jobInfoDao.getJobs(project);
@@ -1688,39 +1715,6 @@ public class ExecutableManager {
         }
         return result;
     }
-
-    //TODO KE-37319
-//    public void cancelJob(ExecutablePO executablePO, String taskOrJobId) {
-//        if (!config.isUTEnv()) {
-//            cancelJobSubTasks(executablePO);
-//            if (StringUtils.equals(executablePO.getId(), taskOrJobId)) {
-//                interruptJob(fromPO(executablePO));
-//            }
-//        }
-//    }
-//
-//    public void cancelJobSubTasks(ExecutablePO executablePO) {
-//        if (CollectionUtils.isNotEmpty(executablePO.getTasks())) {
-//            executablePO.getTasks().stream().map(this::fromPO).forEach(task -> {
-//                logger.info("Cancel subtask [{}]", task.getDisplayName());
-//                task.cancelJob();
-//            });
-//        }
-//    }
-//
-//    private void interruptJob(AbstractExecutable executable) {
-//        val scheduler = NDefaultScheduler.getInstance(project);
-//        if (scheduler.getContext() == null) {
-//            logger.info("ExecutableContext is null when Interrupt Job [{}] thread", executable.getDisplayName());
-//            return;
-//        }
-//        val thread = scheduler.getContext().getRunningJobThread(executable);
-//        if (thread != null) {
-//            logger.info("Interrupt Job [{}] thread and remove in ExecutableContext", executable.getDisplayName());
-//            thread.interrupt();
-//            scheduler.getContext().removeRunningJob(executable);
-//        }
-//    }
 
     public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusSet) {
         Preconditions.checkNotNull(statusSet);
@@ -1936,9 +1930,4 @@ public class ExecutableManager {
         return jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO).map(executablePO -> fromPO(executablePO))
                 .collect(Collectors.toList());
     }
-
-    public List<JobLock> fetchAllJobLock() {
-        return jobInfoDao.fetchAllJobLock();
-    }
-
 }

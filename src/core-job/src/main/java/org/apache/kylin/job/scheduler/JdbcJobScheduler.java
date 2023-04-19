@@ -40,9 +40,9 @@ import org.apache.kylin.job.core.lock.JdbcJobLock;
 import org.apache.kylin.job.core.lock.LockAcquireListener;
 import org.apache.kylin.job.core.lock.LockException;
 import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.domain.PriorityFistRandomOrderJob;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.domain.JobLock;
+import org.apache.kylin.job.domain.PriorityFistRandomOrderJob;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -50,6 +50,7 @@ import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
+import org.apache.kylin.metadata.cube.utils.StreamingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,7 +208,8 @@ public class JdbcJobScheduler implements JobScheduler {
 
             String polledJobIdInfo = readyJobIdList.stream().collect(Collectors.joining(",", "[", "]"));
             logger.info("Scheduler polled jobs: {} {}", readyJobIdList.size(), polledJobIdInfo);
-
+            // force catchup metadata before produce jobs
+            StreamingUtils.replayAuditlog();
             for (String jobId : readyJobIdList) {
                 if (!jobContext.getParallelLimiter().tryAcquire()) {
                     return;
@@ -286,7 +288,10 @@ public class JdbcJobScheduler implements JobScheduler {
             if (CollectionUtils.isEmpty(jobIdList)) {
                 return;
             }
-
+            // for slave node, force catchup metadata before execute jobs
+            if (!isMaster.get()) {
+                StreamingUtils.replayAuditlog();
+            }
             // submit job
             jobIdList.forEach(jobId -> {
                 // check 'runningJobMap', avoid processing submitted tasks

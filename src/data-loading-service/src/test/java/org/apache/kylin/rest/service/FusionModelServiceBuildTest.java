@@ -24,7 +24,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -33,7 +32,6 @@ import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.rest.config.initialize.ModelUpdateListener;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.IndexesToSegmentsRequest;
 import org.apache.kylin.rest.service.params.IncrementBuildSegmentParams;
@@ -124,9 +122,6 @@ public class FusionModelServiceBuildTest extends SourceTestCase {
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
         ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
     }
 
     @After

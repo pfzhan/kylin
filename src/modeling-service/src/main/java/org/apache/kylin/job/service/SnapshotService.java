@@ -46,16 +46,22 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.exception.JobSubmissionException;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.acl.AclTCRDigest;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -69,8 +75,6 @@ import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.SnapshotStatus;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRequest;
 import org.apache.kylin.rest.request.SnapshotRequest;
 import org.apache.kylin.rest.response.JobInfoResponse;
 import org.apache.kylin.rest.response.NInitTablesResponse;
@@ -118,7 +122,8 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
     private TableService tableService;
 
     private List<JobInfo> fetchAllRunningSnapshotTasksByTableIds(String project, Set<String> tableIds) {
-        return JobMetadataBaseInvoker.getInstance().fetchNotFinalJobsByTypes(project, SNAPSHOT_JOB_TYPES,
+        return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).fetchNotFinalJobsByTypes(
+                project, Lists.newArrayList(SNAPSHOT_JOB_TYPES),
                 null == tableIds ? null : Lists.newArrayList(tableIds));
     }
 
@@ -183,35 +188,38 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         Map<String, SnapshotRequest.TableOption> finalOptions = Maps.newHashMap();
 
-        List<String> jobIds = new ArrayList<>();
-
         //double check for fail fast
         checkRunningSnapshotTask(project, needBuildSnapshotTables);
-        for (TableDesc tableDesc : tables) {
-            SnapshotRequest.TableOption option = decideBuildOption(tableDesc, options.get(tableDesc.getIdentity()));
-            finalOptions.put(tableDesc.getIdentity(), option);
+        JobManager.checkStorageQuota(project);
 
-            logger.info(
-                    "create snapshot job with args, table: {}, selectedPartCol: {}, selectedPartition{}, incrementBuild: {},isRefresh: {}",
-                    tableDesc.getIdentity(), option.getPartitionCol(), option.getPartitionsToBuild(),
-                    option.isIncrementalBuild(), isRefresh);
-            JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-            String value = option.getPartitionsToBuild() == null ? null : JsonUtil.writeValueAsString(option.getPartitionsToBuild());
-            JobParam jobParam = new JobParam()
-                    .withProject(project)
-                    .withTable(tableDesc.getTableAlias())
-                    .withPriority(snapshotsRequest.getPriority())
-                    .withYarnQueue(snapshotsRequest.getYarnQueue())
-                    .withJobTypeEnum(jobType)
-                    .withTag(snapshotsRequest.getTag())
-                    .withOwner(BasicService.getUsername())
-                    .addExtParams(NBatchConstants.P_INCREMENTAL_BUILD, String.valueOf(option.isIncrementalBuild()))
-                    .addExtParams(NBatchConstants.P_SELECTED_PARTITION_COL, option.getPartitionCol())
-                    .addExtParams(NBatchConstants.P_SELECTED_PARTITION_VALUE, value);
-            jobIds.add(getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                    () -> JobMetadataBaseInvoker.getInstance().addJob(new JobMetadataRequest(jobParam))));
-        }
+        List<String> jobIds = new ArrayList<>();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            //double check for fail fast
+            checkRunningSnapshotTask(project, needBuildSnapshotTables);
+            JobManager.checkStorageQuota(project);
+            for (TableDesc tableDesc : tables) {
+                JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
+                jobStatisticsManager.updateStatistics(TimeUtil.getDayStart(System.currentTimeMillis()), 0, 0, 1);
+                SnapshotRequest.TableOption option = decideBuildOption(tableDesc, options.get(tableDesc.getIdentity()));
+                finalOptions.put(tableDesc.getIdentity(), option);
+
+                logger.info(
+                        "create snapshot job with args, table: {}, selectedPartCol: {}, selectedPartition{}, incrementBuild: {},isRefresh: {}",
+                        tableDesc.getIdentity(), option.getPartitionCol(), option.getPartitionsToBuild(),
+                        option.isIncrementalBuild(), isRefresh);
+                JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
+                String value = option.getPartitionsToBuild() == null ? null
+                        : JsonUtil.writeValueAsString(option.getPartitionsToBuild());
+                JobParam jobParam = new JobParam().withProject(project).withTable(tableDesc.getTableAlias())
+                        .withPriority(snapshotsRequest.getPriority()).withYarnQueue(snapshotsRequest.getYarnQueue())
+                        .withJobTypeEnum(jobType).withTag(snapshotsRequest.getTag())
+                        .withOwner(BasicService.getUsername())
+                        .addExtParams(NBatchConstants.P_INCREMENTAL_BUILD, String.valueOf(option.isIncrementalBuild()))
+                        .addExtParams(NBatchConstants.P_SELECTED_PARTITION_COL, option.getPartitionCol())
+                        .addExtParams(NBatchConstants.P_SELECTED_PARTITION_VALUE, value);
+                jobIds.add(getManager(SourceUsageManager.class).licenseCheckWrap(project,
+                        () -> getManager(JobManager.class, project).addJob(jobParam)));
+            }
             updateTableDesc(project, tables, finalOptions);
             return null;
         }, project);
@@ -321,10 +329,10 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
         NTableMetadataManager tableManager = getManager(NTableMetadataManager.class, project);
         List<JobInfo> conflictJobs = fetchAllRunningSnapshotTasks(project, tables);
-
+        List<String> conflictJobIds = conflictJobs.stream().map(jobInfo -> jobInfo.getJobId()).collect(Collectors.toList());
+        JobContextUtil.remoteDiscardJob(project, conflictJobIds);
         SnapshotCheckResponse response = new SnapshotCheckResponse();
         conflictJobs.forEach(job -> {
-            JobMetadataBaseInvoker.getInstance().discardJob(project, job.getJobId());
             updateSnapshotCheckResponse(job, response);
         });
         tableNames.forEach(tableName -> {

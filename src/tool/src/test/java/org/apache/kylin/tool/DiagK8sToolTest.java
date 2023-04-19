@@ -38,7 +38,6 @@ import org.apache.kylin.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.query.QueryHistoryInfo;
 import org.apache.kylin.metadata.query.QueryMetrics;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -122,7 +121,6 @@ class DiagK8sToolTest {
 
             JobContextUtil.cleanUp();
             JobContextUtil.getJobContextForTest(config);
-            JobMetadataInvoker.setDelegate(new AbstractInfoExtractorToolTest.JobDelegate());
 
             NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, DEFAULT_PROJECT);
             NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.listAllTables().get(0), "ADMIN",

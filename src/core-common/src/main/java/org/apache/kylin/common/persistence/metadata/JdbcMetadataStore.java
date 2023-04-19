@@ -106,7 +106,7 @@ public class JdbcMetadataStore extends MetadataStore {
         val url = config.getMetadataUrl();
         val props = JdbcUtil.datasourceParameters(url);
         val dataSource = JdbcDataSource.getDataSource(props);
-        transactionManager = new DataSourceTransactionManager(dataSource);
+        transactionManager = JdbcDataSource.getTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier();
         if (config.isMetadataAuditLogEnabled()) {

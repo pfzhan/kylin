@@ -18,8 +18,6 @@
 
 package org.apache.kylin.rest;
 
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
-import org.apache.kylin.rest.delegate.JobMetadataRpc;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.delegate.TableMetadataInvoker;
@@ -40,12 +38,11 @@ public class CommonContractConfig implements InitializingBean, ApplicationContex
     ApplicationContext applicationContext = null;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelService.class));
         JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsService.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableExtService.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingRPC.class));
-        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataRpc.class));
     }
 
     @Override

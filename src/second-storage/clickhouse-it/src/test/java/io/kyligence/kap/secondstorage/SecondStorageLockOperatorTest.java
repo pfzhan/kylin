@@ -41,7 +41,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
@@ -55,7 +54,6 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.controller.NModelController;
 import org.apache.kylin.rest.controller.SegmentController;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.IndexesToSegmentsRequest;
 import org.apache.kylin.rest.request.ModelRequest;
@@ -235,10 +233,7 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv());
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
         ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
+
         ReflectionTestUtils.setField(segmentController, "modelService", modelService);
         ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
         ModelMetadataInvoker.setDelegate(modelService);

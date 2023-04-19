@@ -81,7 +81,6 @@ import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.delegate.JobMetadataDelegate;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -120,7 +119,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.controller.NAdminController;
 import org.apache.kylin.rest.controller.NModelController;
 import org.apache.kylin.rest.controller.NQueryController;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
@@ -392,10 +390,6 @@ public class SecondStorageLockTest implements JobWaiter {
 
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
         ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
-        JobMetadataDelegate jobMetadataDelegate = new JobMetadataDelegate();
-        ReflectionTestUtils.setField(jobMetadataDelegate, "jobInfoService", jobInfoService);
-        JobMetadataInvoker.setDelegate(jobMetadataDelegate);
-        ReflectionTestUtils.setField(modelService, "jobMetadataInvoker", new JobMetadataInvoker());
     }
 
 

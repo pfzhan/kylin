@@ -37,7 +37,6 @@ import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.tool.constant.SensitiveConfigKeysConstant;
 import org.apache.kylin.tool.obf.KylinConfObfuscatorTest;
 import org.apache.kylin.tool.snapshot.SnapshotSourceTableStatsTool;
@@ -79,7 +78,6 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     public void createTestMetadata(String... overlay) {
         super.createTestMetadata(overlay);
         JobMetadataWriter.writeJobMetaData(getTestConfig());
-        JobMetadataInvoker.setDelegate(new AbstractInfoExtractorToolTest.JobDelegate());
     }
 
     @After

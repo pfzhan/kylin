@@ -27,9 +27,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.rest.cluster.ClusterManager;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.kylin.streaming.manager.StreamingJobManager;
 import org.apache.kylin.tool.restclient.RestClient;
@@ -53,7 +53,7 @@ public class ProjectDropListener {
 
         try {
             destroyAllProcess(project, clusterManager, headers);
-            JobMetadataBaseInvoker.getInstance().clearJobsByProject(project);
+            ExecutableManager.getInstance(kylinConfig, project).deleteAllJobsOfProject();
             StreamingJobManager.getInstance(kylinConfig, project).destroyAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             QueryHistoryIdOffsetManager.getInstance(project).delete();

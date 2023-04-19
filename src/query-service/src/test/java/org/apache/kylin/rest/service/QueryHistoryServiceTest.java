@@ -56,8 +56,6 @@ import org.apache.kylin.metadata.query.QueryStatistics;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDaoTest;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.response.QueryStatisticsResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -95,6 +93,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
 
+    @InjectMocks
+    private final JobSupporter jobInfoService = Mockito.spy(JobSupporter.class);
+
     @Mock
     private final AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
     @Mock
@@ -113,10 +114,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
-        JobMetadataInvoker jobMetadataInvoker = Mockito.spy(JobMetadataInvoker.class);
-        ReflectionTestUtils.setField(tableService, "jobMetadataInvoker", jobMetadataInvoker);
-        JobMetadataContract jobMetadataContract = Mockito.spy(JobMetadataContract.class);
-        JobMetadataInvoker.setDelegate(jobMetadataContract);
+        ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
         ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);
         ReflectionTestUtils.setField(queryHistoryService, "userGroupService", userGroupService);

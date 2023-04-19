@@ -18,9 +18,11 @@
 
 package org.apache.kylin.tool;
 
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
+
 import java.io.File;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
@@ -41,15 +43,11 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
-import org.apache.kylin.job.rest.JobMapperFilter;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.val;
-
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
 
 public class YarnApplicationTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -107,10 +105,9 @@ public class YarnApplicationTool extends ExecutableApplication {
     }
 
     public Set<String> extract(String project, String jobId) {
-        JobMapperFilter filter = JobMapperFilter.builder().project(project).jobId(jobId).build();
-        List<ExecutablePO> jobs = JobMetadataInvoker.getInstance().getExecutablePOsByFilter(filter);
-        if (jobs.size() == 1) {
-            String appIds = jobs.get(0).getOutput().getInfo().getOrDefault(YARN_APP_IDS, "");
+        ExecutablePO executablePO = JobContextUtil.getJobInfoDao(kylinConfig).getExecutablePOByUuid(jobId);
+        if (null != executablePO) {
+            String appIds = executablePO.getOutput().getInfo().getOrDefault(YARN_APP_IDS, "");
             return StringUtils.isEmpty(appIds) ? new TreeSet<>()
                     : new TreeSet<>(Arrays.asList(appIds.split(YARN_APP_IDS_DELIMITER)));
         } else {

@@ -100,6 +100,7 @@ public class JobCheckUtil {
                 AbstractExecutable job = executableManager.fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo));
                 if (checkSuicide(job)) {
                     executableManager.suicideJob(jobId);
+                    return true;
                 }
                 return false;
             });

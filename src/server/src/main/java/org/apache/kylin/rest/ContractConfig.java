@@ -18,8 +18,6 @@
 
 package org.apache.kylin.rest;
 
-import org.apache.kylin.rest.delegate.JobMetadataContract;
-import org.apache.kylin.rest.delegate.JobMetadataInvoker;
 import org.apache.kylin.rest.delegate.JobStatisticsContract;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 import org.apache.kylin.rest.delegate.ModelMetadataContract;
@@ -33,6 +31,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+
 @Component
 public class ContractConfig implements InitializingBean, ApplicationContextAware {
 
@@ -44,7 +43,6 @@ public class ContractConfig implements InitializingBean, ApplicationContextAware
         JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsContract.class));
         TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataContract.class));
         TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingContract.class));
-        JobMetadataInvoker.setDelegate(applicationContext.getBean(JobMetadataContract.class));
     }
 
     @Override

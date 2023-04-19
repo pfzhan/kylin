@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.rest.JobMapperFilter;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -43,7 +43,6 @@ import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.rest.delegate.JobMetadataBaseInvoker;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -111,19 +110,17 @@ public class SegmentUtil {
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
-        List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
-                segment.getModel().getProject(), "isRunning", INDEX_BUILD, SUB_PARTITION_BUILD);
-        return executablePOS.stream().map(execManager::fromPO)
-                .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+        List<AbstractExecutable> executables = execManager.listExecByModelAndStatus(segment.getModel().getId(),
+                ExecutableState::isRunning, INDEX_BUILD, SUB_PARTITION_BUILD);
+        return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }
 
     protected static <T extends ISegment> boolean anyIncSegmentJobRunning(T segment) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         ExecutableManager execManager = ExecutableManager.getInstance(kylinConfig, segment.getModel().getProject());
-        List<ExecutablePO> executablePOS = JobMetadataBaseInvoker.getInstance().listExecPOByJobTypeAndStatus(
-                segment.getModel().getProject(), "isRunning", INC_BUILD);
-        return executablePOS.stream().map(execManager::fromPO)
-                .anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+        List<AbstractExecutable> executables = execManager.listExecByModelAndStatus(segment.getModel().getId(),
+                ExecutableState::isRunning, INC_BUILD);
+        return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
     }
 
     protected static <T extends ISegment> boolean anyIndexJobRunning(T segment, List<AbstractExecutable> executables) {
@@ -169,7 +166,8 @@ public class SegmentUtil {
         jobMapperFilter.setProject(project);
         jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
         jobMapperFilter.setStatuses(ExecutableState.getNotFinalStateNames());
-        List<JobInfo> runningJobInfoList = JobMetadataBaseInvoker.getInstance().fetchJobList(jobMapperFilter);
+        List<JobInfo> runningJobInfoList = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                .getJobInfoListByFilter(jobMapperFilter);
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         List<AbstractExecutable> executables = runningJobInfoList.stream()
                 .map(jobInfo -> executableManager.fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo)))
