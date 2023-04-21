@@ -23,6 +23,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 
 import org.apache.kylin.query.engine.PrepareSqlStateParam;
+import org.apache.kylin.query.util.PrepareSQLUtils;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -128,7 +128,7 @@ class BroadcasterTest {
                 ObsConfig.S3.getType(), "aa", "bb", "cc", "");
         assert !notifier.needBroadcastSelf();
         broadcastListener.handle(notifier);
-        assert SparderEnv.getSparkSession().conf().contains(String.format(ObsConfig.S3.getRoleArnKey(), "aa"));
+        Assert.assertTrue(SparderEnv.getSparkSession().conf().contains(String.format(ObsConfig.S3.getRoleArnKey(), "aa")));
     }
 
     @Test
