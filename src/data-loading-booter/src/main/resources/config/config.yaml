@@ -40,6 +40,6 @@ kylin:
             group: "${TENANT_ID}"
             autoRefresh: true
             needInit: true
-            initConfigContent: "${KYLIN_HOME}/conf/init.properties"
+            initConfigContent: "${KYLIN_HOME}/conf/init${CONFIG_INIT_SPEC:}.properties"
             configPropertyFileType: "PROPERTIES"
             configLibrary: "${KYLIN_HOME}/conf/config_library.csv"
