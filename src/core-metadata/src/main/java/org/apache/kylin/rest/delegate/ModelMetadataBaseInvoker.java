@@ -17,18 +17,15 @@
  */
 package org.apache.kylin.rest.delegate;
 
-import java.util.Set;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
-import org.apache.kylin.rest.util.SpringContext;
-import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.apache.kylin.rest.service.ModelMetadataBaseService;
+import org.apache.kylin.rest.util.SpringContext;
 
 public class ModelMetadataBaseInvoker {
 
@@ -52,21 +49,12 @@ public class ModelMetadataBaseInvoker {
         return modelMetadataBaseService.getModelNameById(modelId, project);
     }
 
-    public void updateIndex(String project, long epochId, String modelId, Set<Long> toBeDeletedLayoutIds,
-                            boolean deleteAuto, boolean deleteManual) {
-        modelMetadataBaseService.updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);
-    }
-
     public void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest) {
         modelMetadataBaseService.updateDataflow(dataFlowUpdateRequest);
     }
 
     public void updateDataflow(String project, String dfId, String segmentId, long maxBucketId) {
         modelMetadataBaseService.updateDataflow(project, dfId, segmentId, maxBucketId);
-    }
-
-    public void updateIndexPlan(String project, String uuid, IndexPlan indexplan, String action) {
-        modelMetadataBaseService.updateIndexPlan(project, uuid, indexplan, action);
     }
 
     public void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status) {

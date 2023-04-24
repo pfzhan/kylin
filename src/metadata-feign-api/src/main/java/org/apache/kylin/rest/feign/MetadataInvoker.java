@@ -23,18 +23,18 @@ import java.util.List;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.apache.kylin.rest.util.SpringContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class MetadataInvoker {
-
-    @Autowired(required = false)
-    private MetadataRPC delegate;
+public class MetadataInvoker extends ModelMetadataBaseInvoker {
+    private static MetadataContract delegate;
 
     public static MetadataInvoker getInstance() {
         if (SpringContext.getApplicationContext() == null) {
@@ -43,6 +43,13 @@ public class MetadataInvoker {
         } else {
             return SpringContext.getBean(MetadataInvoker.class);
         }
+    }
+
+    public static void setDelegate(MetadataContract delegate) {
+        if (MetadataInvoker.delegate != null) {
+            log.warn("Delegate is replaced as {}, origin value is {}", delegate, MetadataInvoker.delegate);
+        }
+        MetadataInvoker.delegate = delegate;
     }
 
     private MetadataContract getDelegate() {
@@ -73,4 +80,22 @@ public class MetadataInvoker {
         getDelegate().checkAndAutoMergeSegments(project, modelId, owner);
     }
 
+    @Override
+    public void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest) {
+        getDelegate().updateDataflow(dataFlowUpdateRequest);
+    }
+
+    @Override
+    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketIt) {
+        getDelegate().updateDataflow(project, dfId, segmentId, maxBucketIt);
+    }
+
+    @Override
+    public void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status) {
+        getDelegate().updateDataflowStatus(project, uuid, status);
+    }
+
+    public void updateRecommendationsCount(String project, String modelId, int size) {
+        getDelegate().updateRecommendationsCount(project, modelId, size);
+    }
 }

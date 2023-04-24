@@ -40,8 +40,6 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.service.ModelService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -65,9 +63,6 @@ class ExecutableAddSegmentHandlerTest {
         dfManager = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(config, DEFAULT_PROJECT);
         manager.deleteAllJob();
-
-        ModelService modelService = new ModelService();
-        ModelMetadataInvoker.setDelegate(modelService);
     }
 
     @Test

@@ -148,7 +148,8 @@ public class JobController extends BaseController {
             @RequestHeader HttpHeaders headers) throws IOException {
         checkRequiredArg("action", jobUpdateRequest.getAction());
         jobInfoService.checkJobStatusAndAction(jobUpdateRequest);
-        Map<String, List<String>> nodeWithJobs = splitJobIdsByScheduleInstance(jobUpdateRequest.getJobIds());
+        Map<String, List<String>> nodeWithJobs = JobContextUtil
+                .splitJobIdsByScheduleInstance(jobUpdateRequest.getJobIds());
         if (needRouteToOtherInstance(nodeWithJobs, jobUpdateRequest.getAction(), headers)) {
             return remoteUpdateJobStatus(jobUpdateRequest, headers, nodeWithJobs);
         }

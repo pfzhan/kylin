@@ -48,7 +48,6 @@ import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -110,9 +109,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(jobInfoService, "projectService", projectService);
 
-        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
-        ModelMetadataInvoker.setDelegate(modelService);
-        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        ReflectionTestUtils.setField(jobInfoService, "modelService", modelService);
 
         JobContext jobContext = JobContextUtil.getJobContext(getTestConfig());
         try {

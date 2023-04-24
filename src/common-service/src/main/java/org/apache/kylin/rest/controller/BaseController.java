@@ -39,7 +39,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -410,17 +409,6 @@ public class BaseController {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
                     MsgPicker.getMsg().getStreamingOperationNotSupport());
         }
-    }
-
-    protected Map<String, List<String>> splitJobIdsByScheduleInstance(List<String> ids) {
-        Map<String, List<String>> nodeWithJobs = new HashMap<>();
-        for (String jobId : ids) {
-            String host = jobContext.getJobScheduler().getJobNode(jobId);
-            List<String> jobIds = nodeWithJobs.getOrDefault(host, new ArrayList<>());
-            jobIds.add(jobId);
-            nodeWithJobs.put(host, jobIds);
-        }
-        return nodeWithJobs;
     }
 
     protected boolean needRouteToOtherInstance(Map<String, List<String>> nodeWithJobs, String action,

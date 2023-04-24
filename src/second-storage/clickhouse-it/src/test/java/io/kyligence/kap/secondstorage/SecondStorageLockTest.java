@@ -119,7 +119,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.controller.NAdminController;
 import org.apache.kylin.rest.controller.NModelController;
 import org.apache.kylin.rest.controller.NQueryController;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
@@ -363,8 +362,6 @@ public class SecondStorageLockTest implements JobWaiter {
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelBuildService, "accessService", accessService);
         ReflectionTestUtils.setField(modelBuildService, "userGroupService", userGroupService);
-        ModelMetadataInvoker.setDelegate(modelService);
-        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", new ModelMetadataInvoker());
 
         ReflectionTestUtils.setField(nModelController, "modelService", modelService);
         ReflectionTestUtils.setField(nModelController, "fusionModelService", fusionModelService);

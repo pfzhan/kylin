@@ -52,7 +52,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.view.LogicalView;
 import org.apache.kylin.metadata.view.LogicalViewManager;
 import org.apache.kylin.rest.aspect.Transaction;
-import org.apache.kylin.rest.delegate.TableMetadataContract;
 import org.apache.kylin.rest.request.S3TableExtInfo;
 import org.apache.kylin.rest.request.TableExclusionRequest;
 import org.apache.kylin.rest.request.UpdateAWSTableExtDescRequest;
@@ -80,7 +79,7 @@ import com.google.common.collect.Sets;
 import lombok.experimental.Delegate;
 
 @Component("tableExtService")
-public class TableExtService extends BasicService implements TableMetadataContract {
+public class TableExtService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(TableExtService.class);
 
     public static final int DEFAULT_EXCLUDED_COLUMN_SIZE = 15;
@@ -385,7 +384,6 @@ public class TableExtService extends BasicService implements TableMetadataContra
         }
     }
 
-    @Override
     public List<String> getTableNamesByFuzzyKey(String project, String fuzzyKey) {
         if (StringUtils.isNotEmpty(project)) {
             NTableMetadataManager nTableMetadataManager = getManager(NTableMetadataManager.class, project);

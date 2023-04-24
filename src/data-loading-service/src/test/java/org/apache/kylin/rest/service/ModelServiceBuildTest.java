@@ -94,7 +94,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.config.initialize.ModelBrokenListener;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
@@ -218,18 +217,15 @@ public class ModelServiceBuildTest extends SourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "jobInfoService", jobInfoService);
 
-        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
-        ModelMetadataInvoker.setDelegate(modelService);
         JobContextUtil.cleanUp();
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(getTestConfig());
         ReflectionTestUtils.setField(jobInfoService, "jobInfoDao", jobInfoDao);
-        ReflectionTestUtils.setField(jobInfoService, "modelMetadataInvoker", modelMetadataInvoker);
+        ReflectionTestUtils.setField(jobInfoService, "modelService", modelService);
 
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelBuildService, "modelMetadataInvoker", modelMetadataInvoker);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
 
         modelService.setSemanticUpdater(semanticService);

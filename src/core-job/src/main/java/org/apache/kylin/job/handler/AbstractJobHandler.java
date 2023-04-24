@@ -33,6 +33,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -44,7 +45,6 @@ import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
-import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
 
 import com.google.common.collect.Maps;
 
@@ -110,8 +110,15 @@ public abstract class AbstractJobHandler {
 
     private void updateStatistics(String project, JobParam jobParam, AbstractExecutable job) {
         if (job instanceof ChainedExecutable) {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, project);
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            JobStatisticsInvoker.getInstance().updateStatistics(project, startOfDay, jobParam.getModel(), 0, 0, 1);
+            String model = jobParam.getModel();
+            if (model != null) {
+                jobStatisticsManager.updateStatistics(startOfDay, model, 0, 0, 1);
+            } else {
+                jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
+            }
         }
     }
 

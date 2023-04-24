@@ -22,6 +22,9 @@ import java.util.List;
 
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.aspect.WaitForSyncAfterRPC;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,4 +48,24 @@ public interface MetadataRPC extends MetadataContract{
     @PostMapping(value = "/check_and_auto_merge_segments")
     void checkAndAutoMergeSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
             @RequestParam("owner") String owner);
+
+    @PostMapping(value = "/update_dataflow")
+    @WaitForSyncAfterRPC
+    void updateDataflow(@RequestBody DataFlowUpdateRequest dataFlowUpdateRequest);
+
+    @PostMapping(value = "/update_dataflow_maxBucketId")
+    @WaitForSyncAfterRPC
+    void updateDataflow(@RequestParam("project") String project, @RequestParam("dfId") String dfId,
+                        @RequestParam("segmentId") String segmentId, @RequestParam("maxBucketId") long maxBucketIt);
+
+    @PostMapping(value = "/update_dataflow_status")
+    @WaitForSyncAfterRPC
+    void updateDataflowStatus(@RequestParam("project") String project, @RequestParam("uuid") String uuid,
+                              @RequestParam("status") RealizationStatusEnum status);
+
+
+    @PostMapping(value = "/update_recommendations_count")
+    @WaitForSyncAfterRPC
+    void updateRecommendationsCount(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
+                                    @RequestParam("size") int size);
 }

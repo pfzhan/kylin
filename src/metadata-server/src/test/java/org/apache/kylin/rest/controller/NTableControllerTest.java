@@ -36,7 +36,6 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.apache.kylin.rest.request.AWSTableLoadRequest;
 import org.apache.kylin.rest.request.AutoMergeRequest;
 import org.apache.kylin.rest.request.PartitionKeyRequest;
@@ -99,9 +98,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableExtService tableExtService;
-
-    @Mock
-    private TableSamplingInvoker tableSamplingInvoker;
 
     @Mock
     private TableSampleService tableSampleService;
@@ -637,7 +633,6 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
         initMockito(loadTableResponse, tableLoadRequest);
-        Assert.assertNotNull(tableSamplingInvoker);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //

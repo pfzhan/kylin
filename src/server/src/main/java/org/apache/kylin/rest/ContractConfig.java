@@ -20,12 +20,6 @@ package org.apache.kylin.rest;
 
 import org.apache.kylin.rest.delegate.JobStatisticsContract;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
-import org.apache.kylin.rest.delegate.ModelMetadataContract;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.delegate.TableMetadataContract;
-import org.apache.kylin.rest.delegate.TableMetadataInvoker;
-import org.apache.kylin.rest.delegate.TableSamplingContract;
-import org.apache.kylin.rest.delegate.TableSamplingInvoker;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -38,11 +32,8 @@ public class ContractConfig implements InitializingBean, ApplicationContextAware
     ApplicationContext applicationContext = null;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        ModelMetadataInvoker.setDelegate(applicationContext.getBean(ModelMetadataContract.class));
+    public void afterPropertiesSet() {
         JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsContract.class));
-        TableMetadataInvoker.setDelegate(applicationContext.getBean(TableMetadataContract.class));
-        TableSamplingInvoker.setDelegate(applicationContext.getBean(TableSamplingContract.class));
     }
 
     @Override

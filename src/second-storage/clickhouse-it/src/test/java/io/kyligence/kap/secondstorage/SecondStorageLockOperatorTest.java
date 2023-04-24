@@ -54,7 +54,6 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.controller.NModelController;
 import org.apache.kylin.rest.controller.SegmentController;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.IndexesToSegmentsRequest;
 import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.response.BuildBaseIndexResponse;
@@ -235,10 +234,6 @@ public class SecondStorageLockOperatorTest extends SecondStorageMetadataHelperTe
         ReflectionTestUtils.setField(jobInfoService, "aclEvaluate", aclEvaluate);
 
         ReflectionTestUtils.setField(segmentController, "modelService", modelService);
-        ModelMetadataInvoker modelMetadataInvoker = new ModelMetadataInvoker();
-        ModelMetadataInvoker.setDelegate(modelService);
-        ReflectionTestUtils.setField(segmentController, "modelMetadataInvoker", modelMetadataInvoker);
-
 
         ReflectionTestUtils.setField(nModelController, "modelService", modelService);
         ReflectionTestUtils.setField(nModelController, "fusionModelService", fusionModelService);

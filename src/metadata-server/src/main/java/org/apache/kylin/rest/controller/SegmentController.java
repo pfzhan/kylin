@@ -35,7 +35,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
 import org.apache.kylin.rest.request.IncrementBuildSegmentsRequest;
@@ -96,9 +95,6 @@ public class SegmentController extends NBasicController {
     @Autowired
     @Qualifier("modelBuildService")
     private ModelBuildService modelBuildService;
-
-    @Autowired(required = false)
-    private ModelMetadataInvoker modelMetadataInvoker;
 
     @ApiOperation(value = "buildIndicesManually", tags = { "DW" }, notes = "Update URL: {model}")
     @PostMapping(value = "/{model:.+}/indices")
@@ -199,14 +195,14 @@ public class SegmentController extends NBasicController {
         checkProjectName(project);
 
         if (purge) {
-            modelMetadataInvoker.purgeModelManually(dataflowId, project);
+            modelService.purgeModelManually(dataflowId, project);
         } else {
             checkSegmentParams(ids, names);
             String[] idsDeleted = modelService.convertSegmentIdWithName(dataflowId, project, ids, names);
             if (ArrayUtils.isEmpty(idsDeleted)) {
                 throw new KylinException(SEGMENT_EMPTY_ID);
             }
-            modelMetadataInvoker.deleteSegmentById(dataflowId, project, idsDeleted, force);
+            modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
         try {
             ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).checkSuicideJobOfModel(project,
@@ -359,7 +355,7 @@ public class SegmentController extends NBasicController {
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) {
         checkProjectName(deleteSegmentsRequest.getProject());
-        modelMetadataInvoker.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
+        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }

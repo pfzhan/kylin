@@ -94,15 +94,15 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.delegate.TableMetadataInvoker;
 import org.apache.kylin.rest.request.JobUpdateRequest;
 import org.apache.kylin.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobSupporter;
+import org.apache.kylin.rest.service.ModelService;
 import org.apache.kylin.rest.service.ProjectService;
+import org.apache.kylin.rest.service.TableExtService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.JobDriverUIUtil;
 import org.apache.kylin.rest.util.SparkHistoryUIUtil;
@@ -154,10 +154,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
     private AclEvaluate aclEvaluate;
 
     @Autowired(required = false)
-    private ModelMetadataInvoker modelMetadataInvoker;
+    private ModelService modelService;
 
     @Autowired(required = false)
-    private TableMetadataInvoker tableMetadataInvoker;
+    private TableExtService tableExtService;
 
     @Autowired
     public JobInfoService setAclEvaluate(AclEvaluate aclEvaluate) {
@@ -256,7 +256,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
         JobMapperFilter jobMapperFilter = JobFilterUtil.getJobMapperFilter(jobFilter, offset, limit,
-                modelMetadataInvoker, tableMetadataInvoker);
+                modelService, tableExtService);
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
         List<ExecutableResponse> result = jobInfoList.stream().map(JobInfoUtil::deserializeExecutablePO)
                 .map(executablePO -> {
@@ -301,7 +301,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         }
         JobMapperFilter jobMapperFilter = JobFilterUtil.getJobMapperFilter(jobFilter, 0, 0,
-                modelMetadataInvoker, tableMetadataInvoker);
+                modelService, tableExtService);
         return jobInfoDao.countByFilter(jobMapperFilter);
     }
 
@@ -863,7 +863,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
                 .mapToLong(Long::valueOf).sum();
         segmentSubStages.setDuration(segmentDuration);
 
-        final Segments<NDataSegment> segmentsByRange = modelMetadataInvoker.getSegmentsByRange(targetSubject, project,
+        final Segments<NDataSegment> segmentsByRange = modelService.getSegmentsByRange(targetSubject, project,
                 "", "");
         final NDataSegment segment = segmentsByRange.stream()//
                 .filter(seg -> StringUtils.equals(seg.getId(), segmentId))//

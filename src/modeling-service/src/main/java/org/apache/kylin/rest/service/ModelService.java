@@ -210,7 +210,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
-import org.apache.kylin.rest.delegate.ModelMetadataContract;
 import org.apache.kylin.rest.feign.MetadataContract;
 import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.MergeSegmentRequest;
@@ -303,7 +302,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("modelService")
-public class ModelService extends AbstractModelService implements TableModelSupporter, ProjectModelSupporter, ModelMetadataContract, MetadataContract {
+public class ModelService extends AbstractModelService implements TableModelSupporter, ProjectModelSupporter, MetadataContract {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
@@ -386,7 +385,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         return model;
     }
 
-    @Override
     public List<String> getModelNamesByFuzzyName(String fuzzyName, String project) {
         if (StringUtils.isNotEmpty(project)) {
             NDataModelManager modelManager = getManager(NDataModelManager.class, project);
@@ -2480,7 +2478,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
     }
 
-    @Override
     public NDataSegment appendSegment(AddSegmentRequest request) {
         String project = request.getProject();
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -2580,7 +2577,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
     }
 
-    @Override
     public void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -2632,14 +2628,12 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }, project);
     }
 
-    @Override
     @Transaction(project = 0)
     public NDataSegment appendPartitions(String project, String dfId, String segId, List<String[]> partitionValues) {
         return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).appendPartitions(dfId, segId,
                 partitionValues);
     }
 
-    @Override
     @Transaction(project = 0)
     public NDataSegment mergeSegments(String project, MergeSegmentRequest mergeSegmentRequest) {
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -2997,7 +2991,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         getManager(NDataModelManager.class, project).updateDataModelDesc(dataModel);
     }
 
-    @Override
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -3060,7 +3053,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         }
     }
 
-    @Override
     @Transaction(project = 0)
     public NDataSegment refreshSegment(String project, String indexPlanUuid, String segmentId) {
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

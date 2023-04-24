@@ -24,9 +24,11 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -166,7 +168,8 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
             if (!job.getStatusInMem().isFinalState()) {
                 if (job.getTargetSegments().contains(seg.getId())) {
                     logger.info("Cancel and discard the job {} related with segment {}.", job.getId(), seg.getId());
-                    executableManager.discardJob(job.getId());
+                    UnitOfWork.get().doAfterUnit(
+                            () -> JobContextUtil.remoteDiscardJob(project, Lists.newArrayList(job.getId())));
                     segmentDeleted = true;
                 }
             }

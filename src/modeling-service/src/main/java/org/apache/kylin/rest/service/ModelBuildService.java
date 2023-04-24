@@ -73,7 +73,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.aspect.Transaction;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.PartitionsRefreshRequest;
 import org.apache.kylin.rest.request.SegmentTimeRequest;
@@ -106,9 +105,6 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
 
     @Autowired
     private SegmentHelper segmentHelper;
-
-    @Autowired(required = false)
-    private ModelMetadataInvoker modelMetadataInvoker;
 
     //only fo test
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end)
@@ -214,7 +210,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         val df = dataflowManager.getDataflow(modelId);
         val seg = df.getFirstSegment();
         if (Objects.isNull(seg)) {
-            NDataSegment newSegment = modelMetadataInvoker.appendSegment(
+            NDataSegment newSegment = modelService.appendSegment(
                     new AddSegmentRequest(project, modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                             needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY, null));
             return newSegment;
@@ -253,7 +249,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
                 throw new IllegalArgumentException(
                         String.format(Locale.ROOT, MsgPicker.getMsg().getSegNotFound(), id, df.getModelAlias()));
             }
-            NDataSegment seg = modelMetadataInvoker.refreshSegment(params.getProject(), indexPlan.getUuid(), id);
+            NDataSegment seg = modelService.refreshSegment(params.getProject(), indexPlan.getUuid(), id);
             seg.setDataflow(df);
             segments.add(seg);
         }
@@ -356,8 +352,8 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
-            modelMetadataInvoker.updateDataModelSemantic(params.getProject(), request);
-            modelMetadataInvoker.updateSecondStorageModel(params.getProject(), request.getId());
+            modelService.updateDataModelSemantic(params.getProject(), request);
+            modelService.updateSecondStorageModel(params.getProject(), request.getId());
             params.getSegmentHoles().clear();
         }
         List<JobParam> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
@@ -433,9 +429,9 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         List<NDataSegment> overlapSegments = modelService.checkSegmentToBuildOverlapsBuilt(project,
                 modelDescInTransaction, segmentRangeToBuild, params.isNeedBuild(), params.getBatchIndexIds());
         buildSegmentOverlapExceptionInfo(overlapSegments);
-        modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
+        modelService.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
         checkMultiPartitionBuildParam(modelDescInTransaction, params);
-        NDataSegment newSegment = modelMetadataInvoker.appendSegment(new AddSegmentRequest(project, modelId,
+        NDataSegment newSegment = modelService.appendSegment(new AddSegmentRequest(project, modelId,
                 segmentRangeToBuild, params.isNeedBuild() ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY,
                 params.getMultiPartitionValues()));
         return newSegment;
@@ -461,9 +457,9 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         List<NDataSegment> overlapSegments = modelService.checkSegmentToBuildOverlapsBuilt(project,
                 modelDescInTransaction, segmentRangeToBuild, params.isNeedBuild(), params.getBatchIndexIds());
         buildSegmentOverlapExceptionInfo(overlapSegments);
-        modelMetadataInvoker.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
+        modelService.saveDateFormatIfNotExist(project, modelId, params.getPartitionColFormat());
         checkMultiPartitionBuildParam(modelDescInTransaction, params);
-        NDataSegment newSegment = modelMetadataInvoker.appendSegment(new AddSegmentRequest(project, modelId,
+        NDataSegment newSegment = modelService.appendSegment(new AddSegmentRequest(project, modelId,
                 segmentRangeToBuild, params.isNeedBuild() ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY,
                 params.getMultiPartitionValues()));
         if (!params.isNeedBuild()) {
@@ -563,7 +559,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
             List<String[]> diffPartitions = MultiPartitionUtil.findDiffValues(allPartitions, oldPartitions);
             finalPartitionValues.addAll(diffPartitions);
         }
-        modelMetadataInvoker.appendPartitions(project, df.getId(), segment.getId(), finalPartitionValues);
+        modelService.appendPartitions(project, df.getId(), segment.getId(), finalPartitionValues);
         Set<Long> targetPartitions = getManager(NDataModelManager.class, project).getDataModelDesc(modelId)
                 .getMultiPartitionDesc().getPartitionIdsByValues(finalPartitionValues);
 

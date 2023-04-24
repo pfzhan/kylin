@@ -44,11 +44,9 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.request.AWSTableLoadRequest;
 import org.apache.kylin.rest.request.AutoMergeRequest;
-import org.apache.kylin.rest.request.MergeAndUpdateTableExtRequest;
 import org.apache.kylin.rest.request.PartitionKeyRequest;
 import org.apache.kylin.rest.request.PushDownModeRequest;
 import org.apache.kylin.rest.request.ReloadTableRequest;
@@ -524,32 +522,6 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         val res = tableService.getTablesOfModel(project, modelName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
-    }
-
-    @GetMapping(value = "/feign/get_table_names_by_fuzzy_key")
-    @ResponseBody
-    public List<String> getTableNamesByFuzzyKey(@RequestParam(value = "project", required = false) String project,
-                                                @RequestParam(value = "fuzzyKey") String fuzzyKey) {
-        return tableExtService.getTableNamesByFuzzyKey(project, fuzzyKey);
-    }
-
-    @PostMapping(value = "/feign/merge_and_update_table_ext")
-    @ResponseBody
-    public void mergeAndUpdateTableExt(@RequestParam("project") String project,
-                                       @RequestBody MergeAndUpdateTableExtRequest request) {
-        tableExtService.mergeAndUpdateTableExt(project, request);
-    }
-
-    @PostMapping(value = "/feign/save_table_ext")
-    @ResponseBody
-    public void saveTableExt(@RequestParam("project") String project, @RequestBody TableExtDesc tableExt) {
-        tableExtService.saveTableExt(project, tableExt);
-    }
-
-    @PostMapping(value = "/feign/update_table_desc")
-    @ResponseBody
-    public void updateTableDesc(@RequestParam("project") String project, @RequestBody TableDesc tableDesc) {
-        tableExtService.updateTableDesc(project, tableDesc);
     }
 
     public static void checkSamplingRows(int rows) {

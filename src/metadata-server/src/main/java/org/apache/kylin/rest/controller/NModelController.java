@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,19 +41,15 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.exception.LookupTableException;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.rest.constant.ModelStatusToDisplayEnum;
-import org.apache.kylin.rest.request.AddSegmentRequest;
 import org.apache.kylin.rest.request.AggShardByColumnsRequest;
 import org.apache.kylin.rest.request.ComputedColumnCheckRequest;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
-import org.apache.kylin.rest.request.MergeSegmentRequest;
 import org.apache.kylin.rest.request.ModelCheckRequest;
 import org.apache.kylin.rest.request.ModelCloneRequest;
 import org.apache.kylin.rest.request.ModelConfigRequest;
@@ -728,102 +723,6 @@ public class NModelController extends NBasicController {
     public void updateRecommendationsCount(@RequestParam("project") String project,
                                            @RequestParam("modelId") String modelId, @RequestParam("size") int size) {
         modelService.updateRecommendationsCount(project, modelId, size);
-    }
-
-    // feign API for data_loading module
-
-    @PostMapping(value = "/feign/get_model_id_by_fuzzy_name")
-    @ResponseBody
-    public List<String> getModelIdsByFuzzyName(@RequestParam("fuzzyName") String fuzzyName,
-            @RequestParam(value="project", required = false) String project) {
-        return modelService.getModelNamesByFuzzyName(fuzzyName, project);
-    }
-
-    @PostMapping(value = "/feign/get_model_name_by_id")
-    @ResponseBody
-    public String getModelNameById(@RequestParam("modelId") String modelId, @RequestParam("project") String project) {
-        return modelService.getModelNameById(modelId, project);
-    }
-
-    @PostMapping(value = "/feign/get_segment_by_range")
-    @ResponseBody
-    public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
-        return modelService.getSegmentsByRange(modelId, project, start, end);
-    }
-
-    @PostMapping(value = "/feign/update_second_storage_model")
-    @ResponseBody
-    public String updateSecondStorageModel(@RequestParam("project") String project,
-                                           @RequestParam("modelId") String modelId) {
-        return modelService.updateSecondStorageModel(project, modelId);
-    }
-
-    @PostMapping(value = "/feign/update_data_model_semantic")
-    @ResponseBody
-    public void updateDataModelSemantic(@RequestParam("project") String project, @RequestBody ModelRequest request) {
-        modelService.updateDataModelSemantic(project, request);
-    }
-
-    @PostMapping(value = "/feign/save_data_format_if_not_exist")
-    @ResponseBody
-    public void saveDateFormatIfNotExist(@RequestParam("project") String project,
-                                         @RequestParam("modelId") String modelId, @RequestParam("format") String format) {
-        modelService.saveDateFormatIfNotExist(project, modelId, format);
-    }
-
-    @PostMapping(value = "/feign/append_segment")
-    @ResponseBody
-    public NDataSegment appendSegment(@RequestBody AddSegmentRequest request) {
-        return modelService.appendSegment(request);
-    }
-
-    @PostMapping(value = "/feign/refresh_segment")
-    @ResponseBody
-    public NDataSegment refreshSegment(@RequestParam("project") String project,
-                                       @RequestParam("indexPlanUuid") String indexPlanUuid, @RequestParam("segmentId") String segmentId) {
-        return modelService.refreshSegment(project, indexPlanUuid, segmentId);
-    }
-
-    @PostMapping(value = "/feign/append_partitions")
-    @ResponseBody
-    public NDataSegment appendPartitions(@RequestParam("project") String project, @RequestParam("dfIF") String dfId,
-                                         @RequestParam("segId") String segId, @RequestBody List<String[]> partitionValues) {
-        return modelService.appendPartitions(project, dfId, segId, partitionValues);
-    }
-
-    @PostMapping(value = "/feign/merge_segments")
-    @ResponseBody
-    NDataSegment mergeSegments(@RequestParam("project") String project,
-                               @RequestBody MergeSegmentRequest mergeSegmentRequest) {
-        return modelService.mergeSegments(project, mergeSegmentRequest);
-    }
-
-    @PostMapping(value = "/feign/purge_model_manually")
-    @ResponseBody
-    public void purgeModelManually(@RequestParam("dataflowId") String dataflowId, @RequestParam("project") String project) {
-        modelService.purgeModelManually(dataflowId, project);
-    }
-
-    @PostMapping(value = "/feign/delete_segment_by_id")
-    @ResponseBody
-    public void deleteSegmentById(@RequestParam("model") String model, @RequestParam("project") String project,
-                                  @RequestBody String[] ids, @RequestParam("force") boolean force) {
-        modelService.deleteSegmentById(model, project, ids, force);
-    }
-
-    @PostMapping(value = "/feign/remove_indexes_from_segments")
-    @ResponseBody
-    public void removeIndexesFromSegments(@RequestParam("project") String project, @RequestParam("modelId") String modelId,
-                                          @RequestParam("segmentIds") List<String> segmentIds, @RequestParam("indexIds") List<Long> indexIds) {
-        modelService.removeIndexesFromSegments(project, modelId, segmentIds, indexIds);
-    }
-
-    @PostMapping(value = "/feign/update_index")
-    @ResponseBody
-    public void updateIndex(@RequestParam("project") String project, @RequestParam("epochId") long epochId,
-                            @RequestParam("modelId") String modelId, @RequestBody Set<Long> toBeDeletedLayoutIds,
-                            @RequestParam("deleteAuto") boolean deleteAuto, @RequestParam("deleteManual") boolean deleteManual) {
-        modelService.updateIndex(project, epochId, modelId, toBeDeletedLayoutIds, deleteAuto, deleteManual);
     }
 
     @PostMapping(value = "/feign/update_dataflow")

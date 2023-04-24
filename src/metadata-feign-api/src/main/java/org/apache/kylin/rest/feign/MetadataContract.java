@@ -22,6 +22,8 @@ import java.util.List;
 
 import org.apache.kylin.job.execution.MergerInfo;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 
 public interface MetadataContract {
     void mergeMetadataForSamplingOrSnapshot(String project, MergerInfo mergerInfo);
@@ -31,4 +33,12 @@ public interface MetadataContract {
     void makeSegmentReady(String project, String modelId, String segmentId, int errorOrPausedJobCount);
 
     void checkAndAutoMergeSegments(String project, String modelId, String owner);
+
+    void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest);
+
+    void updateDataflow(String project, String dfId, String segmentId, long maxBucketIt);
+
+    void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status);
+
+    void updateRecommendationsCount(String project, String modelId, int size);
 }

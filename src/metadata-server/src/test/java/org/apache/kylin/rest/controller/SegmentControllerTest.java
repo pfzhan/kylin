@@ -32,7 +32,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
 import org.apache.kylin.rest.request.BuildIndexRequest;
 import org.apache.kylin.rest.request.BuildSegmentsRequest;
 import org.apache.kylin.rest.request.IncrementBuildSegmentsRequest;
@@ -63,7 +62,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -99,9 +97,6 @@ public class SegmentControllerTest extends NLocalFileMetadataTestCase {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        ModelMetadataInvoker.setDelegate(modelService);
-        ReflectionTestUtils.setField(segmentController, "modelMetadataInvoker", new ModelMetadataInvoker());
     }
 
     @Before

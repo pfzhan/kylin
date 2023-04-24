@@ -37,8 +37,8 @@ import org.apache.kylin.job.config.JobMybatisConfig;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.rest.JobMapperFilter;
-import org.apache.kylin.rest.delegate.ModelMetadataInvoker;
-import org.apache.kylin.rest.delegate.TableMetadataInvoker;
+import org.apache.kylin.rest.service.ModelService;
+import org.apache.kylin.rest.service.TableExtService;
 import org.sparkproject.guava.collect.Lists;
 
 import com.google.common.base.Preconditions;
@@ -46,7 +46,7 @@ import com.google.common.base.Preconditions;
 public class JobFilterUtil {
 
     public static JobMapperFilter getJobMapperFilter(final JobFilter jobFilter, int offset, int limit,
-            ModelMetadataInvoker modelMetadataInvoker, TableMetadataInvoker tableMetadataInvoker) {
+                                                     ModelService modelService, TableExtService tableExtService) {
         Date queryStartTime = getQueryStartTime(jobFilter.getTimeFilter());
 
         Set<String> subjects = new HashSet<>();
@@ -57,9 +57,9 @@ public class JobFilterUtil {
         // transform 'key' to subjects
         if (StringUtils.isNotEmpty(jobFilter.getKey())) {
             convertKeyToSubjects
-                    .addAll(modelMetadataInvoker.getModelNamesByFuzzyName(jobFilter.getKey(), jobFilter.getProject()));
+                    .addAll(modelService.getModelNamesByFuzzyName(jobFilter.getKey(), jobFilter.getProject()));
             convertKeyToSubjects
-                    .addAll(tableMetadataInvoker.getTableNamesByFuzzyKey(jobFilter.getProject(), jobFilter.getKey()));
+                    .addAll(tableExtService.getTableNamesByFuzzyKey(jobFilter.getProject(), jobFilter.getKey()));
             subjects.addAll(convertKeyToSubjects);
         }
         // if 'key' can not be transformed to 'subjects', then fuzzy query job id by 'key'
