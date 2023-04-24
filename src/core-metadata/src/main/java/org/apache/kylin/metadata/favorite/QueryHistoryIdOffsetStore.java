@@ -67,7 +67,7 @@ public class QueryHistoryIdOffsetStore {
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new QueryHistoryIdOffsetTable(tableName);
-        transactionManager = new DataSourceTransactionManager(dataSource);
+        transactionManager = JdbcDataSource.getTransactionManager(dataSource);
         sqlSessionTemplate = new SqlSessionTemplate(
                 QueryHistoryIdOffsetUtil.getSqlSessionFactory(dataSource, table.tableNameAtRuntime()));
     }

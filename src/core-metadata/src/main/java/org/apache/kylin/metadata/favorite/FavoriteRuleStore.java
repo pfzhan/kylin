@@ -69,7 +69,7 @@ public class FavoriteRuleStore {
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new FavoriteRuleTable(tableName);
-        transactionManager = new DataSourceTransactionManager(dataSource);
+        transactionManager = JdbcDataSource.getTransactionManager(dataSource);
         sqlSessionTemplate = new SqlSessionTemplate(MetadataStoreUtil.getSqlSessionFactory(dataSource,
                 table.tableNameAtRuntime(), MetadataStoreUtil.TableType.FAVORITE_RULE));
     }

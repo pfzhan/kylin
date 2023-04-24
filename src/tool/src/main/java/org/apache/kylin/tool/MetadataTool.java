@@ -171,7 +171,7 @@ public class MetadataTool extends ExecutableApplication {
             helper.backup(kylinConfig, project, path, folder, compress, excludeTableExd);
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             boolean delete = optionsHelper.hasOption(OPTION_AFTER_TRUNCATE);
-            helper.restore(kylinConfig, project, path, delete);
+            helper.restore(kylinConfig, project, path, delete, true);
         } else {
             throw new KylinException(PARAMETER_NOT_SPECIFY, "-restore");
         }

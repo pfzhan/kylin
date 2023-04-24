@@ -274,7 +274,7 @@ public class MetadataToolHelper extends CancelableTask {
         }
     }
 
-    public void restore(KylinConfig kylinConfig, String project, String path, boolean delete) throws Exception {
+    public void restore(KylinConfig kylinConfig, String project, String path, boolean delete, boolean backup) throws Exception {
         logger.info("Restore metadata with delete : {}", delete);
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         val restoreMetadataUrl = getMetadataUrl(path, false, kylinConfig);
@@ -290,8 +290,9 @@ public class MetadataToolHelper extends CancelableTask {
         Preconditions.checkState(verifyResult.isQualified(),
                 verifyResult.getResultMessage() + "\n the metadata dir is not qualified");
         restore(resourceStore, restoreResourceStore, project, delete);
-        backup(kylinConfig);
-
+        if (backup) {
+            backup(kylinConfig);
+        }
     }
 
     public void restore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore, String project,

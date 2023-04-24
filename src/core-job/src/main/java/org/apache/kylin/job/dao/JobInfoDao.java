@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
@@ -53,6 +52,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
 
+import lombok.Setter;
 import lombok.val;
 
 @Component
@@ -218,7 +218,7 @@ public class JobInfoDao {
     }
 
     public void restoreJobInfo(List<JobInfo> jobInfos, String project, boolean afterTruncate) {
-        JdbcUtil.withTxAndRetry(JobContextUtil.getTransactionManager(KylinConfig.getInstanceFromEnv()), () -> {
+        JobContextUtil.withTxAndRetry(() -> {
             if (afterTruncate) {
                 jobInfoMapper.deleteByProject(project);
             }
