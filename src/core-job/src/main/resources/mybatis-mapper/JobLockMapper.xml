@@ -103,7 +103,12 @@
   <update id="updateLock">
     update ${jobLockTable}
     set lock_node = #{lockNode,jdbcType=VARCHAR},
-    lock_expire_time = TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
+    <if test="database == 'mysql' or database == 'h2'">
+      lock_expire_time = TIMESTAMPADD(SECOND,#{renewalSec,jdbcType=BIGINT},CURRENT_TIMESTAMP),
+    </if>
+    <if test="database == 'postgresql'">
+      lock_expire_time = CURRENT_TIMESTAMP + interval '${renewalSec} second',
+    </if>
     update_time = CURRENT_TIMESTAMP
     where lock_id = #{lockId,jdbcType=VARCHAR}
     and (lock_node is null or lock_expire_time <![CDATA[<]]> CURRENT_TIMESTAMP or lock_node =
