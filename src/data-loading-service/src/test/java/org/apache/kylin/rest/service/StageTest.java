@@ -553,7 +553,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(JobStatusEnum.SKIP, result);
 
         result = ExecutableState.READY.toJobStatus();
-        Assert.assertEquals(JobStatusEnum.READY, result);
+        Assert.assertEquals(JobStatusEnum.PENDING, result);
 
         result = ExecutableState.RUNNING.toJobStatus();
         Assert.assertEquals(JobStatusEnum.RUNNING, result);

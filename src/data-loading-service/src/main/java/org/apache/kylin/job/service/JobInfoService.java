@@ -27,6 +27,7 @@ import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +66,7 @@ import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.constant.JobStatusUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobInfo;
@@ -176,6 +178,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
             throw new KylinException(JOB_STATUS_ILLEGAL);
         }
+    }
+    
+    public List<JobStatusEnum> parseJobStatus(List<String> strValues) {
+        return strValues.stream().map(strValue -> JobStatusEnum.valueOf(strValue)).collect(Collectors.toList());
     }
 
     public void checkJobStatusAndAction(String jobStatus, String action) {
@@ -444,7 +450,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
-        val executablePos = jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses);
+        List<ExecutableState> filterStates = JobStatusUtil.mapJobStatusToScheduleState(filterStatuses);
+        val executablePos = jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStates);
         if (null == project) {
             executablePos.forEach(executablePO -> aclEvaluate.checkProjectOperationPermission(executablePO.getProject()));
         } else {
@@ -605,7 +612,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
     }
 
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
-        return jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStatuses).stream().map(
+        List<ExecutableState> filterStates = JobStatusUtil.mapJobStatusToScheduleState(filterStatuses);
+        return jobInfoDao.getExecutablePoByStatus(project, jobIds, filterStates).stream().map(
                 executablePO -> getManager(ExecutableManager.class, executablePO.getProject()).fromPO(executablePO))
                 .collect(Collectors.toList());
     }
@@ -613,6 +621,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
     @VisibleForTesting
     public ExecutableResponse convert(AbstractExecutable executable, ExecutablePO executablePO) {
         ExecutableResponse executableResponse = ExecutableResponse.create(executable, executablePO);
+        executableResponse.setSchedulerState(executable.getStatusInMem());
         executableResponse.setStatus(executable.getStatusInMem().toJobStatus());
         return executableResponse;
     }
@@ -634,7 +643,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
             }
             return result;
         }
-
+        result.setSchedulerState(stepOutput.getState());
         result.setStatus(stepOutput.getState().toJobStatus());
         for (Map.Entry<String, String> entry : stepOutput.getExtra().entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
@@ -751,6 +760,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
                 result.putInfo(entry.getKey(), entry.getValue());
             }
         }
+        result.setSchedulerState(stageOutput.getState());
         result.setStatus(stageOutput.getState().toJobStatus());
         result.setExecStartTime(AbstractExecutable.getStartTime(stageOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stageOutput));
@@ -963,15 +973,14 @@ public class JobInfoService extends BasicService implements JobSupporter {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setModelIds(batchModelIds);
-        List<String> status = Lists.newArrayList(JobStatusEnum.values()).stream()
-                .filter(jobStatusEnum -> jobStatusEnum != JobStatusEnum.FINISHED && jobStatusEnum != JobStatusEnum.ERROR
-                        && jobStatusEnum != JobStatusEnum.DISCARDED)
-                .map(jobStatusEnum -> jobStatusEnum.name()).collect(Collectors.toList());
-        jobMapperFilter.setStatuses(status);
+        List<ExecutableState> ignoreStates = Lists.newArrayList(ExecutableState.SUCCEED, ExecutableState.ERROR,
+                ExecutableState.DISCARDED, ExecutableState.SUICIDAL);
+        List<ExecutableState> states = Arrays.stream(ExecutableState.values())
+                .filter(state -> !ignoreStates.contains(state)).collect(Collectors.toList());
+        jobMapperFilter.setStatuses(states);
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
         return jobInfoList.stream().map(jobInfo -> jobInfo.getJobId()).collect(Collectors.toList());
     }
-
 
     public void stopBatchJob(String project, TableDesc tableDesc) {
         List<String> fusionModelIds = getFusionModelsByTableDesc(project, tableDesc);

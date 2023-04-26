@@ -165,7 +165,7 @@ public class SegmentUtil {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
-        jobMapperFilter.setStatuses(ExecutableState.getNotFinalStateNames());
+        jobMapperFilter.setStatuses(ExecutableState.getNotFinalStates());
         List<JobInfo> runningJobInfoList = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
                 .getJobInfoListByFilter(jobMapperFilter);
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

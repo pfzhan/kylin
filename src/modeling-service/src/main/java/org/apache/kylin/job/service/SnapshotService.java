@@ -123,8 +123,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
     private List<JobInfo> fetchAllRunningSnapshotTasksByTableIds(String project, Set<String> tableIds) {
         return ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).fetchNotFinalJobsByTypes(
-                project, Lists.newArrayList(SNAPSHOT_JOB_TYPES),
-                null == tableIds ? null : Lists.newArrayList(tableIds));
+                project, SNAPSHOT_JOB_TYPES, null == tableIds ? null : Lists.newArrayList(tableIds));
     }
 
     private List<JobInfo> fetchAllRunningSnapshotTasks(String project, Set<TableDesc> tables) {

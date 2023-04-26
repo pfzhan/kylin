@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.constant.JobActionEnum;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.rest.constant.Constant;
@@ -110,8 +111,8 @@ public class JobControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetJobs() throws Exception {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList("NEW"), jobNames, 4, "", "", "default", "job_name",
-                false);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", "default",
+                "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                         .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
@@ -174,8 +175,8 @@ public class JobControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetJobsException_pageOffset_pageSize() throws Exception {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList("NEW"), jobNames, 4, "", "", "default", "job_name",
-                false);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", "default",
+                "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("projectName", "default").param("pageOffset", "a").param("pageSize", "10")

@@ -27,6 +27,7 @@ import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.config.JobTableInterceptor;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.rest.JobMapperFilter;
@@ -75,7 +76,7 @@ public class JobInfoMapperTest extends NLocalFileMetadataTestCase {
         JobInfo jobInfo = new JobInfo();
         jobInfo.setJobId("mock_job_id");
         jobInfo.setJobType(JobTypeEnum.INDEX_BUILD.name());
-        jobInfo.setJobStatus(JobStatusEnum.READY.name());
+        jobInfo.setJobStatus(ExecutableState.READY.name());
         jobInfo.setProject("mock_project");
         jobInfo.setSubject("mock_subject");
         jobInfo.setModelId("mock_model_id");
@@ -100,7 +101,7 @@ public class JobInfoMapperTest extends NLocalFileMetadataTestCase {
         JobInfo mockJob = jobInfoMapper.selectByJobId("mock_job_id");
         Assert.assertEquals("mock_job_id", mockJob.getJobId());
 
-        List<String> jobLists = jobInfoMapper.findJobIdListByStatusBatch(JobStatusEnum.READY.name(), 10);
+        List<String> jobLists = jobInfoMapper.findJobIdListByStatusBatch(ExecutableState.READY.name(), 10);
         Assert.assertEquals(1, jobLists.size());
 
         JobMapperFilter jobMapperFilter = JobMapperFilter.builder().jobId("mock_job_id").build();
@@ -132,7 +133,7 @@ public class JobInfoMapperTest extends NLocalFileMetadataTestCase {
 
         insertAffect = jobInfoMapper.insertJobInfoSelective(jobInfo);
         Assert.assertEquals(1, insertAffect);
-        deleteAffect = jobInfoMapper.deleteByJobIdList(Lists.newArrayList(JobStatusEnum.READY.name()),
+        deleteAffect = jobInfoMapper.deleteByJobIdList(Lists.newArrayList(ExecutableState.READY.name()),
                 Lists.newArrayList("mock_job_id"));
         Assert.assertEquals(1, deleteAffect);
 

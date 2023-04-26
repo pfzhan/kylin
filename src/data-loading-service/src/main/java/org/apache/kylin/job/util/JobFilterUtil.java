@@ -28,13 +28,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.config.JobMybatisConfig;
+import org.apache.kylin.job.constant.JobStatusUtil;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.rest.JobFilter;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.rest.service.ModelService;
@@ -75,9 +79,17 @@ public class JobFilterUtil {
             orderType = "DESC";
         }
 
-        return new JobMapperFilter(jobFilter.getStatuses(), jobFilter.getJobNames(), queryStartTime, Lists.newArrayList(subjects), null,
-                jobId, null, jobFilter.getProject(), orderByField, orderType, offset, limit,
-                JobMybatisConfig.JOB_INFO_TABLE, null);
+        List<ExecutableState> scheduleStates = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(jobFilter.getStatuses())) {
+            jobFilter.getStatuses()
+                    .forEach(jobStatus -> scheduleStates.addAll(JobStatusUtil.mapJobStatusToScheduleState(jobStatus)));
+        }
+        List<String> scheduleStateNames = scheduleStates.stream().map(executableState -> executableState.name())
+                .collect(Collectors.toList());
+
+        return new JobMapperFilter(scheduleStates, jobFilter.getJobNames(), queryStartTime,
+                Lists.newArrayList(subjects), null, jobId, null, jobFilter.getProject(), orderByField, orderType,
+                offset, limit, JobMybatisConfig.JOB_INFO_TABLE, null);
     }
 
     private static Date getQueryStartTime(int timeFilter) {

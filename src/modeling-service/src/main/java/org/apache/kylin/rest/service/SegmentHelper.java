@@ -166,11 +166,14 @@ public class SegmentHelper extends BasicService implements SegmentHelperSupporte
         var segmentDeleted = false;
         for (val job : jobs) {
             if (!job.getStatusInMem().isFinalState()) {
+                List<String> discardJobIds = Lists.newArrayList();
                 if (job.getTargetSegments().contains(seg.getId())) {
                     logger.info("Cancel and discard the job {} related with segment {}.", job.getId(), seg.getId());
-                    UnitOfWork.get().doAfterUnit(
-                            () -> JobContextUtil.remoteDiscardJob(project, Lists.newArrayList(job.getId())));
+                    discardJobIds.add(job.getJobId());
                     segmentDeleted = true;
+                }
+                if (discardJobIds.size() > 0) {
+                    UnitOfWork.get().doAfterUnit(() -> JobContextUtil.remoteDiscardJob(project, discardJobIds));
                 }
             }
         }

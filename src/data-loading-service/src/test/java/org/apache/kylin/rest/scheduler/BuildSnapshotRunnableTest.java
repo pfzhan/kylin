@@ -278,7 +278,7 @@ class BuildSnapshotRunnableTest {
                     JsonUtil.writeValueAsString(Sets.newHashSet("3", "4")));
             Mockito.when(executableManager.jobInfoToExecutable(executableManager.fetchJobsByTypesAndStates(
                     null, Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()), null,
-                    ExecutableState.getNotFinalStateNames()))).thenReturn(runningJobs);
+                    ExecutableState.getNotFinalStates()))).thenReturn(runningJobs);
 
             val thread = new BuildSnapshotRunnable();
             thread.setTableIdentity("default.table");

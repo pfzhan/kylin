@@ -23,6 +23,7 @@ import static org.apache.kylin.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -123,7 +124,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         status.add(JobStatusEnum.NEW);
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        List<String> statuses = Lists.newArrayList("NEW", "RUNNING");
+        List<JobStatusEnum> statuses = Lists.newArrayList(JobStatusEnum.NEW, JobStatusEnum.RUNNING);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, 4, "", "", "default", "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
@@ -132,8 +133,9 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
                 .param("statuses", "NEW,RUNNING").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(jobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified",
-                true);
+        Mockito.verify(jobController).getJobList(
+                statuses.stream().map(jobStatusEnum -> jobStatusEnum.name()).collect(Collectors.toList()), jobNames, 1,
+                "", "", "default", 0, 10, "last_modified", true);
     }
 
     @Test

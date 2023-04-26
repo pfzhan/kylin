@@ -99,14 +99,14 @@ public class JobControllerV2 extends BaseController {
         }
         checkNonNegativeIntegerArg("pageOffset", pageOffset);
         checkNonNegativeIntegerArg("pageSize", pageSize);
-        List<String> statuses = Lists.newArrayList();
+        List<JobStatusEnum> statuses = Lists.newArrayList();
         for (Integer code : status) {
             JobStatusEnum jobStatus = JobStatusEnum.getByCode(code);
             if (Objects.isNull(jobStatus)) {
                 jobInfoService.checkJobStatus(String.valueOf(code));
                 continue;
             }
-            statuses.add(jobStatus.toString());
+            statuses.add(jobStatus);
         }
 
         JobFilter jobFilter = new JobFilter(statuses,

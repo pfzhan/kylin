@@ -196,7 +196,7 @@ public class BuildSnapshotRunnable extends AbstractSchedulerRunnable {
 
         List<AbstractExecutable> executables = execManager.jobInfoToExecutable(execManager.fetchJobsByTypesAndStates(
                 project, Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()), null,
-                ExecutableState.getNotFinalStateNames()));
+                ExecutableState.getNotFinalStates()));
 
         return executables.stream()
                 .filter(executable -> StringUtils.equalsIgnoreCase(executable.getParam(NBatchConstants.P_TABLE_NAME),

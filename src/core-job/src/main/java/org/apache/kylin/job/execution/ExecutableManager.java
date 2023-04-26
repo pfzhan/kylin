@@ -77,7 +77,6 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
@@ -1297,17 +1296,15 @@ public class ExecutableManager {
                 }).collect(Collectors.toList());
     }
 
-    public List<ExecutablePO> getExecutablePOsByStatus(List<String> jobIds, List<ExecutableState> statuses) {
+    public List<ExecutablePO> getExecutablePOsByStatus(List<String> jobIds, List<ExecutableState> executableStates) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         if (CollectionUtils.isNotEmpty(jobIds)) {
             jobMapperFilter.setJobIds(jobIds);
         }
 
-        if (CollectionUtils.isNotEmpty(statuses)) {
-            List<String> statusList = statuses.stream().map(executableState -> executableState.toJobStatus().name())
-                    .collect(Collectors.toList());
-            jobMapperFilter.setStatuses(statusList);
+        if (CollectionUtils.isNotEmpty(executableStates)) {
+            jobMapperFilter.setStatuses(executableStates);
         }
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
         return jobInfoList.stream().map(jobInfo -> JobInfoUtil.deserializeExecutablePO(jobInfo))
@@ -1588,10 +1585,10 @@ public class ExecutableManager {
             return listExecByModelAndStatus(model, ExecutableState::isRunning, null);
         } else {
             JobMapperFilter jobMapperFilter = new JobMapperFilter();
-            List<String> runningStates = Lists.newArrayList();
+            List<ExecutableState> runningStates = Lists.newArrayList();
             for (ExecutableState executableState : ExecutableState.values()) {
                 if (executableState.isRunning()) {
-                    runningStates.add(executableState.name());
+                    runningStates.add(executableState);
                 }
             }
             jobMapperFilter.setStatuses(runningStates);
@@ -1661,8 +1658,7 @@ public class ExecutableManager {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
-        jobMapperFilter.setStatuses(Lists.newArrayList(JobStatusEnum.ERROR.name(), JobStatusEnum.STOPPED.name(),
-                JobStatusEnum.STOPPING.name()));
+        jobMapperFilter.setStatuses(ExecutableState.ERROR, ExecutableState.PAUSED);
         List<JobInfo> errorJobInfoList = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .fetchJobsByFilter(jobMapperFilter);
         if (CollectionUtils.isEmpty(errorJobInfoList)) {
@@ -1909,10 +1905,10 @@ public class ExecutableManager {
     }
 
     public List<JobInfo> fetchNotFinalJobsByTypes(String project, List<String> jobTypes, List<String> subjects) {
-        return fetchJobsByTypesAndStates(project, jobTypes, subjects, ExecutableState.getNotFinalStateNames());
+        return fetchJobsByTypesAndStates(project, jobTypes, subjects, ExecutableState.getNotFinalStates());
     }
 
-    public List<JobInfo> fetchJobsByTypesAndStates(String project, List<String> jobTypes, List<String> subjects, List<String> states) {
+    public List<JobInfo> fetchJobsByTypesAndStates(String project, List<String> jobTypes, List<String> subjects, List<ExecutableState> states) {
         JobMapperFilter mapperFilter = JobMapperFilter.builder()
                 .jobNames(jobTypes)
                 .statuses(states)

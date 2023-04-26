@@ -20,6 +20,8 @@ package org.apache.kylin.job.rest;
 
 import java.util.List;
 
+import org.apache.kylin.job.constant.JobStatusEnum;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +31,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class JobFilter {
 
-    private List<String> statuses;
+    private List<JobStatusEnum> statuses;
 
     private List<String> jobNames;
 

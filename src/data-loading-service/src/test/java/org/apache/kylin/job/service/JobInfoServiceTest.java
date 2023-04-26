@@ -191,13 +191,13 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, jobs3.size());
 
         jobFilter.setSubject("");
-        jobFilter.setStatuses(Lists.newArrayList("NEW"));
+        jobFilter.setStatuses(Lists.newArrayList(JobStatusEnum.NEW));
         jobFilter.setTimeFilter(1);
         List<ExecutableResponse> jobs4 = jobInfoService.listJobs(jobFilter);
         Assert.assertEquals(2, jobs4.size());
 
         jobFilter.setSubject("");
-        jobFilter.setStatuses(Lists.newArrayList("NEW", "FINISHED"));
+        jobFilter.setStatuses(Lists.newArrayList(JobStatusEnum.NEW, JobStatusEnum.FINISHED));
         jobFilter.setTimeFilter(1);
         jobs4 = jobInfoService.listJobs(jobFilter);
         Assert.assertEquals(3, jobs4.size());
@@ -292,7 +292,7 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setStatuses(Lists.newArrayList());
         List<ExecutableResponse> jobs15 = jobInfoService.listJobs(jobFilter, 0, 10);
         assertEquals(1, jobs15.size());
-        jobFilter.setStatuses(Lists.newArrayList("NEW"));
+        jobFilter.setStatuses(Lists.newArrayList(JobStatusEnum.NEW));
         List<ExecutableResponse> jobs16 = jobInfoService.listJobs(jobFilter, 0, 10);
         assertEquals(0, jobs16.size());
     }

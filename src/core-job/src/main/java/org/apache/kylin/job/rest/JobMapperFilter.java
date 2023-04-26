@@ -21,6 +21,9 @@ package org.apache.kylin.job.rest;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.curator.shaded.com.google.common.collect.Lists;
+import org.apache.kylin.job.execution.ExecutableState;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,7 +37,8 @@ import lombok.Setter;
 @Builder
 public class JobMapperFilter {
 
-    private List<String> statuses;
+    // schedule states
+    private List<ExecutableState> statuses;
 
     // jobName is jobType
     private List<String> jobNames;
@@ -69,4 +73,12 @@ public class JobMapperFilter {
     private String jobInfoTable;
 
     private List<Date> timeRange;
+
+    public void setStatuses(List<ExecutableState> stateList) {
+        statuses = stateList;
+    }
+    
+    public void setStatuses(ExecutableState... states) {
+        statuses = Lists.newArrayList(states);
+    }
 }

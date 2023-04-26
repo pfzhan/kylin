@@ -78,6 +78,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private List<ExecutableStepResponse> steps;
     @JsonProperty("job_status")
     private JobStatusEnum status;
+    @JsonProperty("scheduler_state")
+    private ExecutableState schedulerState;
     @JsonProperty("job_name")
     private String jobName;
     @JsonProperty("data_range_start")

@@ -52,6 +52,7 @@ public enum ExecutableState {
                 });
 
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PENDING);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.PAUSED);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
 
@@ -124,7 +125,6 @@ public enum ExecutableState {
             case SKIP:
                 return JobStatusEnum.SKIP;
             case READY:
-                return JobStatusEnum.READY;
             case PENDING:
                 return JobStatusEnum.PENDING;
             case RUNNING:

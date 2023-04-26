@@ -112,7 +112,8 @@ public class JobController extends BaseController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
         jobInfoService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
-        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
+        JobFilter jobFilter = new JobFilter(jobInfoService.parseJobStatus(statuses), jobNames, timeFilter, subject, key,
+                project, sortBy, reverse);
         // pageOffset is 1,2,3.... means pageNo
         Integer pageOffsetNew = pageOffset * pageSize;
         List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffsetNew, pageSize);

@@ -30,9 +30,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.domain.JobInfo;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
@@ -60,14 +60,14 @@ public class JobResourceService {
             return resource;
         }
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        val statuses = Lists.newArrayList(JobStatusEnum.RUNNING.name());
+        val statuses = Lists.newArrayList(ExecutableState.RUNNING);
         val executablePOList = JobContextUtil.getJobInfoDao(config).getExecutablePoByStatus(null, null, statuses);
         int cores = 0;
         long memory = 0;
         List<String> jobs = Lists.newArrayList();
         for (ExecutablePO po : executablePOList) {
             val subExecutablePO = po.getTasks().stream()
-                    .filter(p -> JobStatusEnum.RUNNING.name().equals(p.getOutput().getStatus())).findFirst();
+                    .filter(p -> ExecutableState.RUNNING.name().equals(p.getOutput().getStatus())).findFirst();
             if (subExecutablePO.isPresent() && resource.getQueue()
                     .equals(subExecutablePO.get().getOutput().getInfo().get(ExecutableConstants.QUEUE_NAME))) {
                 val info = subExecutablePO.get().getOutput().getInfo();
@@ -93,14 +93,13 @@ public class JobResourceService {
 
     public Set<String> getQueueNames() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        val statuses = Lists.newArrayList(JobStatusEnum.FINISHED.name());
         val projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects();
         val jobInfoDao = JobContextUtil.getJobInfoDao(config);
         Set<String> queues = Sets.newHashSet();
         projects.forEach(projectInstance -> {
             JobMapperFilter jobMapperFilter = new JobMapperFilter();
             jobMapperFilter.setProject(projectInstance.getName());
-            jobMapperFilter.setStatuses(statuses);
+            jobMapperFilter.setStatuses(ExecutableState.SUCCEED);
             jobMapperFilter.setLimit(10);
             val jobs = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
             if (CollectionUtils.isNotEmpty(jobs)) {

@@ -20,13 +20,11 @@ package org.apache.kylin.job.scheduler;
 import static org.apache.kylin.common.util.TestUtils.getTestConfig;
 import static org.awaitility.Awaitility.await;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Maps;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.dao.JobInfoDao;
@@ -45,6 +43,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Maps;
 
 @MetadataInfo(onlyProps = true)
 class JdbcJobSchedulerTest {
@@ -102,7 +102,7 @@ class JdbcJobSchedulerTest {
             mockJob();
         }
         JobMapperFilter filter = new JobMapperFilter();
-        filter.setStatuses(Collections.singletonList(ExecutableState.RUNNING.name()));
+        filter.setStatuses(ExecutableState.RUNNING);
         await().atMost(5, TimeUnit.SECONDS).until(() -> jobInfoDao.getJobInfoListByFilter(filter).size() == 3);
         Assert.assertEquals(secondJobContext.getJobScheduler().getRunningJob().size()
                 + jobContext.getJobScheduler().getRunningJob().size(), 3);

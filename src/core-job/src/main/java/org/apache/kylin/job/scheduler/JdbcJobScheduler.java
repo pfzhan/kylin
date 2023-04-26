@@ -34,7 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ThreadUtils;
 import org.apache.kylin.job.JobContext;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.core.lock.JdbcJobLock;
 import org.apache.kylin.job.core.lock.LockAcquireListener;
@@ -129,11 +128,7 @@ public class JdbcJobScheduler implements JobScheduler {
 
     @Override
     public String getJobNode(String jobId) {
-        String jobNode = jobContext.getJobLockMapper().findNodeByLockId(jobId);
-        if (Objects.isNull(jobNode)) {
-            return jobContext.getServerNode();
-        }
-        return jobNode;
+        return JobContextUtil.getJobSchedulerHost(jobId);
     }
 
     public void start() {
@@ -201,7 +196,7 @@ public class JdbcJobScheduler implements JobScheduler {
             
             int batchSize = jobContext.getKylinConfig().getJobSchedulerMasterPollBatchSize();
             List<String> readyJobIdList = jobContext.getJobInfoMapper()
-                    .findJobIdListByStatusBatch(JobStatusEnum.READY.name(), batchSize);
+                    .findJobIdListByStatusBatch(ExecutableState.READY.name(), batchSize);
             if (readyJobIdList.isEmpty()) {
                 return;
             }

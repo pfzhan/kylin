@@ -136,7 +136,7 @@ public class JobInfoDao {
     }
 
     public List<ExecutablePO> getExecutablePoByStatus(String project, List<String> jobIds,
-            List<String> filterStatuses) {
+            List<ExecutableState> filterStatuses) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
         jobMapperFilter.setStatuses(filterStatuses);
@@ -154,10 +154,8 @@ public class JobInfoDao {
     }
 
     public void dropJobByIdList(List<String> jobIdList) {
-        jobInfoMapper.deleteByJobIdList(
-                Arrays.stream(ExecutableState.getFinalStates())
-                        .map(executableState -> executableState.toJobStatus().name()).collect(Collectors.toList()),
-                jobIdList);
+        jobInfoMapper.deleteByJobIdList(Arrays.stream(ExecutableState.getFinalStates())
+                .map(executableState -> executableState.name()).collect(Collectors.toList()), jobIdList);
     }
 
     public void dropAllJobs() {
@@ -169,8 +167,8 @@ public class JobInfoDao {
         JobInfo jobInfo = new JobInfo();
         jobInfo.setJobId(executablePO.getId());
         jobInfo.setJobType(executablePO.getJobType().name());
-        ExecutableState oldStatus = ExecutableState.valueOf(executablePO.getOutput().getStatus());
-        jobInfo.setJobStatus(oldStatus.toJobStatus().name());
+        ExecutableState executableState = ExecutableState.valueOf(executablePO.getOutput().getStatus());
+        jobInfo.setJobStatus(executableState.name());
         jobInfo.setProject(executablePO.getProject());
         jobInfo.setPriority(executablePO.getPriority());
 
