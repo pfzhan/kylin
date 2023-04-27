@@ -19,8 +19,8 @@ package org.apache.kylin.engine.spark;
 
 import java.io.File;
 import java.io.Serializable;
+import java.net.BindException;
 import java.util.Locale;
-import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
@@ -131,8 +131,14 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
                 "org.apache.kylin.engine.spark.job.MockJobProgressReport");
         this.createTestMetadata();
         SparkJobFactoryUtils.initJobFactory();
-        Random r = new Random(10000);
-        zkTestServer = new TestingServer(r.nextInt(), true);
+        for (int i = 0; i < 100; i++) {
+            try {
+                zkTestServer = new TestingServer(RandomUtil.nextInt(7100, 65530), true);
+                break;
+            } catch (BindException e) {
+                log.warn(e.getMessage());
+            }
+        }
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         overwriteSystemProp("kylin.source.provider.9", "org.apache.kylin.engine.spark.mockup.CsvSource");
     }
@@ -163,7 +169,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         for (String table : projectInstance.getTables()) {
 
             if ("DEFAULT.STREAMING_TABLE".equals(table) || "DEFAULT.TEST_SNAPSHOT_TABLE".equals(table)
-             || table.contains(kylinConfig.getDDLLogicalViewDB())) {
+                    || table.contains(kylinConfig.getDDLLogicalViewDB())) {
                 continue;
             }
 
