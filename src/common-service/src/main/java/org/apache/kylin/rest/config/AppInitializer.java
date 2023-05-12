@@ -56,6 +56,7 @@ import org.apache.kylin.rest.config.initialize.UserAclListener;
 import org.apache.kylin.rest.service.CommonQueryCacheSupporter;
 import org.apache.kylin.rest.util.GCLogUploadTask;
 import org.apache.kylin.rest.util.JStackDumpTask;
+import org.apache.kylin.rest.util.QueryHistoryOffsetUtil;
 import org.apache.kylin.streaming.jobs.StreamingJobListener;
 import org.apache.kylin.tool.daemon.KapGuardianHATask;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +68,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -192,12 +194,24 @@ public class AppInitializer {
         log.info("The system cache is warmed up.");
     }
 
+    private void resetProjectOffsetId() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        List<ProjectInstance> prjInstances = NProjectManager.getInstance(kylinConfig).listAllProjects();
+        EpochManager epochManager = EpochManager.getInstance();
+        prjInstances.forEach(project -> {
+            if (epochManager.checkEpochOwner(project.getName())) {
+                QueryHistoryOffsetUtil.resetOffsetId(project.getName());
+            }
+        });
+    }
+
     @EventListener(ApplicationReadyEvent.class)
     public void afterReady(ApplicationReadyEvent ignoredEvent) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         setFsUrlStreamHandlerFactory();
         if (kylinConfig.isJobNode() || kylinConfig.isMetadataNode()) {
             new EpochOrchestrator(kylinConfig);
+            resetProjectOffsetId();
         }
         if (kylinConfig.getJStackDumpTaskEnabled()) {
             taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
@@ -214,7 +228,9 @@ public class AppInitializer {
                     kylinConfig.getGuardianHACheckInterval() * Constant.SECOND);
         }
 
-        taskScheduler.scheduleAtFixedRate(new ProjectSerialEventBus.TimingDispatcher(), ProjectSerialEventBus.TimingDispatcher.INTERVAL);
+        taskScheduler.scheduleAtFixedRate(new ProjectSerialEventBus.TimingDispatcher(),
+                ProjectSerialEventBus.TimingDispatcher.INTERVAL);
+
     }
 
     private void postInit() {

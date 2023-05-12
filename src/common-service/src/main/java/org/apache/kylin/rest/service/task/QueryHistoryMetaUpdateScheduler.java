@@ -164,7 +164,6 @@ public class QueryHistoryMetaUpdateScheduler {
                     .getInstance(project);
             List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
                     qhIdOffsetManager.get(META).getOffset(), batchSize, project);
-            resetIdOffset(queryHistoryList);
             return queryHistoryList;
         }
 
@@ -324,29 +323,6 @@ public class QueryHistoryMetaUpdateScheduler {
     private abstract class QueryHistoryTask implements Runnable {
 
         protected abstract String name();
-
-        private volatile boolean needResetOffset = true;
-
-        protected void resetIdOffset(List<QueryHistory> queryHistories) {
-            if (needResetOffset && CollectionUtils.isEmpty(queryHistories)) {
-                long maxId = queryHistoryDAO.getQueryHistoryMaxId(project);
-                resetIdOffset(maxId);
-            }
-        }
-
-        private void resetIdOffset(long maxId) {
-            QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
-            JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
-                QueryHistoryIdOffset queryHistoryIdOffset = manager.get(META);
-                if (queryHistoryIdOffset.getOffset() > maxId) {
-                    queryHistoryIdOffset.setOffset(maxId);
-                    queryHistoryIdOffset.setOffset(maxId);
-                    manager.saveOrUpdate(queryHistoryIdOffset);
-                }
-                return null;
-            });
-            needResetOffset = false;
-        }
 
         public void batchHandle(int batchSize, int maxSize, Consumer<List<QueryHistory>> consumer) {
             if (!(batchSize > 0 && maxSize >= batchSize)) {
