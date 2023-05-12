@@ -1202,7 +1202,9 @@ public class ExecutableManager {
     private List<ExecutablePO> getExecutablePOByModelId(String project, String modelId) {
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
         jobMapperFilter.setProject(project);
-        jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        if (null != modelId) {
+            jobMapperFilter.setModelIds(Lists.newArrayList(modelId));
+        }
         List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
         if (CollectionUtils.isEmpty(jobInfoList)) {
             return Lists.newArrayList();
@@ -1229,8 +1231,7 @@ public class ExecutableManager {
             List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
         boolean allPass = Array.isEmpty(jobTypes);
         return jobs.stream() //
-                .filter(job -> job.getTargetModel() != null) //
-                .filter(job -> job.getTargetModel().equals(model)) //
+                .filter(job -> (null == model) || (null != job.getTargetModel() && job.getTargetModel().equals(model)))
                 .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
                 .filter(job -> allPass || Lists.newArrayList(jobTypes).contains(job.getJobType())) //
                 .collect(Collectors.toList());
@@ -1916,6 +1917,19 @@ public class ExecutableManager {
                 .project(project)
                 .build();
         return jobInfoDao.getJobInfoListByFilter(mapperFilter);
+    }
+
+    public List<AbstractExecutable> getNotFinalExecutablesByType(List<JobTypeEnum> jobTypeEnums) {
+        JobMapperFilter jobMapperFilter = new JobMapperFilter();
+        jobMapperFilter.setProject(project);
+        jobMapperFilter.setStatuses(ExecutableState.getNotFinalStates());
+        if (CollectionUtils.isNotEmpty(jobTypeEnums)) {
+            jobMapperFilter.setJobNames(
+                    jobTypeEnums.stream().map(jobTypeEnum -> jobTypeEnum.name()).collect(Collectors.toList()));
+        }
+        List<JobInfo> jobInfoList = jobInfoDao.getJobInfoListByFilter(jobMapperFilter);
+        return jobInfoList.stream().map(jobInfo -> fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo)))
+                .collect(Collectors.toList());
     }
 
     public List<JobInfo> fetchJobsByFilter(JobMapperFilter filter) {

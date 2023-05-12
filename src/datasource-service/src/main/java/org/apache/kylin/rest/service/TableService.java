@@ -93,10 +93,10 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.job.service.TableSampleService;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
-import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRange;
 import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -798,18 +798,17 @@ public class TableService extends BasicService {
 
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getManager(ExecutableManager.class, project);
-        val executables = execManager.listExecByModelAndStatus(null, ExecutableState::isRunning, SNAPSHOT_BUILD,
-                SNAPSHOT_REFRESH);
 
-        List<AbstractExecutable> conflictJobs = executables.stream()
-                .filter(exec -> table.equalsIgnoreCase(exec.getParam(NBatchConstants.P_TABLE_NAME)))
-                .collect(Collectors.toList());
+        val jobInfoList = execManager.fetchJobsByTypesAndStates(project,
+                Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()), Lists.newArrayList(table),
+                ExecutableState.getNotFinalStates());
 
-        List<String> conflictJobIds = conflictJobs.stream().map(executable -> executable.getJobId())
+        List<String> conflictJobIds = jobInfoList.stream().map(jobInfo -> jobInfo.getJobId())
                 .collect(Collectors.toList());
         JobContextUtil.remoteDiscardJob(project, conflictJobIds);
 
-        return conflictJobs;
+        return jobInfoList.stream().map(jobInfo -> execManager.fromPO(JobInfoUtil.deserializeExecutablePO(jobInfo)))
+                .collect(Collectors.toList());
     }
 
     @Transaction(project = 0)
