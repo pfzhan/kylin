@@ -30,7 +30,6 @@ import java.lang.reflect.Constructor;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,8 +47,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.metadata.Epoch;
-import org.apache.kylin.common.persistence.metadata.EpochStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
@@ -71,7 +68,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
-import org.apache.kylin.job.execution.SucceedDagTestExecutable;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
@@ -112,7 +108,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
@@ -1131,57 +1126,5 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         result.put("nodes", Lists.newArrayList());
         result.put("cmd_output", null);
         Assert.assertEquals(result, jobService.getStepOutput("default", jobId, jobId));
-    }
-
-
-    @Test
-    public void tstOnApplicationEvent() {
-        final String PROJECT1 = "test1";
-        final String PROJECT2 = "test2";
-        final String PROJECT3 = "test3";
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        ExecutableManager manager1 = ExecutableManager.getInstance(kylinConfig, PROJECT2);
-
-        Epoch e1 = new Epoch();
-        e1.setEpochTarget(PROJECT1);
-        e1.setCurrentEpochOwner("owner1");
-
-        Epoch e2 = new Epoch();
-        e2.setEpochTarget(PROJECT2);
-        e2.setCurrentEpochOwner("owner2");
-
-        Epoch e3 = new Epoch();
-        e3.setEpochTarget(PROJECT3);
-        e3.setCurrentEpochOwner("owner2");
-
-        try {
-            EpochStore.getEpochStore(kylinConfig).insertBatch(Arrays.asList(e1, e2, e3));
-        } catch (Exception e) {
-            throw new RuntimeException("cannnot init epoch store!");
-        }
-
-        EpochManager epochManager = EpochManager.getInstance();
-        epochManager.setIdentity("owner2");
-
-        val job = new DefaultExecutable();
-        job.setProject(PROJECT2);
-        job.setJobType(JobTypeEnum.INDEX_BUILD);
-
-        val executable1 = new SucceedDagTestExecutable();
-        executable1.setProject(PROJECT2);
-        job.addTask(executable1);
-
-        val executable2 = new SucceedDagTestExecutable();
-        executable2.setProject(PROJECT2);
-        job.addTask(executable2);
-
-        executable1.setNextSteps(Sets.newHashSet(executable2.getId()));
-        executable2.setPreviousStep(executable1.getId());
-
-        val executablePO = ExecutableManager.toPO(job, PROJECT2);
-        manager1.addJob(executablePO);
-        manager1.updateJobOutput(job.getId(), ExecutableState.RUNNING);
-
-        jobService.onApplicationEvent(applicationEvent);
     }
 }

@@ -335,6 +335,18 @@ public class ExecutableManager {
                 "there is no related output for job :" + idOrPath + " , segmentOrStep : " + segmentOrStepId);
     }
 
+    public void cancelJobSubTasks(AbstractExecutable executable) {
+        if (executable instanceof DefaultExecutable) {
+            List<AbstractExecutable> subTasks = ((DefaultExecutable) executable).getTasks();
+            subTasks.forEach(task -> {
+                if (ExecutableState.RUNNING == task.getStatus()) {
+                    logger.info("Cancel subtask [{}]", task.getDisplayName());
+                    task.cancelJob();
+                }
+            });
+        }
+    }
+
     private void updateJobStatus(ExecutableOutputPO jobOutput, ExecutableState oldStatus, ExecutableState newStatus) {
         long time = System.currentTimeMillis();
 

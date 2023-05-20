@@ -37,13 +37,10 @@ import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.metadata.Epoch;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobActionEnum;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -56,7 +53,6 @@ import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.metadata.model.SegmentSecondStorageStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
-import org.apache.kylin.rest.ISmartApplicationListenerForSystem;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.JobStatisticsResponse;
 import org.apache.kylin.rest.response.NDataSegmentResponse;
@@ -65,8 +61,6 @@ import org.apache.kylin.rest.util.BuildAsyncProfileHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
@@ -75,12 +69,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
 @Component("jobService")
-public class JobService extends BasicService implements ISmartApplicationListenerForSystem {
+public class JobService extends BasicService {
 
     @Autowired
     private ProjectService projectService;
@@ -349,33 +342,5 @@ public class JobService extends BasicService implements ISmartApplicationListene
             ErrorCode.setMsg("en");
             MsgPicker.setMsg("en");
         }
-    }
-
-    @Override
-    public void onApplicationEvent(ApplicationEvent event) {
-        if (event instanceof ContextClosedEvent) {
-            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
-                logger.info("Stop kyligence node, kill job on yarn for yarn cluster mode");
-            }
-            EpochManager epochManager = EpochManager.getInstance();
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            List<Epoch> ownedEpochs = epochManager.getOwnedEpochs();
-
-            for (Epoch epoch : ownedEpochs) {
-                String project = epoch.getEpochTarget();
-                ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig, project);
-                if (executableManager != null) {
-                    List<ExecutablePO> allJobs = executableManager.getAllJobs();
-                    for (ExecutablePO executablePO : allJobs) {
-                        executableManager.cancelRemoteJob(executablePO);
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public int getOrder() {
-        return HIGHEST_PRECEDENCE;
     }
 }

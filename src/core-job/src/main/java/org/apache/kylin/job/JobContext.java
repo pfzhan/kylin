@@ -18,15 +18,22 @@
 
 package org.apache.kylin.job;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.job.condition.JobModeCondition;
+import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.core.lock.JdbcLockClient;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.runners.JobCheckRunner;
@@ -36,11 +43,16 @@ import org.apache.kylin.job.scheduler.JdbcJobScheduler;
 import org.apache.kylin.job.scheduler.ParallelLimiter;
 import org.apache.kylin.job.scheduler.ResourceAcquirer;
 import org.apache.kylin.job.scheduler.SharedFileProgressReporter;
+import org.apache.kylin.rest.ISmartApplicationListenerForSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Component;
 
@@ -50,7 +62,9 @@ import com.google.common.collect.Maps;
 @Component
 @DependsOn({ "springContext", "jobMybatisConfig" })
 @Conditional(JobModeCondition.class)
-public class JobContext implements InitializingBean, DisposableBean {
+public class JobContext implements InitializingBean, DisposableBean, ISmartApplicationListenerForSystem {
+
+    private static final Logger logger = LoggerFactory.getLogger(LogConstant.BUILD_CATEGORY);
 
     // resource block
     // progress report
@@ -220,5 +234,29 @@ public class JobContext implements InitializingBean, DisposableBean {
             return false;
         }
         return projectReachQuotaLimitMap.get(project);
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ContextClosedEvent) {
+            if (null == jobScheduler || !jobScheduler.hasRunningJob()) {
+                return;
+            }
+            try (SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+                logger.info("Stop kyligence node, kill spark application for cluster mode");
+            }
+            List<AbstractJobExecutable> runningJobs = jobScheduler.getRunningJob().values().stream()
+                    .map(pair -> pair.getFirst()).collect(Collectors.toList());
+            runningJobs.forEach(jobExecutable -> {
+                ExecutableManager executableManager = ExecutableManager.getInstance(kylinConfig,
+                        jobExecutable.getProject());
+                executableManager.cancelJobSubTasks((AbstractExecutable) jobExecutable);
+            });
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return HIGHEST_PRECEDENCE;
     }
 }
