@@ -967,7 +967,13 @@ public class JobInfoService extends BasicService implements JobSupporter {
             FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                     project);
             FusionModel fusionModel = fusionModelManager.getFusionModel(fusionModelId);
-            batchModelIds.add(fusionModel.getBatchModel().getUuid());
+            if (Objects.nonNull(fusionModel)) {
+                batchModelIds.add(fusionModel.getBatchModel().getUuid());
+            }
+        }
+
+        if (batchModelIds.isEmpty()) {
+            return Lists.newArrayList();
         }
 
         JobMapperFilter jobMapperFilter = new JobMapperFilter();
