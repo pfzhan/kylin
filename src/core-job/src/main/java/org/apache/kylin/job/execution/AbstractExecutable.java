@@ -18,16 +18,10 @@
 
 package org.apache.kylin.job.execution;
 
-import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.IllegalFormatException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -41,10 +35,11 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.mail.MailNotificationType;
+import org.apache.kylin.common.mail.MailNotifier;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
-import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.common.util.ThrowableUtils;
@@ -56,13 +51,13 @@ import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.JobContext;
-import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.core.AbstractJobExecutable;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
+import org.apache.kylin.job.mail.JobMailUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
@@ -85,13 +80,9 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
 
     public interface Callback {
         void process() throws Exception;
-
-        default void onProcessError(Throwable throwable) {
-        }
     }
 
     protected static final String SUBMITTER = "submitter";
-    protected static final String NOTIFY_LIST = "notify_list";
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
     public static final String DEPENDENT_FILES = "dependentFiles";
@@ -277,9 +268,9 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         if (result.succeed()) {
             wrapWithCheckQuit(() -> {
                 ExecutableState state = adjustState(ExecutableState.SUCCEED);
-                logger.info("Job {} adjust future state from {} to {}", getId(), ExecutableState.SUCCEED.name(), state.name());
-                updateJobOutput(project, getId(), state, result.getExtraInfo(), result.output(),
-                        null);
+                logger.info("Job {} adjust future state from {} to {}", getId(), ExecutableState.SUCCEED.name(),
+                        state.name());
+                updateJobOutput(project, getId(), state, result.getExtraInfo(), result.output(), null);
             });
         } else if (result.skip()) {
             wrapWithCheckQuit(() -> {
@@ -580,7 +571,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return output.getByteSize();
     }
 
-    public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
+    public boolean notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
         boolean hasEmptyLayout = false;
         for (NDataLayout dataCuboid : addOrUpdateCuboids) {
             if (dataCuboid.getRows() == 0) {
@@ -588,37 +579,30 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
                 break;
             }
         }
-        if (hasEmptyLayout) {
-            notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
+
+        if (hasEmptyLayout && getConfig().isMailEnabled()) {
+            logger.info("Layout rows is 0, notify user");
+            return notifyUser(MailNotificationType.JOB_LOAD_EMPTY_DATA);
         }
+
+        return false;
     }
 
-    public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
+    protected boolean notifyUser(MailNotificationType notificationType) {
         Preconditions.checkState((this instanceof DefaultExecutable) || this.getParent() instanceof DefaultExecutable);
         val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
-        boolean needNotification = true;
-        switch (jobIssue) {
-        case JOB_ERROR:
-            needNotification = projectConfig.getJobErrorNotificationEnabled();
-            break;
-        case LOAD_EMPTY_DATA:
-            needNotification = projectConfig.getJobDataLoadEmptyNotificationEnabled();
-            break;
-        case SOURCE_RECORDS_CHANGE:
-            needNotification = projectConfig.getJobSourceRecordsChangeNotificationEnabled();
-            break;
-        default:
-            throw new IllegalArgumentException(String.format(Locale.ROOT, "no process for jobIssue: %s.", jobIssue));
-        }
+
+        boolean needNotification = notificationType.needNotify(projectConfig);
         if (!needNotification) {
-            return;
+            logger.info("[{}] is not specified by user, not need to notify users.", notificationType.getDisplayName());
+            return false;
         }
-        List<String> users;
-        users = getAllNotifyUsers(projectConfig);
+
+        List<String> users = getAllNotifyUsers(projectConfig);
         if (this instanceof DefaultExecutable) {
-            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
+            return MailNotifier.notifyUser(projectConfig, JobMailUtil.createMail(notificationType, this), users);
         } else {
-            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()),
+            return MailNotifier.notifyUser(projectConfig, JobMailUtil.createMail(notificationType, this.getParent()),
                     users);
         }
     }
@@ -671,33 +655,6 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return getManager().getOutput(getId(), executablePO);
     }
 
-    //will modify input info
-    public Map<String, String> makeExtraInfo(Map<String, String> info) {
-        if (info == null) {
-            return Maps.newHashMap();
-        }
-
-        // post process
-        if (info.containsKey(MR_JOB_ID) && !info.containsKey(YARN_APP_ID)) {
-            String jobId = info.get(MR_JOB_ID);
-            if (jobId.startsWith("job_")) {
-                info.put(YARN_APP_ID, jobId.replace("job_", "application_"));
-            }
-        }
-
-        if (info.containsKey(YARN_APP_ID)
-                && !org.apache.commons.lang3.StringUtils.isEmpty(getConfig().getJobTrackingURLPattern())) {
-            String pattern = getConfig().getJobTrackingURLPattern();
-            try {
-                String newTrackingURL = String.format(Locale.ROOT, pattern, info.get(YARN_APP_ID));
-                info.put(YARN_APP_URL, newTrackingURL);
-            } catch (IllegalFormatException ife) {
-                logger.error("Illegal tracking url pattern: {}", getConfig().getJobTrackingURLPattern());
-            }
-        }
-
-        return info;
-    }
     public final long getStartTime() {
         return getStartTime(getOutput());
     }

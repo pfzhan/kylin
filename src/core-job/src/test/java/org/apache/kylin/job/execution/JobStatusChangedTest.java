@@ -19,13 +19,15 @@
 package org.apache.kylin.job.execution;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.project.NProjectManager;
-import org.junit.Before;
-
+import org.apache.kylin.common.mail.MailNotificationType;
+import org.apache.kylin.common.util.LogOutputTestCase;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
+public class JobStatusChangedTest extends LogOutputTestCase {
     String project = "default";
     KylinConfig config;
 
@@ -89,4 +91,38 @@ public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
     }
 
      */
+
+    @Test
+    public void testJobStatusChanged() {
+        DefaultExecutableOnModel job = new DefaultExecutableOnModel();
+        job.setProject(project);
+        job.setTargetSubject("model_test");
+
+        // test kylin.job.notification-enabled = false
+        boolean notified = job.onStatusChange(MailNotificationType.JOB_ERROR);
+        Assert.assertFalse(notified);
+
+        overwriteSystemProp("kylin.job.notification-enabled", "true");
+
+        // test job state needs to be notified, but it is not configured
+        notified = job.onStatusChange(MailNotificationType.JOB_SUCCEED);
+        Assert.assertFalse(notified);
+
+        overwriteSystemProp("kylin.job.notification-enable-states", "ERROR,DISCARDED,SUCCEED");
+        notified = job.onStatusChange(MailNotificationType.JOB_SUCCEED);
+        Assert.assertTrue(containsLog("user list is empty, not need to notify users."));
+        Assert.assertFalse(notified);
+
+        overwriteSystemProp("kylin.job.notification-admin-emails", "test@user");
+        notified = job.onStatusChange(MailNotificationType.JOB_DISCARDED);
+        Assert.assertTrue(containsLog("mail content is null, not need to notify users."));
+        Assert.assertFalse(notified);
+
+        // test exception
+        job.setName("test_job1");
+        job.setSubmitter("test_submitter1");
+        notified = job.onStatusChange(MailNotificationType.JOB_DISCARDED);
+        Assert.assertTrue(containsLog("notify user [Kyligence System Notification]-[Job Discarded] failed!"));
+        Assert.assertFalse(notified);
+    }
 }
