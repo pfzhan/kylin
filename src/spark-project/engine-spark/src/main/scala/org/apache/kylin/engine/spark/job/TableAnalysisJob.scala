@@ -24,6 +24,7 @@ import org.apache.kylin.engine.spark.NSparkCubingEngine
 import org.apache.kylin.engine.spark.builder.CreateFlatTable
 import org.apache.kylin.engine.spark.source.SparkSqlUtil
 import org.apache.kylin.engine.spark.utils.SparkConfHelper
+import org.apache.kylin.guava30.shaded.common.math.LongMath
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.metadata.project.NProjectManager
 import org.apache.kylin.source.SourceFactory
@@ -34,6 +35,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType
 import org.apache.spark.sql.functions._
 
+import java.math.RoundingMode
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -53,7 +55,6 @@ class TableAnalysisJob(tableDesc: TableDesc,
     val instances = sparkConf.get(SparkConfHelper.EXECUTOR_INSTANCES, "1").toInt
     val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES, "1").toInt
     val numPartitions = instances * cores
-    val rowsTakenInEachPartition = rowCount / numPartitions
     val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
       .getProject(tableDesc.getProject).getLegalOverrideKylinProps
     params.put("sampleRowCount", String.valueOf(rowCount))
@@ -68,6 +69,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
 
     calculateViewMetasIfNeeded(tableDesc.getBackTickIdentity)
 
+    val rowsTakenInEachPartition = LongMath.divide(rowCount, dataFrame.rdd.getNumPartitions, RoundingMode.CEILING)
     val dat = dataFrame.localLimit(rowsTakenInEachPartition)
     val sampledDataset = CreateFlatTable.changeSchemaToAliasDotName(dat, tableDesc.getBackTickIdentity)
     // todo: use sample data to estimate total info
