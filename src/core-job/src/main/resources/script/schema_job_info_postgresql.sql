@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_id varchar(100) UNIQUE NOT NULL,
   job_type varchar(50) NOT NULL,
   job_status varchar(50) NOT NULL,
-  project varchar(512) NOT NULL,
-  subject varchar(512) NOT NULL,
-  model_id varchar(512) NOT NULL,
+  project varchar(100) NOT NULL,
+  subject varchar(100) NOT NULL,
+  model_id varchar(100) NOT NULL,
   priority integer DEFAULT 3,
   mvcc bigint,
   job_content bytea NOT NULL,
@@ -33,3 +33,5 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_duration_millis bigint NOT NULL DEFAULT '0'
 );
 comment on column KE_IDENTIFIED_job_info.job_duration_millis is 'total duration milliseconds';
+create index KE_IDENTIFIED_job_info_proj_status_type_subject_index
+    on KE_IDENTIFIED_job_info (project, job_status, job_type, subject);

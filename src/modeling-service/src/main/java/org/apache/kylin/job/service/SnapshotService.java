@@ -600,10 +600,15 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         return executables.stream().map(JobInfo::getSubject)
                 .collect(Collectors.toList()).contains(tableDesc.getIdentity());
     }
-
     private boolean isAuthorizedTableAndColumn(TableDesc originTable) {
+        return isAuthorizedTableAndColumn(originTable, getCurrentUserGroups());
+    }
+
+    private boolean isAuthorizedTableAndColumn(TableDesc originTable, Set<String> groups) {
         String project = originTable.getProject();
-        Set<String> groups = getCurrentUserGroups();
+        if (groups == null) {
+            groups = getCurrentUserGroups();
+        }
         if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
             return true;
         }
@@ -672,6 +677,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
         boolean streamingEnabled = getConfig().streamingEnabled();
         List<JobInfo> jobInfoList = fetchAllRunningSnapshotTasksByTableIds(project, null);
         NInitTablesResponse response = new NInitTablesResponse();
+        Set<String> groups = getCurrentUserGroups();
         getManager(NTableMetadataManager.class, project).dbToTablesMap(streamingEnabled).forEach((db, tableList) -> {
             /* If there is no expected database, return a page of table in every database,
              * otherwise, only return a page of table in the specified database.
@@ -681,7 +687,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
 
             List<TableDesc> tables = tableList.stream()
                     .filter(tableDesc -> matchTablePattern(tableDesc, finalTable, finalDatabase, db))
-                    .filter(this::isAuthorizedTableAndColumn) //
+                    .filter(tableDesc -> isAuthorizedTableAndColumn(tableDesc, groups)) //
                     .filter(table -> table.isAccessible(streamingEnabled)) //
                     .sorted(tableService::compareTableDesc).collect(Collectors.toList());
 
@@ -724,6 +730,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
             tablePattern = tablePattern.split("\\.", 2)[1].trim();
         }
 
+        Set<String> groups = getCurrentUserGroups();
         final String finalTable = tablePattern;
         List<TableDesc> tables = tableManager.listAllTables().stream()
                 .filter(tableDesc -> tableDesc.getDatabase().equalsIgnoreCase(database)).filter(tableDesc -> {
@@ -731,7 +738,7 @@ public class SnapshotService extends BasicService implements SnapshotSupporter {
                         return true;
                     }
                     return tableDesc.getName().toLowerCase(Locale.ROOT).contains(finalTable.toLowerCase(Locale.ROOT));
-                }).filter(this::isAuthorizedTableAndColumn).sorted(tableService::compareTableDesc)
+                }).filter(tableDesc -> isAuthorizedTableAndColumn(tableDesc, groups)).sorted(tableService::compareTableDesc)
                 .collect(Collectors.toList());
         List<JobInfo> executables = fetchAllRunningSnapshotTasksByTableIds(project, tables.stream()
                 .map(TableDesc::getIdentity).collect(Collectors.toSet()));
