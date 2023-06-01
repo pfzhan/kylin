@@ -29,6 +29,7 @@ import static org.apache.kylin.tool.constant.StageEnum.DONE;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -52,6 +53,7 @@ import org.apache.kylin.common.persistence.transaction.MessageSynchronization;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
@@ -163,6 +165,9 @@ public class SystemService extends BasicService {
         Future<?> task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
+                if (!Arrays.stream(arguments).allMatch(StringHelper::validateShellArgument)) {
+                    throw new IllegalArgumentException("Shell args have illegal char: " + Arrays.toString(arguments));
+                }
                 if (KylinConfig.getInstanceFromEnv().getMicroServerMode() == null) {
                     CliCommandExecutor commandExecutor = new CliCommandExecutor();
                     val patternedLogger = new BufferedLogger(logger);
