@@ -2077,6 +2077,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.non-equi-join-model-enabled", FALSE));
     }
 
+    public boolean isNonEquiJoinRecommendationEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.model.non-equi-join-recommendation-enabled", FALSE));
+    }
+
     public String getQueryAccessController() {
         return getOptional("kylin.query.access-controller", null);
     }
@@ -4254,5 +4258,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getFileSegmentSuccessFile() {
         return getOptional("kylin.fileseg.success-file", null);
+    }
+
+    public boolean isPrintQueryPlanEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.print-logical-plan", FALSE));
     }
 }
