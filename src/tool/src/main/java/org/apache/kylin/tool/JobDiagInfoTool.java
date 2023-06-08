@@ -39,6 +39,8 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.util.JobContextUtil;
+import org.apache.kylin.metadata.cube.model.IndexPlan;
+import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.tool.snapshot.SnapshotSourceTableStatsTool;
 import org.apache.kylin.tool.util.DiagnosticFilesChecker;
@@ -222,5 +224,17 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     @VisibleForTesting
     public ExecutablePO getJobByJobId(String jobId) {
         return JobContextUtil.getJobInfoDao(getKylinConfig()).getExecutablePOByUuid(jobId);
+    }
+
+    protected KylinConfig getConfigForModelOrProjectLevel(String modelId, String project) {
+        KylinConfig config = null;
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getKylinConfig(), project).getIndexPlan(modelId);
+        if (indexPlan != null) {
+            config = indexPlan.getConfig();
+        }
+        if (config == null) {
+            config = NProjectManager.getProjectConfig(project);
+        }
+        return config;
     }
 }

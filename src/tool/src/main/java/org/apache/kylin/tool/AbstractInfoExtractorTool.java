@@ -86,6 +86,8 @@ import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.metadata.cube.model.IndexPlan;
+import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.QueryHistory;
@@ -1015,7 +1017,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
                     recordTaskStartTime(JOB_EVENTLOGS);
                     YarnApplicationTool yarnApplicationTool = new YarnApplicationTool();
                     val appIds = yarnApplicationTool.extract(project, jobId);
-                    Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
+                    KylinConfig config = getConfigForModelOrProjectLevel(job.getTargetModelId(), project);
+                    Map<String, String> sparkConf = config.getSparkConfigOverride();
                     KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
                     recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
                 }
@@ -1034,6 +1037,18 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(jobTmpTask, JOB_TMP);
+    }
+
+    protected KylinConfig getConfigForModelOrProjectLevel(String modelId, String project) {
+        KylinConfig config = null;
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getKylinConfig(), project).getIndexPlan(modelId);
+        if (indexPlan != null) {
+            config = indexPlan.getConfig();
+        }
+        if (config == null) {
+            config = NProjectManager.getProjectConfig(project);
+        }
+        return config;
     }
 
     protected void exportCandidateLog(File exportDir, File recordTime, long startTime, long endTime) {
