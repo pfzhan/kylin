@@ -951,7 +951,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         Map<String, Object> parseMap = Maps.newHashMap();
         parseMap.put("minute_start", "2000-01-01 05:06:12");
-        when(kafkaServiceMock.decodeMessage(any())).thenReturn(mockResp);
+        when(kafkaServiceMock.decodeMessagesAsMap(any())).thenReturn(mockResp);
 
         when(kafkaServiceMock.parserMessage(any(String.class), any(), any(String.class))).thenReturn(parseMap);
         String format2 = tableService.getPartitionColumnFormat("default", "DEFAULT.STREAMING_TABLE", "MINUTE_START",
@@ -959,7 +959,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("yyyy-MM-dd HH:mm:ss", format2);
 
         when(kafkaServiceMock.getMessages(any(), any(String.class))).thenCallRealMethod();
-        when(kafkaServiceMock.decodeMessage(any())).thenCallRealMethod();
+        when(kafkaServiceMock.decodeMessagesAsMap(any())).thenCallRealMethod();
         desc.setKafkaConfig(null);
     }
 

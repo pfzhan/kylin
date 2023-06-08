@@ -18,18 +18,20 @@
 
 package org.apache.kylin.parser;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.kylin.exceptions.JsonParseException;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 public class TimedJsonStreamParserTest {
     private static final String jsonFilePath = "src/test/resources/message.json";
@@ -42,11 +44,12 @@ public class TimedJsonStreamParserTest {
         InputStream is = Files.newInputStream(Paths.get(jsonFilePath));
         ByteBuffer buffer = ByteBuffer.wrap(IOUtils.toByteArray(is));
 
-        AbstractDataParser<ByteBuffer> parser = AbstractDataParser.getDataParser(className,
+        AbstractDataParser<ByteBuffer, Map<String, Object>> parser = AbstractDataParser.getDataParser(className,
                 Thread.currentThread().getContextClassLoader());
-
-        Map<String, Object> flatMap = parser.process(buffer);
-        Assert.assertEquals(29, flatMap.size());
+        Optional<Map<String, Object>> flatMapOpt = parser.process(buffer);
+        Assert.assertTrue(flatMapOpt.isPresent());
+        Map<String, Object> flatMap = flatMapOpt.get();
+        Assert.assertEquals(31, flatMap.size());
         Assert.assertEquals("Jul 20, 2016 9:59:17 AM", flatMap.get("createdAt"));
         Assert.assertEquals(755703618762862600L, flatMap.get("id"));
         Assert.assertEquals(false, flatMap.get("isTruncated"));
@@ -59,16 +62,18 @@ public class TimedJsonStreamParserTest {
         Assert.assertEquals("Noticias", flatMap.get("user_description"));
         Assert.assertEquals(false, flatMap.get("user_is_Default_Profile_Image"));
         Assert.assertEquals(false, flatMap.get("user_isProtected"));
-
+        Assert.assertNull(flatMap.get("clue_source_2_name"));
     }
 
     @Test
     public void testFlattenMessageWithDupKey() throws Exception {
         InputStream is = Files.newInputStream(Paths.get(dupKeyJsonFilePath));
         ByteBuffer buffer = ByteBuffer.wrap(IOUtils.toByteArray(is));
-        AbstractDataParser<ByteBuffer> parser = AbstractDataParser.getDataParser(className,
+        AbstractDataParser<ByteBuffer, Map<String, Object>> parser = AbstractDataParser.getDataParser(className,
                 Thread.currentThread().getContextClassLoader());
-        Map<String, Object> flatMap = parser.process(buffer);
+        Optional<Map<String, Object>> flatMapOpt = parser.process(buffer);
+        Assert.assertTrue(flatMapOpt.isPresent());
+        Map<String, Object> flatMap = flatMapOpt.get();
         Assert.assertEquals(31, flatMap.size());
         Assert.assertEquals("Jul 20, 2016 9:59:17 AM", flatMap.get("createdAt"));
         Assert.assertEquals(755703618762862600L, flatMap.get("id"));
@@ -91,9 +96,38 @@ public class TimedJsonStreamParserTest {
     @Test
     public void testException() throws Exception {
         String text = "test";
-        AbstractDataParser<ByteBuffer> parser = AbstractDataParser.getDataParser(className,
+        AbstractDataParser<ByteBuffer, Map<String, Object>> parser = AbstractDataParser.getDataParser(className,
                 Thread.currentThread().getContextClassLoader());
         ByteBuffer input = StandardCharsets.UTF_8.encode(text);
         Assert.assertThrows(JsonParseException.class, () -> parser.process(input));
+    }
+
+    @Test
+    public void testParserConfig() throws IOException, ReflectiveOperationException {
+        InputStream is = Files.newInputStream(Paths.get(jsonFilePath));
+        ByteBuffer buffer = ByteBuffer.wrap(IOUtils.toByteArray(is));
+
+        AbstractDataParser<ByteBuffer, Map<String, Object>> parser = AbstractDataParser.getDataParser(className,
+                Thread.currentThread().getContextClassLoader());
+        ParserConfig config = new ParserConfig(true).setIncludes(Sets.newHashSet("isTruncated"));
+        parser.withConfig(config);
+        Optional<Map<String, Object>> flatMapOpt = parser.process(buffer);
+        Assert.assertTrue(flatMapOpt.isPresent());
+        Map<String, Object> flatMap = flatMapOpt.get();
+        Assert.assertTrue(flatMap.containsKey("isTruncated"));
+
+        config.setIncludes(Sets.newHashSet("istruncated"));
+        parser.withConfig(config);
+        flatMapOpt = parser.process(buffer);
+        Assert.assertTrue(flatMapOpt.isPresent());
+        flatMap = flatMapOpt.get();
+        Assert.assertFalse(flatMap.containsKey("isTruncated"));
+
+        config = new ParserConfig(false).setIncludes(Sets.newHashSet("istruncated"));
+        parser.withConfig(config);
+        flatMapOpt = parser.process(buffer);
+        Assert.assertTrue(flatMapOpt.isPresent());
+        flatMap = flatMapOpt.get();
+        Assert.assertTrue(flatMap.containsKey("isTruncated"));
     }
 }

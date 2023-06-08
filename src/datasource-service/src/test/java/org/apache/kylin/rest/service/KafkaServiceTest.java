@@ -144,13 +144,21 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetMessageTypeAndDecodedMessages() {
-        val value = ByteBuffer.allocate(10);
-        value.put("msg-1".getBytes());
-        value.flip();
-        val messages = Collections.singletonList(value);
-        val decoded = kafkaService.decodeMessage(messages);
+        val strValue = ByteBuffer.allocate(10);
+        strValue.put("msg-1".getBytes());
+        strValue.flip();
+        val messages = Collections.singletonList(strValue);
+        val decoded = kafkaService.decodeMessagesAsMap(messages);
         val decodedMessages = (List) decoded.get("message");
+        val messageType = decoded.get("message_type");
         Assert.assertEquals(1, decodedMessages.size());
+        Assert.assertEquals("custom", messageType);
+
+        val jsonBytes = ByteBuffer.wrap("{\"age\": 1}".getBytes());
+        val decodedMap = kafkaService.inferMessagesAsMap(Collections.singletonList(jsonBytes), kafkaConfig);
+        Assert.assertEquals(2, decodedMap.size());
+        Assert.assertEquals(1, ((List<?>) decodedMap.get("message")).size());
+        Assert.assertEquals("json", decodedMap.get("message_type"));
     }
 
     @Test

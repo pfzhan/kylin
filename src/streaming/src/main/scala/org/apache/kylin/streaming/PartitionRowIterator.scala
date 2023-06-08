@@ -17,10 +17,11 @@
  */
 package org.apache.kylin.streaming
 
-import org.apache.kylin.guava30.shaded.common.base.{Preconditions, Throwables}
 import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.{ObjectUtils, StringUtils}
 import org.apache.kylin.common.util.DateFormat
+import org.apache.kylin.exceptions.DataIncompatibleException
+import org.apache.kylin.guava30.shaded.common.base.{Preconditions, Throwables}
 import org.apache.kylin.parser.AbstractDataParser
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
@@ -30,14 +31,15 @@ import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.sql.{Date, Timestamp}
-import java.util.{Locale, Objects}
+import java.util.Objects
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 class PartitionRowIterator(iter: Iterator[Row],
                            parsedSchema: StructType,
                            partitionColumn: String,
-                           dateParser: AbstractDataParser[ByteBuffer]) extends Iterator[Row] {
+                           dataParser: AbstractDataParser[ByteBuffer, java.util.Map[String, AnyRef]],
+                           interruptible: Boolean = false,
+                           keyNormalizer: String => String = identity) extends Iterator[Row] {
   private val logger = LoggerFactory.getLogger(classOf[PartitionRowIterator])
 
   private val EMPTY_ROW = Row()
@@ -59,51 +61,73 @@ class PartitionRowIterator(iter: Iterator[Row],
       logger.error(s"input data is null or length is 0, returning empty row. line is '$input'")
       return EMPTY_ROW
     }
+
     try {
       parseToRow(input.toString)
     } catch {
       case e: Exception =>
         logger.error(s"parse data failed, line is: '$input'", Throwables.getRootCause(e))
-        EMPTY_ROW
+        if (interruptible) {
+          throw e
+        } else {
+          EMPTY_ROW
+        }
     }
   }
 
   def parseToRow(input: String): Row = {
-    val jsonMap: mutable.Map[String, AnyRef] = dateParser.process(StandardCharsets.UTF_8.encode(input)).asScala
-      .map(pair => (pair._1.toLowerCase(Locale.ROOT), pair._2))
+    val jsonMapOpt: Option[Map[String, AnyRef]] =
+      Option(dataParser.process(StandardCharsets.UTF_8.encode(input)).orElse(java.util.Collections.emptyMap()))
+        .map(_.asScala)
+        .map(_.map(pair => (keyNormalizer.apply(pair._1), pair._2)).toMap)
 
-    Row(parsedSchema.fields.indices.map { index =>
-      val colName = parsedSchema.fields(index).name.toLowerCase(Locale.ROOT)
-      parseValue(jsonMap, colName, index)
-    }: _*)
+    Row(parsedSchema.fields.map {field => {
+      jsonMapOpt.map(jsonMap => parseValue(jsonMap.getOrElse(field.name, null), field.name, field)).orNull
+    }}: _*)
   }
 
-  def parseValue(jsonMap: mutable.Map[String, AnyRef], colName: String, index: Int): Any = {
-    if (!jsonMap.contains(colName)) { // key not exist
+  def parseValue(value: AnyRef, formattedFieldName: String, field: StructField): Any = {
+    if (shouldReturnNull(value, field.dataType, field.nullable)) {
       return null
     }
-    val value: AnyRef = jsonMap.getOrElse(colName, null) // value not exist
-    val dataType = parsedSchema.fields(index).dataType
-    if (dataType == StringType) {
-      value
-    } else if (ObjectUtils.isEmpty(value)) {
-      // key not exist -> null
-      // value not exist ("", null, new int[]{}) -> null
-      null
-    } else {
-      val strValue = value.toString
-      dataType match {
+
+    val strValue = String.valueOf(value)
+    try {
+      field.dataType match {
+        case StringType =>
+          if (value == null && !field.nullable) {
+            throw new RuntimeException(s"Field $formattedFieldName is not nullable, but met null value!")
+          }
+          strValue
         case ShortType => lang.Short.parseShort(strValue)
         case IntegerType => Integer.parseInt(strValue)
         case LongType => lang.Long.parseLong(strValue)
         case DoubleType => lang.Double.parseDouble(strValue)
         case FloatType => lang.Float.parseFloat(strValue)
-        case BooleanType => lang.Boolean.parseBoolean(strValue)
-        case TimestampType => processTimestamp(colName, strValue)
+        case BooleanType =>
+          if (value == null) throw new RuntimeException(s"Field $field can't be a null value!")
+          lang.Boolean.parseBoolean(strValue)
+        case TimestampType => processTimestamp(formattedFieldName, strValue)
         case DateType => new Date(DateUtils.parseDate(strValue, DATE_PATTERN).getTime)
         case DecimalType() => BigDecimal(strValue)
         case _ => value
       }
+    } catch {
+      case e: Exception =>
+        throw new DataIncompatibleException(s"The input value [$strValue] can't be parsed as ${field.toString()}!", e)
+    }
+  }
+
+  private def shouldReturnNull(value: AnyRef, dataType: DataType, nullable: Boolean): Boolean = {
+    value match {
+      case cs: CharSequence =>
+        if (dataType != StringType && nullable && (cs.length() == 0 || StringUtils.equalsIgnoreCase(cs, "null"))) {
+          true
+        } else {
+          false
+        }
+      case _ =>
+        nullable && ObjectUtils.isEmpty(value)
     }
   }
 

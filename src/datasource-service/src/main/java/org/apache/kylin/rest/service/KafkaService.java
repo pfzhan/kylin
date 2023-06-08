@@ -31,8 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.parser.TimedJsonStreamParser;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -40,6 +43,7 @@ import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.loader.ParserClassLoaderState;
 import org.apache.kylin.metadata.jar.JarInfoManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
@@ -99,15 +103,47 @@ public class KafkaService extends BasicService {
         }
     }
 
-    public Map<String, Object> decodeMessage(List<ByteBuffer> messages) {
-        List<String> samples = messages.stream()//
-                .map(buffer -> StandardCharsets.UTF_8.decode(buffer).toString())//
-                .filter(StringUtils::isNotBlank).collect(Collectors.toList());
+    public Map<String, Object> decodeMessagesAsMap(List<ByteBuffer> messages) {
+        List<String> samples = decodeMessages(messages);
+        return toMap("custom", samples);
+    }
 
+    public Map<String, Object> inferMessagesAsMap(List<ByteBuffer> messages, KafkaConfig kafkaConfig) {
+        List<String> samples = decodeMessages(messages);
+        String messageType = "custom";
+        Predicate<List<String>> allMessagesAreJson = sampleList -> sampleList.stream().allMatch(JsonUtil::isJson);
+        if (kafkaConfig.getParserName().lastIndexOf(TimedJsonStreamParser.class.getName()) >= 0
+                && allMessagesAreJson.test(samples)) {
+             // Valid json strings:
+             // a single numeric value, such as 123
+             // a single string value, such as "abc"
+             // a normal json string with tailing text, such as {“email”:”example@com”}trailing_text
+            messageType = "json";
+        }
+        return toMap(messageType, samples);
+    }
+
+    private Map<String, Object> toMap(String messageType, List<?> samples) {
         Map<String, Object> resp = Maps.newHashMap();
-        resp.put("message_type", "custom");
+        resp.put("message_type", messageType);
         resp.put("message", samples);
         return resp;
+    }
+
+    private List<String> decodeMessages(List<ByteBuffer> messages) {
+        return decodeMessages(
+                messages,
+                byteBuffer -> StandardCharsets.UTF_8.decode(byteBuffer).toString(),
+                StringUtils::isNotBlank);
+    }
+
+    private <T> List<T> decodeMessages(List<ByteBuffer> messages,
+                                      Function<ByteBuffer, T> elementDecoder,
+                                      Predicate<T> filter) {
+        return messages.stream()
+                .map(elementDecoder)
+                .filter(filter)
+                .collect(Collectors.toList());
     }
 
     public Map<String, Object> parserMessage(String project, KafkaConfig kafkaConfig, String message) {

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -206,20 +207,20 @@ public class KafkaSourceHandler implements StreamingSourceHandler {
 
     @Override
     public Map<String, Object> parserMessage(KafkaConfig kafkaConfig, String msg) {
-        Map<String, Object> result;
+        Optional<Map<String, Object>> result;
         String parserName = kafkaConfig.getParserName();
         String project = kafkaConfig.getProject();
         String topic = kafkaConfig.getSubscribe();
         try {
             ParserClassLoaderState loaderState = ParserClassLoaderState.getInstance(project);
             checkParserRegister(parserName, project, loaderState);
-            result = AbstractDataParser.getDataParser(parserName, loaderState.getClassLoader())
-                    .process(StandardCharsets.UTF_8.encode(msg));
+            result = AbstractDataParser.<ByteBuffer, Map<String, Object>>getDataParser(
+                    parserName, loaderState.getClassLoader()).process(StandardCharsets.UTF_8.encode(msg));
         } catch (Exception e) {
             throw new KylinException(STREAMING_PARSE_MESSAGE_ERROR, e, parserName, topic);
         }
-        checkColName(result);
-        return result;
+        result.ifPresent(KafkaSourceHandler::checkColName);
+        return result.orElse(Collections.emptyMap());
     }
 
     public void checkParserRegister(String parserName, String project, ParserClassLoaderState loaderState) {

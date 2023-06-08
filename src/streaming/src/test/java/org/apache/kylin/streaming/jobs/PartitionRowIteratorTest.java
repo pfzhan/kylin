@@ -31,7 +31,9 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Map;
 
+import org.apache.kylin.exceptions.DataIncompatibleException;
 import org.apache.kylin.parser.AbstractDataParser;
 import org.apache.kylin.streaming.PartitionRowIterator;
 import org.apache.kylin.streaming.util.StreamingTestCase;
@@ -55,7 +57,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     private final static String DEFAULT_CLASSNAME = "io.kyligence.kap.parser.TimedJsonStreamParser";
-    private final static AbstractDataParser<ByteBuffer> dataParser;
+    private final static AbstractDataParser<ByteBuffer, Map<String, Object>> dataParser;
 
     static {
         try {
@@ -90,7 +92,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
             public Row next() {
                 return RowFactory.create("");
             }
-        }, schema, "value", dataParser);
+        }, schema, "value", dataParser, false, v -> v);
         Assert.assertTrue(partitionRowIter.hasNext());
         val row = partitionRowIter.next();
         Assert.assertEquals(0, row.length());
@@ -110,31 +112,56 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
             public Row next() {
                 return RowFactory.create("{\"value\":\"ab\"}");
             }
-        }, schema, "value", dataParser);
-        Assert.assertTrue(partitionRowIter.hasNext());
-        val row = partitionRowIter.next();
-        Assert.assertEquals(0, row.length());
+        }, schema, "value", dataParser, true, v -> v);
+        Assert.assertThrows(DataIncompatibleException.class, partitionRowIter::next);
     }
 
     @Test
-    public void testConvertEmptyJsonValue2Row() {
+    public void testConvertEmptyOrNullJsonValue2Row() {
         val schemas = Arrays.asList(ShortType, IntegerType, LongType, DoubleType, FloatType, BooleanType, TimestampType,
                 DateType, DecimalType.apply(5, 2));
+        val patterns = Arrays.asList(
+                "{}", "{\"value\":\"\"}", "{\"value2\":\"\"}", "{\"value\": null}", "{\"value\": \"Null\"}");
         schemas.forEach(dataType -> {
-            val schema = new StructType().add("value", dataType);
-            val partitionRowIter = new PartitionRowIterator(null, schema, "value", dataParser);
-            {
-                val row = partitionRowIter.parseToRow("{}");
+            val nullableSchema = new StructType().add("value", dataType);
+            val partitionRowNullableIter = new PartitionRowIterator(null, nullableSchema, "value", dataParser, false, v -> v);
+            val schema = new StructType().add("value", dataType, false);
+            val partitionRowIter = new PartitionRowIterator(null, schema, "value", dataParser, false, v -> v);
+            for (String json : patterns) {
+                val row = partitionRowNullableIter.parseToRow(json);
                 Assert.assertNull(row.get(0));
+                if (dataType != BooleanType) {
+                    // java.lang.Boolean.parseBoolean will not throw any exceptions
+                    Assert.assertThrows(String.format("Source Row: %s", json),
+                            DataIncompatibleException.class, () -> partitionRowIter.parseToRow(json));
+                }
             }
-            {
-                val row = partitionRowIter.parseToRow("{\"value\":\"\"}");
-                Assert.assertNull(row.get(0));
-            }
-            {
-                val row = partitionRowIter.parseToRow("{\"value2\":\"\"}");
-                Assert.assertNull(row.get(0));
-            }
+        });
+
+        // StringType tests
+        val partitionRowNullableIter = new PartitionRowIterator(null, new StructType().add("value", StringType), "value", dataParser, false, v -> v);
+        val partitionRowIter = new PartitionRowIterator(null, new StructType().add("value", StringType, false), "value", dataParser, false, v -> v);
+        Arrays.asList("{}", "{\"value2\":123}", "{\"value\": null}").forEach(json -> {
+            Assert.assertNull(partitionRowNullableIter.parseToRow(json).get(0));
+            Assert.assertThrows(String.format("Source Row: %s", json),
+                    DataIncompatibleException.class, () -> partitionRowIter.parseToRow(json));
+        });
+        Assert.assertEquals("Null", partitionRowIter.parseToRow("{\"value\": \"Null\"}").get(0));
+        Assert.assertEquals("Null", partitionRowNullableIter.parseToRow("{\"value\": \"Null\"}").get(0));
+    }
+
+    @Test
+    public void testIncompatibleJsonValue2Row() {
+        val schemas = Arrays.asList(ShortType, IntegerType, LongType, DoubleType, FloatType, TimestampType,
+                DateType, DecimalType.apply(5, 2));
+        schemas.forEach(dataType -> {
+            val nullableSchema = new StructType().add("value", dataType);
+            val partitionRowNullableIter = new PartitionRowIterator(null, nullableSchema, "value", dataParser, false, v -> v);
+            val schema = new StructType().add("value", dataType, false);
+            val partitionRowIter = new PartitionRowIterator(null, schema, "value", dataParser, false, v -> v);
+            val json = "{\"value\": \"abc\"}";
+            Assert.assertThrows(DataIncompatibleException.class, () -> partitionRowNullableIter.parseToRow(json));
+            Assert.assertThrows(DataIncompatibleException.class, () -> partitionRowIter.parseToRow(json));
         });
     }
 
@@ -143,7 +170,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
         {
             val schema = new StructType().add("value1", ShortType).add("value2", IntegerType).add("value3", LongType)
                     .add("value4", DoubleType).add("value5", FloatType).add("value6", BooleanType);
-            val partitionRowIter = new PartitionRowIterator(null, schema, "value2", dataParser);
+            val partitionRowIter = new PartitionRowIterator(null, schema, "value2", dataParser, false, v -> v);
             val row = partitionRowIter.parseToRow("{\"value1\":121,"
                     + "\"value2\":122,\"value3\":123,\"value4\":124, \"value5\":125,\"value6\":true}");
             Assert.assertEquals((short) 121, row.get(0));
@@ -155,24 +182,25 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
         }
         {
             val schema = new StructType().add("value1", DecimalType.apply(38, 18));
-            val partitionRowIter = new PartitionRowIterator(null, schema, null, dataParser);
+            val partitionRowIter = new PartitionRowIterator(null, schema, null, dataParser, false, v -> v);
             val row = partitionRowIter.parseToRow("{\"value1\":4.567}");
             Assert.assertEquals(scala.math.BigDecimal.valueOf(4.567), row.get(0));
         }
         {
             val schema = new StructType().add("value1", StringType);
-            val partitionRowIter = new PartitionRowIterator(null, schema, null, dataParser);
+            val partitionRowIter = new PartitionRowIterator(null, schema, null, dataParser, false, v -> v);
             val row = partitionRowIter.parseToRow("{\"value1\":\"\"}");
             Assert.assertEquals("", row.get(0));
+            Assert.assertEquals("123", partitionRowIter.parseToRow("{\"value1\":123}").get(0));
         }
     }
 
     @Test
     public void testTimestampType() {
         val schema = new StructType().add("value", TimestampType);
-        val partitionRowIterator = new PartitionRowIterator(null, schema, "value", dataParser);
+        val partitionRowIterator = new PartitionRowIterator(null, schema, "value", dataParser, false, v -> v);
         {
-            Assert.assertThrows("invalid value 1970-01-01 00:00:00", IllegalArgumentException.class,
+            Assert.assertThrows("invalid value 1970-01-01 00:00:00", DataIncompatibleException.class,
                     () -> partitionRowIterator.parseToRow("{\"value\": \"1970-01-01 00:00:00\"}"));
         }
         {
@@ -188,7 +216,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
     @Test
     public void testTimestampTypeOfNonePartitionColumn() {
         val schema = new StructType().add("value", TimestampType);
-        val partitionRowIterator = new PartitionRowIterator(null, schema, null, dataParser);
+        val partitionRowIterator = new PartitionRowIterator(null, schema, null, dataParser, false, v -> v);
         {
             val row = partitionRowIterator.parseToRow("{\"value\": \"1956-01-01 00:00:00\"}");
             Assert.assertEquals(-441878400000L, ((Timestamp) row.get(0)).getTime());
@@ -206,7 +234,7 @@ public class PartitionRowIteratorTest extends StreamingTestCase {
     @Test
     public void testDateType() {
         val schema = new StructType().add("value", DateType);
-        val partitionRowIterator = new PartitionRowIterator(null, schema, null, dataParser);
+        val partitionRowIterator = new PartitionRowIterator(null, schema, null, dataParser, false, v -> v);
         {
             val row = partitionRowIterator.parseToRow("{\"value\": \"1956-01-02\"}");
             Assert.assertEquals(-441792000000L, ((Date) row.get(0)).getTime());

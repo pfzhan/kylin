@@ -739,7 +739,7 @@ public class TableService extends BasicService {
             if (tableDesc.isKafkaTable()) {
                 List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project);
                 checkMessage(table, messages);
-                Map<String, Object> resp = kafkaService.decodeMessage(messages);
+                Map<String, Object> resp = kafkaService.decodeMessagesAsMap(messages);
                 String message = ((List<String>) resp.get("message")).get(0);
                 Map<String, Object> mapping = kafkaService.parserMessage(project, tableDesc.getKafkaConfig(), message);
                 Map<String, Object> mappingAllCaps = new HashMap<>();

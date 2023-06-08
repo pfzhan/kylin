@@ -68,7 +68,7 @@ public class KafkaController extends NBasicController {
         if (CollectionUtils.isEmpty(messages)) {
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "There is no message in this topic");
         }
-        Map<String, Object> resp = kafkaService.decodeMessage(messages);
+        Map<String, Object> resp = kafkaService.inferMessagesAsMap(messages, streamingRequest.getKafkaConfig());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, resp, "");
     }
 
