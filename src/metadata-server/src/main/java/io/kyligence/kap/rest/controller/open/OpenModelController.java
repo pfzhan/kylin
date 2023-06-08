@@ -134,6 +134,7 @@ public class OpenModelController extends NBasicController {
         modelRequest.setProject(checkProjectName(modelRequest.getProject()));
         checkRequiredArg(ALIAS, modelRequest.getRawAlias());
         modelService.checkCCEmpty(modelRequest);
+        modelRequest.toUpperCaseModelRequest();
         Pair<ModelRequest, ComputedColumnConflictResponse> pair = modelService.checkCCConflict(modelRequest);
         EnvelopeResponse<BuildBaseIndexResponse> response = modelController.createModel(pair.getFirst());
         response.getData().setCcConflict(pair.getSecond());
@@ -486,6 +487,7 @@ public class OpenModelController extends NBasicController {
         modelRequest.setProject(checkProjectName(modelRequest.getProject()));
         checkRequiredArg(ALIAS, modelRequest.getRawAlias());
         checkRequiredArg(FACT_TABLE, modelRequest.getRootFactTableName());
+        modelRequest.toUpperCaseModelRequest();
         SynchronizedCommentsResponse synchronizedCommentsResponse = new SynchronizedCommentsResponse();
         synchronizedCommentsResponse.syncComment(modelRequest);
         modelService.checkBeforeModelSave(synchronizedCommentsResponse.getModelRequest());
