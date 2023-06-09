@@ -25,6 +25,7 @@ import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -44,6 +45,7 @@ import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.MetadataBackupRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.ArthasService;
 import org.apache.kylin.rest.service.FileService;
 import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.service.ScheduleService;
@@ -84,6 +86,9 @@ public class NSystemController extends NBasicController {
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
+
+    @Autowired
+    private ArthasService arthasService;
 
     @Autowired
     private FileService fileService;
@@ -210,5 +215,32 @@ public class NSystemController extends NBasicController {
                 request.getTmpFileSize());
         setDownloadResponse(backupInputStream, METADATA_FILE, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/arthas/register")
+    @ResponseBody
+    public EnvelopeResponse<String> registerArthas(
+            @RequestParam(value = "tunnelServer", required = false) String tunnelServer,
+            @RequestParam(value = "appName", required = false) String appName,
+            @RequestParam(value = "httpPort", required = false) String httpPort) {
+        Map<String, String> overrideConfigMap = new HashMap<>();
+        if (tunnelServer != null) {
+            overrideConfigMap.put("tunnelServer", tunnelServer);
+        }
+        if (appName != null) {
+            overrideConfigMap.put("appName", appName);
+        }
+        if (httpPort != null) {
+            overrideConfigMap.put("httpPort", httpPort);
+        }
+        arthasService.registerArthas(overrideConfigMap);
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/arthas/destory")
+    @ResponseBody
+    public EnvelopeResponse<String> destoryArthas() {
+        arthasService.destoryArthas();
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
     }
 }
