@@ -52,6 +52,7 @@ import org.apache.kylin.common.exception.JobExceptionReason;
 import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.logging.SetLogCategory;
+import org.apache.kylin.common.mail.MailNotificationType;
 import org.apache.kylin.common.metrics.MetricsCategory;
 import org.apache.kylin.common.metrics.MetricsGroup;
 import org.apache.kylin.common.metrics.MetricsName;
@@ -608,6 +609,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
         }
         killExistApplication(job);
         getManager(ExecutableManager.class, project).discardJob(job.getId());
+
+        if (getConfig().isMailEnabled()) {
+            job.notifyUser(MailNotificationType.JOB_DISCARDED);
+        }
     }
 
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
@@ -902,8 +907,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
         segmentSubStages.setStepRatio(stepRatio);
 
         // Put warning message into segment_sub_stages.info if exists
-        Optional<ExecutableStepResponse> warningStageRes = stageResponses.stream().filter(stageRes ->
-                stageRes.getStatus() == JobStatusEnum.WARNING).findFirst();
+        Optional<ExecutableStepResponse> warningStageRes = stageResponses.stream()
+                .filter(stageRes -> stageRes.getStatus() == JobStatusEnum.WARNING).findFirst();
         warningStageRes.ifPresent(res -> segmentSubStages.getInfo().put(NBatchConstants.P_WARNING_CODE,
                 res.getInfo().getOrDefault(NBatchConstants.P_WARNING_CODE, null)));
     }

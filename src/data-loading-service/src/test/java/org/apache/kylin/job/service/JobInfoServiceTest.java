@@ -60,6 +60,7 @@ import org.apache.kylin.common.exception.JobExceptionReason;
 import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.LogOutputTestCase;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
@@ -71,6 +72,7 @@ import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.domain.JobInfo;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
+import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -118,7 +120,9 @@ import lombok.val;
 import lombok.var;
 
 @Ignore
-public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
+public class JobInfoServiceTest extends LogOutputTestCase {
+
+    String project = "default";
 
     @InjectMocks
     private final JobInfoService jobInfoService = Mockito.spy(new JobInfoService());
@@ -1047,6 +1051,24 @@ public class JobInfoServiceTest extends NLocalFileMetadataTestCase {
         result = jobInfoService.parseToExecutableStep(task, po, waiteTimeMap, jobState);
         assert !result.getInfo().containsKey(ExecutableConstants.SPARK_HISTORY_APP_URL);
 
+    }
+
+    @Test
+    public void testDiscardJobAndNotify() {
+        ExecutableManager manager = ExecutableManager.getInstance(getTestConfig(), project);
+        val job = new DefaultExecutable();
+        job.setProject(project);
+        job.setJobType(JobTypeEnum.INC_BUILD);
+        manager.addJob(job);
+
+        overwriteSystemProp("kylin.job.notification-enabled", "true");
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobInfoService.updateJobStatus(job.getId(), ExecutableManager.toPO(job, project), project, "DISCARD");
+            return null;
+        }, project);
+
+        Assert.assertTrue(containsLog("[Job Discarded] is not specified by user, not need to notify users."));
     }
 
     @Test

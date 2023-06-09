@@ -588,7 +588,7 @@ public abstract class AbstractExecutable extends AbstractJobExecutable implement
         return false;
     }
 
-    protected boolean notifyUser(MailNotificationType notificationType) {
+    public boolean notifyUser(MailNotificationType notificationType) {
         Preconditions.checkState((this instanceof DefaultExecutable) || this.getParent() instanceof DefaultExecutable);
         val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
 
