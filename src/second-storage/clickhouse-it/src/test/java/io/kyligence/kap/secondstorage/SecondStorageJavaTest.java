@@ -304,6 +304,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         secondStorageService.updateIndex(project, modelId);
         secondStorageService.enableModelSecondStorage(project, modelId);
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, modelId));
+        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, modelId));
     }
 
     @Test
@@ -321,8 +322,10 @@ public class SecondStorageJavaTest implements JobWaiter {
     @Test
     public void testResetStorage() {
         Assert.assertTrue(SecondStorageUtil.isProjectEnable(project));
+        Assert.assertTrue(SecondStorageUtil.isProjectEnableWithoutCheckKylinInfo(project));
         secondStorageEndpoint.resetStorage();
         Assert.assertFalse(SecondStorageUtil.isProjectEnable(project));
+        Assert.assertFalse(SecondStorageUtil.isProjectEnableWithoutCheckKylinInfo(project));
     }
 
     @Test
