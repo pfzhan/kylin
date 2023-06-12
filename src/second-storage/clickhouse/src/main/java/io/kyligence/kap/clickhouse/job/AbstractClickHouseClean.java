@@ -109,9 +109,6 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(JobContext context) throws ExecuteException {
-        if (checkKylinInfo()) {
-            return ExecuteResult.createSkip();
-        }
         return wrapWithExecuteException(() -> {
             loadState();
             workImpl();
@@ -124,10 +121,5 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
             shardCleaners.forEach(shardCleaner -> shardCleaner.getClickHouse().close());
             shardCleaners.clear();
         }
-    }
-
-    protected boolean checkKylinInfo(){
-        // clean project and model job not need check kylinInfo
-        return false;
     }
 }
