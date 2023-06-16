@@ -20,8 +20,8 @@ package org.apache.kylin.tool;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.ASYNC_TASK;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.AUDIT_LOG;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.BIN;
-import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CATALOG_INFO;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
+import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CATALOG_INFO;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CLIENT;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.CONF;
 import static org.apache.kylin.tool.constant.DiagSubTaskEnum.FAVORITE_RULE;
@@ -64,7 +64,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -108,10 +107,14 @@ import org.apache.kylin.tool.util.ToolUtil;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.http.HttpHeaders;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
+import io.kyligence.kap.zen.license.LicenseHandler;
+import io.kyligence.kap.zen.license.info.LicenseInfo;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -430,6 +433,33 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         FileUtils.writeStringToFile(new File(exportDir, "system_env"), sb.toString());
     }
 
+    private void dumpZenLicenseInfo(File exportDir) throws Exception {
+        LicenseHandler licenseHandler = SpringContext.getBean(LicenseHandler.class);
+        LicenseInfo licenseInfo = licenseHandler.getLicenseInfo();
+        StringBuilder licenseSb = new StringBuilder();
+        licenseSb.append(licenseInfo.requestLicenseInfo()).append('\n');
+        licenseSb.append("PackageType: ").append(packageType.toUpperCase(Locale.ROOT)).append("\n");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",
+                Locale.getDefault(Locale.Category.FORMAT));
+        licenseSb.append("PackageTimestamp: ").append(format.format(new Date())).append("\n");
+        FileUtils.writeStringToFile(new File(exportDir, "info"), licenseSb.toString());
+    }
+
+    private boolean isZenLicense() {
+        try {
+            if(KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                return false;
+            }
+            LicenseHandler licenseHandler = SpringContext.getBean(LicenseHandler.class);
+            if (null != licenseHandler) {
+                return true;
+            }
+            return false;
+        } catch (NoSuchBeanDefinitionException e) {
+            return false;
+        }
+    }
+
     public void dumpLicenseInfo(File exportDir) throws IOException {
         StringBuilder basicSb = new StringBuilder();
 
@@ -474,7 +504,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         FileUtils.writeStringToFile(new File(exportDir, "info"), basicSb.toString());
     }
 
-    private void dumpBasicDiagInfo() throws IOException {
+    private void dumpBasicDiagInfo() throws Exception {
         // dump commit file
         extractCommitFile(exportDir);
 
@@ -483,7 +513,11 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         FileUtils.writeStringToFile(kylinEnv, ServerInfoUtil.getKylinClientInformation());
 
         // dump license info
-        dumpLicenseInfo(exportDir);
+        if (isZenLicense()) {
+            dumpZenLicenseInfo(exportDir);
+        } else {
+            dumpLicenseInfo(exportDir);
+        }
 
         // dump system env and properties
         if (includeSystemEnv) {

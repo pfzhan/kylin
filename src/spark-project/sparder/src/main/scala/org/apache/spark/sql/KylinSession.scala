@@ -252,6 +252,13 @@ object KylinSession extends Logging {
           val podNamePrefix = generateExecutorPodNamePrefixForK8s(appName)
           logInfo(s"Sparder run on k8s, generated executorPodNamePrefix is $podNamePrefix")
           sparkConf.setIfMissing("spark.kubernetes.executor.podNamePrefix", podNamePrefix)
+          val olapEngineNamespace = System.getenv("NAME_SPACE")
+          sparkConf.set("spark.kubernetes.executor.label.component", "sparder-driver-executor")
+          sparkConf.set("spark.kubernetes.executor.label.olap-engine-namespace", olapEngineNamespace)
+          if (sparkConf.get("spark.submit.deployMode", "").equals("cluster")) {
+            sparkConf.set("spark.kubernetes.driver.label.component", "sparder-driver-executor")
+            sparkConf.set("spark.kubernetes.driver.label.olap-engine-namespace", olapEngineNamespace)
+          }
         case _ =>
       }
 

@@ -50,12 +50,17 @@ import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.utils.StreamingUtils;
+import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.zen.license.check.CheckResult;
+import io.kyligence.kap.zen.license.check.LicenseChecker;
+import io.kyligence.kap.zen.license.check.ResultType;
 import lombok.val;
 
 public class JdbcJobScheduler implements JobScheduler {
@@ -201,6 +206,10 @@ public class JdbcJobScheduler implements JobScheduler {
                 return;
             }
 
+            if (!checkLicense()) {
+                return;
+            }
+
             String polledJobIdInfo = readyJobIdList.stream().collect(Collectors.joining(",", "[", "]"));
             logger.info("Scheduler polled jobs: {} {}", readyJobIdList.size(), polledJobIdInfo);
             // force catchup metadata before produce jobs
@@ -234,6 +243,39 @@ public class JdbcJobScheduler implements JobScheduler {
             logger.error("Something's wrong when publishing job", e);
         } finally {
             master.schedule(this::produceJob, delaySec, TimeUnit.SECONDS);
+        }
+    }
+
+    private boolean checkLicense() {
+        LicenseChecker licenseChecker = getLicenseChecker();
+        if (null == licenseChecker) {
+            // skip license check
+            return true;
+        }
+        CheckResult checkResult = null;
+        try {
+            checkResult = licenseChecker.check();
+        } catch (Throwable e) {
+            logger.error("Error happened when check license", e);
+            return false;
+        }
+        if (checkResult.getResultType() == ResultType.VALID) {
+            return true;
+        }
+        logger.error("License check failed: {}", checkResult.getMessage());
+        return false;
+    }
+
+    private LicenseChecker getLicenseChecker() {
+        try {
+            if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                return null;
+            }
+            LicenseChecker licenseChecker = SpringContext.getBean(LicenseChecker.class);
+            return licenseChecker;
+        } catch (NoSuchBeanDefinitionException e) {
+            logger.debug("LicenseChecker can not be found.");
+            return null;
         }
     }
 
