@@ -19,6 +19,7 @@
 package org.apache.kylin.streaming
 
 import java.nio.ByteBuffer
+
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.engine.spark.NSparkCubingEngine
@@ -27,7 +28,7 @@ import org.apache.kylin.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
 import org.apache.kylin.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import org.apache.kylin.metadata.cube.utils.StreamingUtils
 import org.apache.kylin.metadata.model._
-import org.apache.kylin.parser.{AbstractDataParser, ParserConfig}
+import org.apache.kylin.parser.AbstractDataParser
 import org.apache.kylin.source.SourceFactory
 import org.apache.kylin.streaming.common.CreateFlatTableEntry
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
@@ -38,8 +39,8 @@ import org.apache.spark.storage.StorageLevel
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+
 import org.apache.kylin.guava30.shaded.common.base.Preconditions
-import org.apache.kylin.streaming.util.SchemaUtils
 
 class CreateStreamingFlatTable(entry: CreateFlatTableEntry) extends
   CreateFlatTable(entry.flatTable, entry.seg, entry.toBuildTree, entry.ss, entry.sourceInfo) {
@@ -93,10 +94,8 @@ class CreateStreamingFlatTable(entry: CreateFlatTableEntry) extends
           StructField(columnDescs.getName, SparderTypeUtil.toSparkType(columnDescs.getType))
         }
       )
-
     val rootFactTable = changeSchemaToAliasDotName(
-      CreateStreamingFlatTable.castDF(
-        originFactTable, schema, partitionColumn(), entry.parserName).alias(model.getRootFactTable.getAlias),
+      CreateStreamingFlatTable.castDF(originFactTable, schema, partitionColumn(), entry.parserName).alias(model.getRootFactTable.getAlias),
       model.getRootFactTable.getAlias)
 
     factTableDataset =
@@ -160,28 +159,12 @@ object CreateStreamingFlatTable {
   }
 
   def castDF(df: DataFrame, parsedSchema: StructType, partitionColumn: String, parserName: String): DataFrame = {
-    castDF(df, parsedSchema, partitionColumn, parserName, false)
-  }
-
-  def castDF(df: DataFrame, parsedSchema: StructType, partitionColumn: String,
-             parserName: String, caseSensitive: Boolean): DataFrame = {
     df.selectExpr("CAST(value AS STRING) as rawValue")
       .mapPartitions { rows =>
-        val dataParser: AbstractDataParser[ByteBuffer, java.util.Map[String, AnyRef]] = AbstractDataParser
+        val dataParser: AbstractDataParser[ByteBuffer] = AbstractDataParser
           .getDataParser(parserName, Thread.currentThread.getContextClassLoader)
-        dataParser.withConfig(
-          new ParserConfig(caseSensitive).setIncludes(parsedSchema.fields.map(_.name).toList.asJava))
 
-        var formattedParsedSchema = parsedSchema
-        var keyNormalizer = (name: String) => name
-        // When extracting data with case-insensitive mode, to compare field names in lowercase.
-        if (!caseSensitive) {
-          keyNormalizer = (name: String) => SchemaUtils.toLowercase(name)
-          formattedParsedSchema = parsedSchema.copy(
-            parsedSchema.fields.map(field => field.copy(name = SchemaUtils.toLowercase(field.name))))
-        }
-
-        val newRows = new PartitionRowIterator(rows, formattedParsedSchema, partitionColumn, dataParser, keyNormalizer = keyNormalizer)
+        val newRows = new PartitionRowIterator(rows, parsedSchema, partitionColumn, dataParser)
         newRows.filter(row => row.size == parsedSchema.length)
       }(RowEncoder(parsedSchema))
   }

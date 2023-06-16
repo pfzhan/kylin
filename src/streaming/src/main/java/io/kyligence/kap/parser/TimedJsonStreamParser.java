@@ -21,11 +21,9 @@ package io.kyligence.kap.parser;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.exceptions.JsonParseException;
 import org.apache.kylin.parser.AbstractDataParser;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,34 +33,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 
 import lombok.SneakyThrows;
-import org.apache.kylin.parser.ParserConfig;
 
 /**
  * default stream JSON parser
  * recursive parse JSON
  */
-public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer, Map<String, Object>> {
-
-    private ParserConfig config = new ParserConfig();
+public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer> {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Override
-    public void withConfig(ParserConfig config) {
-        this.config = config.copy();
-    }
-
     @SneakyThrows
     @Override
-    protected Optional<Map<String, Object>> parse(ByteBuffer input) {
-        // Instead of a case-insensitive TreeMap, a case-sensitive map is good for tracing.
-        Map<String, Object> flatMap = new TreeMap<>();
-        try {
-            traverseJsonNode("", mapper.readTree(input.array()), flatMap);
-        } catch (Exception e) {
-            throw new JsonParseException("Failed to parse the input bytes value as Map<String, Object>!", e);
-        }
-        return Optional.of(flatMap);
+    protected Map<String, Object> parse(ByteBuffer input) {
+        Map<String, Object> flatMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        traverseJsonNode("", mapper.readTree(input.array()), flatMap);
+        return flatMap;
     }
 
     private void traverseJsonNode(String currentPath, JsonNode jsonNode, Map<String, Object> flatmap) {
@@ -77,7 +62,7 @@ public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer, Map<St
             }
         } else if (jsonNode.isArray()) {
             ArrayNode arrayNode = (ArrayNode) jsonNode;
-            if (arrayNode.size() == 0 && isCandidateKey(currentPath)) {
+            if (arrayNode.size() == 0) {
                 flatmap.put(currentPath, StringUtils.EMPTY);
             }
 
@@ -88,14 +73,6 @@ public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer, Map<St
             ValueNode valueNode = (ValueNode) jsonNode;
             getJsonValueByType(currentPath, flatmap, valueNode);
         }
-    }
-
-    private boolean isCandidateKey(String key) {
-        // TODO: Using a more sensible way to determine the key's life
-        if (config.getIncludes().isEmpty()) {
-            return true;
-        }
-        return config.getIncludes().contains(key);
     }
 
     private void getJsonValueByType(String currentPath, Map<String, Object> flatmap, ValueNode valueNode) {
@@ -113,8 +90,6 @@ public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer, Map<St
             addValueToFlatMap(flatmap, currentPath, valueNode.doubleValue());
         } else if (valueNode.isBoolean()) {
             addValueToFlatMap(flatmap, currentPath, valueNode.booleanValue());
-        } else if (valueNode.isNull()) {
-            addValueToFlatMap(flatmap, currentPath, null);
         } else {
             addValueToFlatMap(flatmap, currentPath, valueNode.asText());
         }
@@ -130,9 +105,7 @@ public class TimedJsonStreamParser extends AbstractDataParser<ByteBuffer, Map<St
             key = key + "_" + (++iteTime);
             addValueToFlatMap(flatmap, key, val, iteTime);
         } else {
-            if (isCandidateKey(key)) {
-                flatmap.put(key, val);
-            }
+            flatmap.put(key, val);
         }
     }
 }

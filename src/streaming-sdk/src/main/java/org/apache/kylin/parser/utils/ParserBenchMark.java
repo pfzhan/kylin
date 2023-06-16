@@ -35,24 +35,24 @@ public class ParserBenchMark {
     private ParserBenchMark() {
     }
 
-    public static <I, V> Long test20K(I input, AbstractDataParser<I, V> parser) {
+    public static <I> Long test20K(I input, AbstractDataParser<I> parser) {
         return testParse(input, parser, DATA_SIZE_20K);
     }
 
-    public static <I, V> Long test40K(I input, AbstractDataParser<I, V> parser) {
+    public static <I> Long test40K(I input, AbstractDataParser<I> parser) {
         return testParse(input, parser, DATA_SIZE_40K);
     }
 
-    public static <I, V> Long test60K(I input, AbstractDataParser<I, V> parser) {
+    public static <I> Long test60K(I input, AbstractDataParser<I> parser) {
         return testParse(input, parser, DATA_SIZE_60K);
     }
 
-    public static <I, V> Long testWithSize(I input, AbstractDataParser<I, V> parser, long size) {
+    public static <I> Long testWithSize(I input, AbstractDataParser<I> parser, long size) {
         checkSize(size);
         return testParse(input, parser, size);
     }
 
-    private static <I, V> Long testParse(I input, AbstractDataParser<I, V> parser, long size) {
+    private static <I> Long testParse(I input, AbstractDataParser<I> parser, long size) {
         StopWatch stopWatch = new StopWatch("Parse Testing");
         stopWatch.start();
         for (int i = 0; i < size; i++) {

@@ -23,7 +23,6 @@ import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,9 +37,9 @@ import lombok.extern.slf4j.Slf4j;
  * Indicates that the current data is incorrect and needs to be skipped in the construction. Please throw an exception in the appropriate position
  */
 @Slf4j
-public abstract class AbstractDataParser<I, V> implements Serializable {
+public abstract class AbstractDataParser<I> implements Serializable {
 
-    public static <I, V> AbstractDataParser<I, V> getDataParser(String parserPath, ClassLoader classLoader)
+    public static <I> AbstractDataParser<I> getDataParser(String parserPath, ClassLoader classLoader)
             throws ReflectiveOperationException {
         if (StringUtils.isEmpty(parserPath)) {
             throw new IllegalStateException("Invalid parserName " + parserPath);
@@ -51,22 +50,20 @@ public abstract class AbstractDataParser<I, V> implements Serializable {
         if (!(instance instanceof AbstractDataParser)) {
             throw new IllegalStateException(parserPath + " does not extends from AbstractDataParser");
         }
-        return (AbstractDataParser<I, V>) instance;
+        return (AbstractDataParser<I>) instance;
     }
 
     protected AbstractDataParser() {
     }
 
-    public Optional<V> process(I input) {
+    public Map<String, Object> process(I input) {
         before();
         if (Objects.isNull(input)) {
             log.error("input data is null ...");
-            return Optional.empty();
+            return Collections.emptyMap();
         }
         return after(parse(input));
     }
-
-    public void withConfig(ParserConfig config) {}
 
     /**
      * init something before parse one data
@@ -77,12 +74,12 @@ public abstract class AbstractDataParser<I, V> implements Serializable {
     /**
      * need to be overridden
      */
-    protected abstract Optional<V> parse(I input);
+    protected abstract Map<String, Object> parse(I input);
 
     /**
      * check parsed data
      */
-    protected Optional<V> after(Optional<V> parseMap) {
+    protected Map<String, Object> after(Map<String, Object> parseMap) {
         return parseMap;
     }
 

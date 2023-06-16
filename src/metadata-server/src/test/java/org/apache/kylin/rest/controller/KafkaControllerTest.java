@@ -128,7 +128,7 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
         Mockito.when(
                 kafkaService.getMessages(request.getKafkaConfig(), request.getProject()))
                 .thenReturn(messages);
-        Mockito.when(kafkaService.decodeMessagesAsMap(messages)).thenReturn(new HashMap<String, Object>());
+        Mockito.when(kafkaService.decodeMessage(messages)).thenReturn(new HashMap<String, Object>());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/kafka/messages").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

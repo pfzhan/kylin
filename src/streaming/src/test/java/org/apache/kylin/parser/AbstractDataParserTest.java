@@ -22,14 +22,13 @@ import static org.apache.kylin.streaming.constants.StreamingConstants.DEFAULT_PA
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
-import org.apache.kylin.exceptions.JsonParseException;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import lombok.val;
@@ -51,7 +50,7 @@ public class AbstractDataParserTest {
                 Thread.currentThread().getContextClassLoader());
         Assert.assertNotNull(dataParser);
         dataParser.before();
-        dataParser.after(Optional.of(Maps.newHashMap()));
+        dataParser.after(Maps.newHashMap());
         Assert.assertTrue(dataParser.defineDataTypes().isEmpty());
         dataParser.process(StandardCharsets.UTF_8.encode(json1));
         dataParser.process(null);
