@@ -23,6 +23,7 @@ import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +32,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinRuntimeException;
+import org.apache.kylin.common.extension.KylinInfoExtension;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -198,5 +200,14 @@ public class AsyncQueryJob extends NSparkExecutable {
             return kylinconfig.getAsyncQueryHadoopConfDir();
         }
         return HadoopUtil.getHadoopConfDir();
+    }
+
+    @Override
+    public void modifyDump(Properties props) {
+        super.modifyDump(props);
+        if (!KylinInfoExtension.getFactory().checkKylinInfo()) {
+            props.setProperty("kylin.streaming.enabled", KylinConfig.FALSE);
+            props.remove("kylin.second-storage.class");
+        }
     }
 }

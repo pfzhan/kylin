@@ -549,7 +549,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return new DumpInfo(project, distMetaUrl, metadataDumpList, type);
     }
 
-    private void modifyDump(Properties props) {
+    protected void modifyDump(Properties props) {
         sparkJobHandler.modifyDump(props);
         removeUnNecessaryDump(props);
     }
@@ -576,6 +576,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
         props.remove("kylin.storage.columnar.spark-conf.spark.yarn.am.extraJavaOptions");
         props.remove("kylin.storage.columnar.spark-conf.spark.executor.extraJavaOptions");
+
+        props.remove("kylin.extension.info.factory");
     }
 
     private void deleteSnapshotDirectoryOnExists() {
