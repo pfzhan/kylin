@@ -184,6 +184,15 @@
             </dependencies>
         </profile>
         <profile>
+            <id>license</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.kyligence.ke</groupId>
+                    <artifactId>zen-license-impl</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>kubernetes</id>
             <dependencies>
                 <dependency>
