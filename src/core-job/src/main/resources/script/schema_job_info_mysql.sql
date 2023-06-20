@@ -35,5 +35,5 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   UNIQUE KEY uk_job_id (job_id)
 ) AUTO_INCREMENT=10000 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-create index KE_IDENTIFIED_job_info_proj_status_type_subject_index
+create index KE_IDENTIFIED_job_info_ix
     on KE_IDENTIFIED_job_info (project, job_status, job_type, subject);

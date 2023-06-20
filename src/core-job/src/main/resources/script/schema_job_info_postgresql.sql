@@ -33,5 +33,5 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_duration_millis bigint NOT NULL DEFAULT '0'
 );
 comment on column KE_IDENTIFIED_job_info.job_duration_millis is 'total duration milliseconds';
-create index KE_IDENTIFIED_job_info_proj_status_type_subject_index
+create index KE_IDENTIFIED_job_info_ix
     on KE_IDENTIFIED_job_info (project, job_status, job_type, subject);
