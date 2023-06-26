@@ -1503,7 +1503,17 @@ public class TableService extends BasicService {
         if (context.isChanged(originTable)) {
             val tableIdentity = targetTable.getIdentity();
             List<AbstractExecutable> stopJobs = stopAndGetSnapshotJobs(projectName, tableIdentity);
-            if (!stopJobs.isEmpty() || targetTable.getLastSnapshotPath() != null) {
+
+            var snapshotBuilt = false;
+            if (stopJobs.isEmpty()) {
+                val execManager = getManager(ExecutableManager.class, projectName);
+                val jobInfoList = execManager.fetchJobsByTypesAndStates(projectName,
+                        Lists.newArrayList(SNAPSHOT_BUILD.name(), SNAPSHOT_REFRESH.name()), Lists.newArrayList(tableIdentity),
+                        Lists.newArrayList(ExecutableState.getFinalStates()));
+                snapshotBuilt = !jobInfoList.isEmpty();
+            }
+
+            if (!stopJobs.isEmpty() || snapshotBuilt || targetTable.getLastSnapshotPath() != null) {
                 targetTable.deleteSnapshot(true);
             } else {
                 targetTable.copySnapshotFrom(originTable);

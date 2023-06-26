@@ -298,6 +298,7 @@ public class JobContextUtil {
         Map<String, List<String>> nodeWithJobs = JobContextUtil.splitJobIdsByScheduleInstance(jobIdList);
         String local = AddressUtil.getLocalInstance();
         for (Map.Entry<String, List<String>> entry : nodeWithJobs.entrySet()) {
+            log.info("Discarding jobs {} on node {}", entry.getValue(), entry.getKey());
             if (local.equals(entry.getKey())) {
                 val executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 entry.getValue().stream().forEach(jobId -> executableManager.discardJob(jobId));
