@@ -72,7 +72,7 @@ import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.transaction.AddS3CredentialToSparkBroadcastEventNotifier;
+import org.apache.kylin.common.persistence.transaction.AddCredentialToSparkBroadcastEventNotifier;
 import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.BufferedLogger;
@@ -291,7 +291,7 @@ public class TableService extends BasicService {
         final NTableMetadataManager tableMetaMgr = getManager(NTableMetadataManager.class, project);
         // save table meta
         List<String> saved = Lists.newArrayList();
-        Set<TableExtDesc.S3RoleCredentialInfo> broadcastS3Conf = new HashSet<>();
+        Set<TableExtDesc.RoleCredentialInfo> broadcastConf = new HashSet<>();
         for (Pair<TableDesc, TableExtDesc> pair : allMeta) {
             TableDesc tableDesc = pair.getFirst();
             TableExtDesc extDesc = pair.getSecond();
@@ -332,9 +332,9 @@ public class TableService extends BasicService {
                 nTableExtDesc.init(project);
 
                 tableMetaMgr.saveTableExt(nTableExtDesc);
-                if (!broadcastS3Conf.contains(extDesc.getS3RoleCredentialInfo())) {
-                    addAndBroadcastSparkSession(extDesc.getS3RoleCredentialInfo());
-                    broadcastS3Conf.add(extDesc.getS3RoleCredentialInfo());
+                if (!broadcastConf.contains(extDesc.getRoleCredentialInfo())) {
+                    addAndBroadcastSparkSession(extDesc.getRoleCredentialInfo());
+                    broadcastConf.add(extDesc.getRoleCredentialInfo());
                 }
             }
 
@@ -1284,7 +1284,7 @@ public class TableService extends BasicService {
                 TableExtDesc copyExt = tableManager.copyForWrite(tableExtDesc);
                 tableManager.saveTableExt(copyExt);
                 // refresh spark session and broadcast
-                addAndBroadcastSparkSession(copyExt.getS3RoleCredentialInfo());
+                addAndBroadcastSparkSession(copyExt.getRoleCredentialInfo());
             }
             return jobs;
         }
@@ -1317,19 +1317,19 @@ public class TableService extends BasicService {
         return jobs;
     }
 
-    public void addAndBroadcastSparkSession(TableExtDesc.S3RoleCredentialInfo s3RoleCredentialInfo) {
-        if (s3RoleCredentialInfo == null) {
+    public void addAndBroadcastSparkSession(TableExtDesc.RoleCredentialInfo roleCredentialInfo) {
+        if (roleCredentialInfo == null) {
             return;
         }
-        if (Strings.isNullOrEmpty(s3RoleCredentialInfo.getEndpoint())
-                && Strings.isNullOrEmpty(s3RoleCredentialInfo.getRole())) {
+        if (Strings.isNullOrEmpty(roleCredentialInfo.getEndpoint())
+                && Strings.isNullOrEmpty(roleCredentialInfo.getRole())) {
             return;
         }
-        if (KylinConfig.getInstanceFromEnv().useDynamicS3RoleCredentialInTable()) {
-            SparderEnv.addS3Credential(s3RoleCredentialInfo, SparderEnv.getSparkSession());
+        if (KylinConfig.getInstanceFromEnv().useDynamicRoleCredentialInTable()) {
+            SparderEnv.addCredential(roleCredentialInfo, SparderEnv.getSparkSession());
             EventBusFactory.getInstance()
-                    .postAsync(new AddS3CredentialToSparkBroadcastEventNotifier(s3RoleCredentialInfo.getBucket(),
-                            s3RoleCredentialInfo.getRole(), s3RoleCredentialInfo.getEndpoint()));
+                    .postAsync(new AddCredentialToSparkBroadcastEventNotifier(roleCredentialInfo.getType(), roleCredentialInfo.getBucket(),
+                            roleCredentialInfo.getRole(), roleCredentialInfo.getEndpoint(), roleCredentialInfo.getRegion()));
         }
     }
 

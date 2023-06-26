@@ -244,7 +244,7 @@ public class TableExtService extends BasicService {
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NTableMetadataManager innerTableMetadataManager = getManager(NTableMetadataManager.class,
                     request.getProject());
-            Set<TableExtDesc.S3RoleCredentialInfo> broadcasttedS3Conf = new HashSet<>();
+            Set<TableExtDesc.RoleCredentialInfo> broadcasttedConf = new HashSet<>();
             for (String identity : identityList) {
                 TableDesc tableDesc = innerTableMetadataManager.getTableDesc(identity);
                 TableExtDesc extDesc = innerTableMetadataManager.getTableExtIfExists(tableDesc);
@@ -256,9 +256,9 @@ public class TableExtService extends BasicService {
                     copyExt.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, s3TableExtInfo.getRoleArn());
                     copyExt.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, s3TableExtInfo.getEndpoint());
                     innerTableMetadataManager.saveTableExt(copyExt);
-                    if (!broadcasttedS3Conf.contains(copyExt.getS3RoleCredentialInfo())) {
-                        tableService.addAndBroadcastSparkSession(copyExt.getS3RoleCredentialInfo());
-                        broadcasttedS3Conf.add(copyExt.getS3RoleCredentialInfo());
+                    if (!broadcasttedConf.contains(copyExt.getRoleCredentialInfo())) {
+                        tableService.addAndBroadcastSparkSession(copyExt.getRoleCredentialInfo());
+                        broadcasttedConf.add(copyExt.getRoleCredentialInfo());
 
                     }
                     response.getSucceed().add(identity);

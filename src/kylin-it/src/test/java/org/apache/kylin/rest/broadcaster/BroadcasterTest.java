@@ -32,7 +32,8 @@ import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.transaction.AddS3CredentialToSparkBroadcastEventNotifier;
+import org.apache.kylin.common.constant.ObsConfig;
+import org.apache.kylin.common.persistence.transaction.AddCredentialToSparkBroadcastEventNotifier;
 import org.apache.kylin.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.junit.annotation.MetadataInfo;
@@ -123,8 +124,11 @@ class BroadcasterTest {
     @Test
     void testBroadcastAddS3Conf() throws Exception {
         BroadcastListener broadcastListener = new BroadcastListener();
-        broadcastListener.handle(new AddS3CredentialToSparkBroadcastEventNotifier("aa", "bb", "cc"));
-        assert SparderEnv.getSparkSession().conf().contains(String.format("fs.s3a.bucket.%s.assumed.role.arn", "aa"));
+        AddCredentialToSparkBroadcastEventNotifier notifier = new AddCredentialToSparkBroadcastEventNotifier(
+                ObsConfig.S3.getType(), "aa", "bb", "cc", "");
+        assert !notifier.needBroadcastSelf();
+        broadcastListener.handle(notifier);
+        assert SparderEnv.getSparkSession().conf().contains(String.format(ObsConfig.S3.getRoleArnKey(), "aa"));
     }
 
     @Test

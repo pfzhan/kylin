@@ -3698,9 +3698,9 @@ public abstract class KylinConfigBase implements Serializable {
                 "org.apache.kylin.engine.spark.job.DefaultEnviromentAdaptor");
     }
 
-    public boolean useDynamicS3RoleCredentialInTable() {
-        return Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-S3-role-credential-in-table", FALSE));
-
+    public boolean useDynamicRoleCredentialInTable() {
+        return Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-role-credential-in-table", FALSE))
+                || Boolean.parseBoolean(getOptional("kylin.env.use-dynamic-S3-role-credential-in-table", FALSE));
     }
 
     public String getJobCallbackLanguage() {

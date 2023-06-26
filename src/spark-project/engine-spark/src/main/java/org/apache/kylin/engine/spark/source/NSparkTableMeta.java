@@ -66,8 +66,9 @@ public class NSparkTableMeta {
     List<SparkTableColumnMeta> partitionColumns;
     boolean isTransactional;
     boolean isRangePartition;
-    String s3Role;
-    String s3Endpoint;
+    String roleArn;
+    String endpoint;
+    String region;
 
     public List<SparkTableColumnMeta> getAllColumns() {
         return allColumns;
@@ -77,7 +78,7 @@ public class NSparkTableMeta {
             String owner, String provider, String tableType, String createTime, String lastAccessTime, long fileSize,
             long fileNum, boolean isNative, List<SparkTableColumnMeta> allColumns,
             List<SparkTableColumnMeta> partitionColumns, boolean isTransactional, boolean isRangePartition,
-            String s3Role, String s3Endpoint) {
+            String roleArn, String endpoint, String region) {
         this.tableName = tableName;
         this.sdLocation = sdLocation;
         this.sdInputFormat = sdInputFormat;
@@ -94,8 +95,9 @@ public class NSparkTableMeta {
         this.partitionColumns = partitionColumns;
         this.isTransactional = isTransactional;
         this.isRangePartition = isRangePartition;
-        this.s3Role = s3Role;
-        this.s3Endpoint = s3Endpoint;
+        this.roleArn = roleArn;
+        this.endpoint = endpoint;
+        this.region = region;
     }
 
     @Override
@@ -106,6 +108,6 @@ public class NSparkTableMeta {
                 + ", createTime='" + createTime + '\'' + ", lastAccessTime=" + lastAccessTime + ", fileSize=" + fileSize
                 + ", fileNum=" + fileNum + ", isNative=" + isNative + ", allColumns=" + allColumns
                 + ", partitionColumns=" + partitionColumns + ", isTransactional=" + isTransactional
-                + ", isRangePartition=" + isRangePartition + ", s3Role=" + s3Role + ", s3Endpoint=" + s3Endpoint + '}';
+                + ", isRangePartition=" + isRangePartition + ", roleArn=" + roleArn + ", endpoint=" + endpoint + '}';
     }
 }

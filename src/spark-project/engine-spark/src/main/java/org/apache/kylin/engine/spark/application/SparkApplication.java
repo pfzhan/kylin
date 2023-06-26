@@ -306,11 +306,10 @@ public abstract class SparkApplication implements Application {
                         .newInstance(config.getBuildJobEnviromentAdaptor());
                 adaptor.prepareEnviroment(ss, params);
             }
-
-            if (config.useDynamicS3RoleCredentialInTable()) {
+            if (KylinConfig.getInstanceFromEnv().useDynamicRoleCredentialInTable()) {
                 val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
-                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv.addS3Credential(
-                        tableMetadataManager.getOrCreateTableExt(tableDesc).getS3RoleCredentialInfo(), ss));
+                tableMetadataManager.listAllTables().forEach(tableDesc -> SparderEnv.addCredential(
+                        tableMetadataManager.getOrCreateTableExt(tableDesc).getRoleCredentialInfo(), ss));
             }
 
             if (!config.isUTEnv()) {

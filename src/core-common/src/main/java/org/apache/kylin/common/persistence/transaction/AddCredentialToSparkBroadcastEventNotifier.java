@@ -27,11 +27,13 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AddS3CredentialToSparkBroadcastEventNotifier extends BroadcastEventReadyNotifier {
+public class AddCredentialToSparkBroadcastEventNotifier extends BroadcastEventReadyNotifier {
 
+    private String type;
     private String bucket;
     private String role;
     private String endpoint;
+    private String region;
 
     @Override
     public boolean needBroadcastSelf() {

@@ -1681,7 +1681,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     public void testReloadNoChangeAndUpdateTableExtDesc() throws Exception {
         S3TableExtInfo tableExtInfo = prepareTableExtInfo("DEFAULT.TEST_ORDER", "endpoint", "role");
         prepareTableExt("DEFAULT.TEST_ORDER");
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-role-credential-in-table", "true");
         tableService.innerReloadTable(PROJECT, tableExtInfo.getName(), true, tableExtInfo);
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         val table = tableManager.getTableDesc(tableExtInfo.getName());
@@ -1690,7 +1690,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         String roleArn = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ROLE_PROPERTY_KEY);
         Assert.assertEquals("endpoint", endpoint);
         Assert.assertEquals("role", roleArn);
-        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "false");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.env.use-dynamic-role-credential-in-table", "false");
         tableService.innerReloadTable(PROJECT, tableExtInfo.getName(), true, null);
         tableExtDesc = tableManager.getTableExtIfExists(table);
         endpoint = tableExtDesc.getDataSourceProps().get(TableExtDesc.S3_ENDPOINT_KEY);

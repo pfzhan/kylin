@@ -19,13 +19,18 @@
 package org.apache.kylin.common.util;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.constant.ObsConfig;
 
 public class FileSystemUtil {
-    private final static String S3_FILE_SYSTEM_CLASS = "S3AFileSystem";
+    public final static String S3_FILE_SYSTEM_CLASS = "S3AFileSystem";
+    public final static String OSS_FILE_SYSTEM_CLASS = "AliyunOSSFileSystem";
 
     public static FileStatus[] listStatus(FileSystem fs, Path path) throws IOException {
         FileStatus[] statuses = fs.listStatus(path);
@@ -39,5 +44,25 @@ public class FileSystemUtil {
             }
         }
         return statuses;
+    }
+
+    public static Map<String, String> generateRoleCredentialConf(String type, String bucket, String role,
+            String endpoint, String region) {
+        Map<String, String> conf = new HashMap<>();
+        ObsConfig obsConfig = ObsConfig.getByType(type).orElse(ObsConfig.S3);
+        if (StringUtils.isNotEmpty(role)) {
+            conf.put(String.format(obsConfig.getRoleArnKey(), bucket), role);
+            conf.put(String.format(obsConfig.getCredentialProviderKey(), bucket),
+                    obsConfig.getCredentialProviderValue());
+            conf.put(String.format(obsConfig.getAssumedRoleCredentialProviderKey(), bucket),
+                    obsConfig.getAssumedRoleCredentialProviderValue());
+        }
+        if (StringUtils.isNotEmpty(endpoint)) {
+            conf.put(String.format(obsConfig.getEndpointKey(), bucket), endpoint);
+        }
+        if (StringUtils.isNotEmpty(region)) {
+            conf.put(String.format(obsConfig.getRegionKey(), bucket), region);
+        }
+        return conf;
     }
 }

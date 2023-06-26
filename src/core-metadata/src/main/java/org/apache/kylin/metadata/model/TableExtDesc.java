@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.ObsConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.measure.hllc.HLLCounter;
@@ -44,6 +45,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.guava20.shaded.common.base.Strings;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -54,9 +56,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
-    public static final String S3_ROLE_PROPERTY_KEY = "s3_role";
+    public static final String S3_ROLE_PROPERTY_KEY = ObsConfig.S3.getRolePropertiesKey();
     public static final String LOCATION_PROPERTY_KEY = "location";
-    public static final String S3_ENDPOINT_KEY = "s3_endpoint";
+    public static final String S3_ENDPOINT_KEY = ObsConfig.S3.getEndpointPropertiesKey();
     public static final String SEPARATOR = "/";
 
     public static String concatRawResourcePath(String nameOnPath) {
@@ -249,10 +251,12 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             this.identity = this.identity.toUpperCase(Locale.ROOT);
     }
 
-    public S3RoleCredentialInfo getS3RoleCredentialInfo() {
+    public RoleCredentialInfo getRoleCredentialInfo() {
         String location = this.dataSourceProps.get(LOCATION_PROPERTY_KEY);
-        String s3Role = this.dataSourceProps.get(S3_ROLE_PROPERTY_KEY);
-        String s3Endpoint = this.dataSourceProps.get(S3_ENDPOINT_KEY);
+        ObsConfig obsConfig = ObsConfig.getByLocation(location).orElse(ObsConfig.S3);
+        String role = this.dataSourceProps.get(obsConfig.getRolePropertiesKey());
+        String endpoint = this.dataSourceProps.get(obsConfig.getEndpointPropertiesKey());
+        String region = this.dataSourceProps.get(obsConfig.getRegionPropertiesKey());
         if (Strings.isNullOrEmpty(location)) {
             return null;
         }
@@ -260,13 +264,12 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         try {
             bucket = new URI(location).getAuthority();
         } catch (Exception e) {
-            log.warn("invalid s3 location {}", location, e);
+            log.warn("invalid object storage location {}", location, e);
         }
         if (Strings.isNullOrEmpty(bucket)) {
             return null;
         }
-        return new S3RoleCredentialInfo(bucket, s3Role, s3Endpoint);
-
+        return new RoleCredentialInfo(bucket, role, endpoint, obsConfig.getType(), region);
     }
 
     @Override
@@ -288,16 +291,13 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @Getter
     @Setter
     @EqualsAndHashCode
-    public static class S3RoleCredentialInfo {
+    @AllArgsConstructor
+    public static class RoleCredentialInfo {
         private String bucket;
         private String role;
         private String endpoint;
-
-        public S3RoleCredentialInfo(String bucket, String role, String endpoint) {
-            this.bucket = bucket;
-            this.role = role;
-            this.endpoint = endpoint;
-        }
+        private String type;
+        private String region;
     }
 
     @Data

@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.ObsConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
@@ -48,7 +49,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -57,7 +57,6 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalog.Database;
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.internal.SQLConf;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -304,8 +303,10 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         tableExtDesc.addDataSourceProp("total_file_number", String.valueOf(tableMeta.fileNum));
         tableExtDesc.addDataSourceProp("hive_inputFormat", tableMeta.sdInputFormat);
         tableExtDesc.addDataSourceProp("hive_outputFormat", tableMeta.sdOutputFormat);
-        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, tableMeta.s3Role);
-        tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, tableMeta.s3Endpoint);
+        ObsConfig obsConfig = ObsConfig.getByLocation(tableMeta.sdLocation).orElse(ObsConfig.S3);
+        tableExtDesc.addDataSourceProp(obsConfig.getRolePropertiesKey(), tableMeta.roleArn);
+        tableExtDesc.addDataSourceProp(obsConfig.getEndpointPropertiesKey(), tableMeta.endpoint);
+        tableExtDesc.addDataSourceProp(obsConfig.getRegionPropertiesKey(), tableMeta.region);
         return Pair.newPair(tableDesc, tableExtDesc);
     }
 

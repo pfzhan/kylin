@@ -115,7 +115,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTestBase {
 
     @Test
     public void testTableSamplingJobWithS3Role() {
-        getTestConfig().setProperty("kylin.env.use-dynamic-S3-role-credential-in-table", "true");
+        getTestConfig().setProperty("kylin.env.use-dynamic-role-credential-in-table", "true");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobContext jobContext = JobContextUtil.getJobContext(config);
         ResourceAcquirer resourceAcquirer = jobContext.getResourceAcquirer();

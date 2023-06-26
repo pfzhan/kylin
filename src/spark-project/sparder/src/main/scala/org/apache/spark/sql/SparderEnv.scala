@@ -22,7 +22,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException, ServerErrorCode}
 import org.apache.kylin.common.msg.MsgPicker
-import org.apache.kylin.common.util.{DefaultHostInfoFetcher, HadoopUtil, S3AUtil}
+import org.apache.kylin.common.util.{DefaultHostInfoFetcher, FileSystemUtil, HadoopUtil}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model.{NTableMetadataManager, TableExtDesc}
 import org.apache.kylin.metadata.project.NProjectManager
@@ -269,11 +269,12 @@ object SparderEnv extends Logging {
       startSparkFailureTimes = 0
       lastStartSparkFailureTime = 0
 
-      //add s3 permission credential from tableExt
-      if (KylinConfig.getInstanceFromEnv.useDynamicS3RoleCredentialInTable) {
+      if (KylinConfig.getInstanceFromEnv.useDynamicRoleCredentialInTable) {
         NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).listAllProjects().forEach(project => {
           val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project.getName)
-          tableMetadataManager.listAllTables().forEach(tableDesc => SparderEnv.addS3Credential(tableMetadataManager.getOrCreateTableExt(tableDesc).getS3RoleCredentialInfo, spark))
+          tableMetadataManager.listAllTables().forEach(tableDesc =>
+            SparderEnv.addCredential(tableMetadataManager.getOrCreateTableExt(tableDesc).getRoleCredentialInfo, spark)
+          )
         })
       }
       if (KylinConfig.getInstanceFromEnv.isDDLLogicalViewEnabled) {
@@ -367,9 +368,10 @@ object SparderEnv extends Logging {
     _needCompute.set(false)
   }
 
-  def addS3Credential(s3CredentialInfo: TableExtDesc.S3RoleCredentialInfo, sparkSession: SparkSession): Unit = {
-    if (s3CredentialInfo != null) {
-      val conf: Map[String, String] = S3AUtil.generateRoleCredentialConfByBucketAndRoleAndEndpoint(s3CredentialInfo.getBucket, s3CredentialInfo.getRole, s3CredentialInfo.getEndpoint)
+  def addCredential(credentialInfo: TableExtDesc.RoleCredentialInfo, sparkSession: SparkSession): Unit = {
+    if (credentialInfo != null) {
+      val conf: Map[String, String] = FileSystemUtil.generateRoleCredentialConf(
+        credentialInfo.getType, credentialInfo.getBucket, credentialInfo.getRole, credentialInfo.getEndpoint, credentialInfo.getRegion)
       conf.forEach((key: String, value: String) => sparkSession.conf.set(key, value))
     }
 
