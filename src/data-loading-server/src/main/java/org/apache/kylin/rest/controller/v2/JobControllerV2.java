@@ -28,6 +28,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.rest.JobFilter;
@@ -46,8 +47,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -111,7 +110,7 @@ public class JobControllerV2 extends BaseController {
 
         JobFilter jobFilter = new JobFilter(statuses,
                 Objects.isNull(jobName) ? Lists.newArrayList() : Lists.newArrayList(jobName), timeFilter, null, key,
-                project, sortBy, reverse);
+                false, project, sortBy, reverse);
         List<ExecutableResponse> executables = jobInfoService.listJobs(jobFilter);
         executables = jobInfoService.addOldParams(executables);
         long count = jobInfoService.countJobs(jobFilter);

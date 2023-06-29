@@ -59,10 +59,10 @@ public class JobFilterUtil {
         List<String> convertKeyToSubjects = new ArrayList<>();
         // transform 'key' to subjects
         if (StringUtils.isNotEmpty(jobFilter.getKey())) {
-            convertKeyToSubjects
-                    .addAll(modelService.getModelNamesByFuzzyName(jobFilter.getKey(), jobFilter.getProject()));
-            convertKeyToSubjects
-                    .addAll(tableExtService.getTableNamesByFuzzyKey(jobFilter.getProject(), jobFilter.getKey()));
+            convertKeyToSubjects.addAll(modelService.getModelNamesByFuzzyName(jobFilter.getKey(),
+                    jobFilter.getProject(), jobFilter.isExactMatch()));
+            convertKeyToSubjects.addAll(tableExtService.getTableNamesByFuzzyKey(jobFilter.getProject(),
+                    jobFilter.getKey(), jobFilter.isExactMatch()));
             subjects.addAll(convertKeyToSubjects);
         }
         // if 'key' can not be transformed to 'subjects', then fuzzy query job id by 'key'

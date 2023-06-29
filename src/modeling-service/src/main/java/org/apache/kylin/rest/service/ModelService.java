@@ -97,7 +97,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -126,14 +125,22 @@ import org.apache.kylin.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkContext;
 import org.apache.kylin.common.scheduler.EventBusFactory;
-import org.apache.kylin.common.util.SqlIdentifierFormatterVisitor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.common.util.SqlIdentifierFormatterVisitor;
 import org.apache.kylin.common.util.StringHelper;
 import org.apache.kylin.common.util.ThreadUtil;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.base.Strings;
+import org.apache.kylin.guava30.shaded.common.base.Supplier;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.domain.JobInfo;
@@ -278,15 +285,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.base.Strings;
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
-import org.apache.kylin.guava30.shaded.common.base.Supplier;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
@@ -387,20 +387,32 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         return model;
     }
 
-    public List<String> getModelNamesByFuzzyName(String fuzzyName, String project) {
+    public List<String> getModelNamesByFuzzyName(String fuzzyName, String project, boolean exact) {
         if (StringUtils.isNotEmpty(project)) {
             NDataModelManager modelManager = getManager(NDataModelManager.class, project);
-            return modelManager.getModelNamesByFuzzyName(fuzzyName);
+            return matchModelNameByAlias(modelManager, fuzzyName, exact);
         }
 
-        List<String> modelIds = new ArrayList<>();
+        List<String> modelAlias = new ArrayList<>();
         // query from all projects
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(null, false);
         for (ProjectInstance projectInstance : projectInstances) {
             NDataModelManager modelManager = getManager(NDataModelManager.class, projectInstance.getName());
-            modelIds.addAll(modelManager.getModelNamesByFuzzyName(fuzzyName));
+            modelAlias.addAll(matchModelNameByAlias(modelManager, fuzzyName, exact));
         }
-        return modelIds;
+        return modelAlias;
+    }
+
+    private List<String> matchModelNameByAlias(NDataModelManager modelManager, String fuzzyName, boolean exact) {
+        if (!exact) {
+            return modelManager.getModelNamesByFuzzyName(fuzzyName);
+        }
+        List<String> modelAlias = Lists.newArrayList();
+        NDataModel nDataModel = modelManager.getDataModelDescByAlias(fuzzyName);
+        if (null != nDataModel) {
+            modelAlias.add(nDataModel.getAlias());
+        }
+        return modelAlias;
     }
 
     /**

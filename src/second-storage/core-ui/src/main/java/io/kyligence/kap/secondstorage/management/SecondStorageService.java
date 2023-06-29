@@ -54,6 +54,11 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -94,12 +99,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.util.CollectionUtils;
 
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import io.kyligence.kap.secondstorage.ColumnMapping;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
@@ -725,8 +724,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         LockTypeEnum.check(lockTypes);
         LockOperateTypeEnum.check(operateType);
         if (LockOperateTypeEnum.LOCK.name().equals(operateType) && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            JobFilter jobFilter = new JobFilter(Arrays.asList(JobStatusEnum.RUNNING),
-                    null, 0, null, null, project, "last_modified", true);
+            JobFilter jobFilter = new JobFilter(Arrays.asList(JobStatusEnum.RUNNING), null, 0, null, null, false,
+                    project, "last_modified", true);
             List<ExecutableResponse> executableResponses = jobInfoService.listJobs(jobFilter);
             executableResponses.stream().forEach(job -> {
                 List<ExecutableStepResponse> executableStepResponses = jobInfoService.getJobDetail(project, job.getId());

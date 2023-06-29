@@ -41,6 +41,8 @@ public class JobFilter {
 
     private String key;
 
+    private boolean exactMatch;
+
     private String project;
 
     private String sortBy;

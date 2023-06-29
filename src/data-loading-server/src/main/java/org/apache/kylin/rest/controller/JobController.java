@@ -105,6 +105,7 @@ public class JobController extends BaseController {
             @RequestParam(value = "time_filter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "key", required = false) String key,
+            @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
             @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
@@ -113,7 +114,7 @@ public class JobController extends BaseController {
         jobInfoService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(jobInfoService.parseJobStatus(statuses), jobNames, timeFilter, subject, key,
-                project, sortBy, reverse);
+                exactMatch, project, sortBy, reverse);
         // pageOffset is 1,2,3.... means pageNo
         Integer pageOffsetNew = pageOffset * pageSize;
         List<ExecutableResponse> result = jobInfoService.listJobs(jobFilter, pageOffsetNew, pageSize);
@@ -160,7 +161,7 @@ public class JobController extends BaseController {
         }
 
         jobInfoService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
-                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses());
+                jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
@@ -322,7 +323,7 @@ public class JobController extends BaseController {
                         sparkJobTimeRequest.getJobId(), sparkJobTimeRequest.getTaskId(),
                         sparkJobTimeRequest.getYarnJobWaitTime(), sparkJobTimeRequest.getYarnJobRunTime()));
     }
-    
+
     private EnvelopeResponse<String> updateJobInfoWithCheck(String project, String taskOrJobId,
             String jobLastRunningStartTime, Runnable runner) {
         try {
@@ -393,11 +394,10 @@ public class JobController extends BaseController {
         ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).destroyAllProcess();
     }
 
-    @ApiOperation(value = "startProfile", tags = {"DW"}, notes = "")
+    @ApiOperation(value = "startProfile", tags = { "DW" }, notes = "")
     @GetMapping(value = "/profile/start_project")
     @ResponseBody
-    public EnvelopeResponse<String> profile(
-            @RequestParam(value = "project") String project,
+    public EnvelopeResponse<String> profile(@RequestParam(value = "project") String project,
             @RequestParam(value = "step_id") String jobStepId,
             @RequestParam(value = "params", defaultValue = "start,event=cpu", required = false) String params,
             HttpServletRequest request) {
@@ -407,15 +407,13 @@ public class JobController extends BaseController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "dumpProfile", tags = {"DW"}, notes = "")
+    @ApiOperation(value = "dumpProfile", tags = { "DW" }, notes = "")
     @GetMapping(value = "/profile/dump_project")
     @ResponseBody
-    public EnvelopeResponse<String> stopProfile(
-            @RequestParam(value = "project") String project,
+    public EnvelopeResponse<String> stopProfile(@RequestParam(value = "project") String project,
             @RequestParam(value = "step_id") String jobStepId,
             @RequestParam(value = "params", defaultValue = "flamegraph", required = false) String params,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse response) {
         jobService.setResponseLanguage(request);
         checkProjectName(project);
         Pair<InputStream, String> jobOutputAndDownloadFile = new Pair<>();
@@ -428,11 +426,10 @@ public class JobController extends BaseController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "startProfileByYarnAppId", tags = {"DW"}, notes = "")
+    @ApiOperation(value = "startProfileByYarnAppId", tags = { "DW" }, notes = "")
     @GetMapping(value = "/profile/start_appid")
     @ResponseBody
-    public EnvelopeResponse<String> profileByYarnAppId(
-            @RequestParam(value = "app_id") String yarnAppId,
+    public EnvelopeResponse<String> profileByYarnAppId(@RequestParam(value = "app_id") String yarnAppId,
             @RequestParam(value = "params", defaultValue = "start,event=cpu", required = false) String params,
             HttpServletRequest request) {
         jobService.setResponseLanguage(request);
@@ -440,14 +437,12 @@ public class JobController extends BaseController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "dumpProfile", tags = {"DW"}, notes = "")
+    @ApiOperation(value = "dumpProfile", tags = { "DW" }, notes = "")
     @GetMapping(value = "/profile/dump_appid")
     @ResponseBody
-    public EnvelopeResponse<String> stopProfileByYarnAppId(
-            @RequestParam(value = "app_id") String yarnAppId,
+    public EnvelopeResponse<String> stopProfileByYarnAppId(@RequestParam(value = "app_id") String yarnAppId,
             @RequestParam(value = "params", defaultValue = "flamegraph", required = false) String params,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse response) {
         jobService.setResponseLanguage(request);
         Pair<InputStream, String> jobOutputAndDownloadFile = new Pair<>();
         jobService.dumpProfileByYarnAppId(yarnAppId, params, jobOutputAndDownloadFile);

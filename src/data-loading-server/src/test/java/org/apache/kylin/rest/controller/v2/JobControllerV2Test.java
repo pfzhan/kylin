@@ -111,13 +111,13 @@ public class JobControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetJobs() throws Exception {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", "default",
-                "job_name", false);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", false,
+                "default", "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
-                        .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
-                        .param("timeFilter", "1").param("jobName", "").param("status", "0")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
+                .param("timeFilter", "1").param("jobName", "").param("status", "0")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(jobControllerV2).getJobList(new Integer[] { 0 }, 1, "", "default", null, 0, 10, "last_modified",
@@ -128,9 +128,9 @@ public class JobControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetJobsWithoutProjectAndSortby() throws Exception {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, null, null, null, "job_name", true);
-        Mockito.when(jobInfoService.listJobs(jobFilter, 0, Integer.MAX_VALUE))
-                .thenReturn(jobs);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, null, null, false, null, "job_name",
+                true);
+        Mockito.when(jobInfoService.listJobs(jobFilter, 0, Integer.MAX_VALUE)).thenReturn(jobs);
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON).param("timeFilter", "4")
                         .param("sortby", "job_name").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
@@ -175,8 +175,8 @@ public class JobControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetJobsException_pageOffset_pageSize() throws Exception {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", "default",
-                "job_name", false);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(JobStatusEnum.NEW), jobNames, 4, "", "", false,
+                "default", "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("projectName", "default").param("pageOffset", "a").param("pageSize", "10")

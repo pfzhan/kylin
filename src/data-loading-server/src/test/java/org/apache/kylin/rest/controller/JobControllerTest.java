@@ -125,7 +125,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
         List<JobStatusEnum> statuses = Lists.newArrayList(JobStatusEnum.NEW, JobStatusEnum.RUNNING);
-        JobFilter jobFilter = new JobFilter(statuses, jobNames, 4, "", "", "default", "job_name", false);
+        JobFilter jobFilter = new JobFilter(statuses, jobNames, 4, "", "", false, "default", "job_name", false);
         Mockito.when(jobInfoService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("page_offset", "0").param("page_size", "10")
@@ -135,7 +135,7 @@ public class JobControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(jobController).getJobList(
                 statuses.stream().map(jobStatusEnum -> jobStatusEnum.name()).collect(Collectors.toList()), jobNames, 1,
-                "", "", "default", 0, 10, "last_modified", true);
+                "", "", false, "default", 0, 10, "last_modified", true);
     }
 
     @Test
