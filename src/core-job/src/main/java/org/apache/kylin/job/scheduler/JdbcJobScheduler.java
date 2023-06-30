@@ -132,9 +132,10 @@ public class JdbcJobScheduler implements JobScheduler {
         // subscribe job: PENDING -> RUNNING
         slave = ThreadUtils.newDaemonSingleThreadScheduledExecutor("JdbcJobScheduler-Slave");
 
+        int consumerMaxThreads = this.consumerMaxThreads <= 0 ? 1 : this.consumerMaxThreads;
         // execute job: RUNNING -> FINISHED
-        executorPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor", 1, this.consumerMaxThreads,
-                5, TimeUnit.MINUTES);
+        executorPool = ThreadUtils.newDaemonScalableThreadPool("JdbcJobScheduler-Executor", 1, consumerMaxThreads, 5,
+                TimeUnit.MINUTES);
 
         publishJob();
         subscribeJob();
@@ -312,7 +313,7 @@ public class JdbcJobScheduler implements JobScheduler {
         try {
             // The number of tasks to be obtained cannot exceed the free slots of the 'executorPool'
             int exeFreeSlots = this.consumerMaxThreads - this.runningJobMap.size();
-            if (exeFreeSlots == 0) {
+            if (exeFreeSlots <= 0) {
                 logger.info("No free slots to execute job");
                 return;
             }
