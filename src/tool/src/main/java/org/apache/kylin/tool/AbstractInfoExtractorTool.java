@@ -113,8 +113,8 @@ import org.springframework.http.HttpHeaders;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.zen.license.LicenseHandler;
-import io.kyligence.kap.zen.license.info.LicenseInfo;
+import io.kyligence.zen.license.LicenseHandler;
+import io.kyligence.zen.license.info.LicenseInfo;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

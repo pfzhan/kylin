@@ -58,9 +58,9 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.zen.license.check.CheckResult;
-import io.kyligence.kap.zen.license.check.LicenseChecker;
-import io.kyligence.kap.zen.license.check.ResultType;
+import io.kyligence.zen.license.check.CheckResult;
+import io.kyligence.zen.license.check.LicenseChecker;
+import io.kyligence.zen.license.check.ResultType;
 import lombok.val;
 
 public class JdbcJobScheduler implements JobScheduler {
