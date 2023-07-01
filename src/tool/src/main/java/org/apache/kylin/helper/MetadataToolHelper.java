@@ -29,14 +29,11 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -49,8 +46,6 @@ import org.apache.kylin.common.metrics.MetricsName;
 import org.apache.kylin.common.persistence.ImageDesc;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.metadata.AuditLogStore;
-import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
-import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -63,7 +58,6 @@ import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.tool.CancelableTask;
 import org.apache.kylin.tool.HDFSMetadataTool;
-import org.apache.kylin.tool.garbage.StorageCleaner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -381,27 +375,6 @@ public class MetadataToolHelper extends CancelableTask {
         }
 
         return 0;
-    }
-
-    public void cleanStorage(boolean storageCleanup, List<String> projects, double requestFSRate,
-            int retryTimes) {
-        try {
-            StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, projects, requestFSRate, retryTimes);
-            System.out.println("Start to cleanup HDFS");
-            storageCleaner.execute();
-            System.out.println("cleanup HDFS finished");
-        } catch (Exception e) {
-            logger.error("cleanup HDFS failed", e);
-            System.out.println(StorageCleaner.ANSI_RED
-                    + "cleanup HDFS failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
-                    + StorageCleaner.ANSI_RESET);
-        }
-    }
-
-    public DataSource getDataSource(KylinConfig kylinConfig) throws Exception {
-        val url = kylinConfig.getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
-        return JdbcDataSource.getDataSource(props);
     }
 
 

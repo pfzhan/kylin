@@ -24,7 +24,6 @@ import static org.apache.kylin.common.exception.KylinException.CODE_SUCCESS;
 import static org.apache.kylin.common.exception.KylinException.CODE_UNDEFINED;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -60,7 +59,6 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.helper.RoutineToolHelper;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.resourcegroup.KylinInstance;
@@ -119,7 +117,7 @@ public class ScheduleService extends BasicService {
     private String tmpMetadataBackupFilePath;
 
     private static final ThreadLocal<Future<?>> CURRENT_FUTURE = new ThreadLocal<>();
-    private MetadataToolHelper metadataToolHelper = new MetadataToolHelper();
+
     private static final Map<Future<?>, Long> ASYNC_FUTURES = Maps.newConcurrentMap();
 
 
@@ -150,7 +148,8 @@ public class ScheduleService extends BasicService {
                     AtomicReference<Pair<String, String>> backupFolder = new AtomicReference<>(null);
                     executeTask(() -> backupFolder.set(backupService.backupAll()), "MetadataBackup", startTime);
                     executeMetadataBackupInTenantMode(kylinConfig, startTime, backupFolder);
-                    executeTask(RoutineToolHelper::cleanQueryHistories, "QueryHistoriesCleanup", startTime);
+                    executeTask(() -> RoutineToolHelper.cleanQueryHistoriesAsync(getRemainingTime(startTime),
+                            TimeUnit.MILLISECONDS), "QueryHistoriesCleanup", startTime);
                     executeTask(RoutineToolHelper::cleanStreamingStats, "StreamingStatsCleanup", startTime);
                     executeTask(RoutineToolHelper::deleteRawRecItems, "RawRecItemsDeletion", startTime);
                     executeTask(RoutineToolHelper::cleanGlobalSourceUsage, "SourceUsageCleanup", startTime);
@@ -160,8 +159,7 @@ public class ScheduleService extends BasicService {
                         startTime);
                 // clean storage
                 if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
-                    executeTask(() -> metadataToolHelper.cleanStorage(true, Collections.emptyList(), 0, 0), "HdfsCleanup",
-                            startTime);
+                    executeTask(RoutineToolHelper::cleanStorageForRoutine, "HdfsCleanup", startTime);
                 }
                 // clear logs for stopped instance
                 executeTask(() -> new LogCleaner().cleanUp(), "RemoteLogCleanup", startTime);
