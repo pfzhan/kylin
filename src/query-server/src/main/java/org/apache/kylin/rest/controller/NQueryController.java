@@ -58,6 +58,8 @@ import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.StopQueryBroadcastEventNotifier;
 import org.apache.kylin.common.scheduler.EventBusFactory;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.metadata.query.QueryHistoryRequest;
 import org.apache.kylin.metadata.query.util.QueryHisTransformStandardUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -73,6 +75,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.QueryHistoryFiltersResponse;
 import org.apache.kylin.rest.response.QueryStatisticsResponse;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.response.ServerExtInfoResponse;
@@ -105,9 +108,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.supercsv.io.CsvListWriter;
 import org.supercsv.io.ICsvListWriter;
 import org.supercsv.prefs.CsvPreference;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -424,15 +424,16 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "getQueryHistoryModels", tags = { "QE" }, notes = "Update Param: project, model_name")
     @GetMapping(value = "/query_history_models")
     @ResponseBody
-    public EnvelopeResponse<List<String>> getQueryHistoryModels(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<QueryHistoryFiltersResponse> getQueryHistoryModels(
+            @RequestParam(value = "project") String project,
             @RequestParam(value = "model_name", required = false) String modelAlias,
             @RequestParam(value = "page_size", required = false, defaultValue = "100") Integer size) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(project);
         request.setFilterModelName(modelAlias);
-        List<String> modelNames = queryHistoryService.getQueryHistoryModels(request, size);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelNames, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                queryHistoryService.getQueryHistoryModels(request, size), "");
     }
 
     @ApiOperation(value = "queryHistoryTiredStorageMetrics", tags = {"QE"}, notes = "Update Param: project, query_id")
