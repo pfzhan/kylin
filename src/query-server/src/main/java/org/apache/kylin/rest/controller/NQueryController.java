@@ -296,6 +296,7 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "query_status", required = false) List<String> queryStatus,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
+            @RequestParam(value = "exclude_realization", required = false) List<String> excludeRealization,
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "submitter", required = false) List<String> submitter, HttpServletResponse response) {
         ZoneOffset zoneOffset;
@@ -310,7 +311,8 @@ public class NQueryController extends NBasicController {
         }
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, excludeRealization, null,
+                false, null, true);
         checkGetQueryHistoriesParam(request);
         response.setContentType("text/csv;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
@@ -338,11 +340,13 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "query_status", required = false) List<String> queryStatus,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
+            @RequestParam(value = "exclude_realization", required = false) List<String> excludeRealization,
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "submitter", required = false) List<String> submitter, HttpServletResponse response) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, excludeRealization, null,
+                false, null, true);
         checkGetQueryHistoriesParam(request);
         response.setContentType("text/csv;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
@@ -370,13 +374,15 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "query_status", required = false) List<String> queryStatus,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
+            @RequestParam(value = "exclude_realization", required = false) List<String> excludeRealization,
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "submitter", required = false) List<String> submitter) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, excludeRealization, null,
+                false, null, true);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 QueryHisTransformStandardUtil.transformQueryHistorySqlForDisplay(

@@ -508,7 +508,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
                 request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), request.getQueryStatus(),
-                null, null, null, 2, 3, null);
+                null, null, null, null, 2, 3, null);
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
