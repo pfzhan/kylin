@@ -18,15 +18,17 @@
 
 package org.apache.kylin.job.manager;
 
-import static org.apache.kylin.guava30.shaded.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_CREATE_ABANDON;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STORAGE_QUOTA_LIMIT;
+import static org.apache.kylin.guava30.shaded.common.base.Preconditions.checkNotNull;
 
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.logging.SetLogCategory;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.common.ExecutableUtil;
 import org.apache.kylin.job.common.SegmentUtil;
@@ -71,20 +73,22 @@ public class JobManager {
     }
 
     public String addJob(JobParam jobParam, AbstractJobHandler handler) {
-        if (!config.isJobNode() && !config.isUTEnv() && !config.isMetadataNode()) {
-            throw new KylinException(JOB_CREATE_ABANDON);
+        try(SetLogCategory ignored = new SetLogCategory(LogConstant.BUILD_CATEGORY)) {
+            if (!config.isJobNode() && !config.isUTEnv() && !config.isMetadataNode()) {
+                throw new KylinException(JOB_CREATE_ABANDON);
+            }
+            checkNotNull(project);
+            checkStorageQuota(project);
+            jobParam.setProject(project);
+            ExecutableUtil.computeParams(jobParam);
+
+            AbstractJobHandler localHandler = handler != null ? handler : createJobHandler(jobParam);
+            if (localHandler == null)
+                return null;
+
+            localHandler.handle(jobParam);
+            return jobParam.getJobId();
         }
-        checkNotNull(project);
-        checkStorageQuota(project);
-        jobParam.setProject(project);
-        ExecutableUtil.computeParams(jobParam);
-
-        AbstractJobHandler localHandler = handler != null ? handler : createJobHandler(jobParam);
-        if (localHandler == null)
-            return null;
-
-        localHandler.handle(jobParam);
-        return jobParam.getJobId();
     }
 
     public String addJob(JobParam jobParam) {

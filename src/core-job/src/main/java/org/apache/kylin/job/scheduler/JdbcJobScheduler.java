@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ThreadUtils;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
@@ -64,7 +65,7 @@ import lombok.val;
 
 public class JdbcJobScheduler implements JobScheduler {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcJobScheduler.class);
+    private static final Logger logger = LoggerFactory.getLogger(LogConstant.SCHEDULE_CATEGORY);
 
     private final JobContext jobContext;
 
