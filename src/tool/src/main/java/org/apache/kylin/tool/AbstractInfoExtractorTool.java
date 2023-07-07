@@ -113,8 +113,8 @@ import org.springframework.http.HttpHeaders;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.zen.license.LicenseHandler;
 import io.kyligence.zen.license.info.LicenseInfo;
+import io.kyligence.zen.license.service.ZenLicenseReadService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -434,7 +434,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     private void dumpZenLicenseInfo(File exportDir) throws Exception {
-        LicenseHandler licenseHandler = SpringContext.getBean(LicenseHandler.class);
+        ZenLicenseReadService licenseHandler = SpringContext.getBean(ZenLicenseReadService.class);
         LicenseInfo licenseInfo = licenseHandler.getLicenseInfo();
         StringBuilder licenseSb = new StringBuilder();
         licenseSb.append(licenseInfo.requestLicenseInfo()).append('\n');
@@ -450,7 +450,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             if(KylinConfig.getInstanceFromEnv().isUTEnv()) {
                 return false;
             }
-            LicenseHandler licenseHandler = SpringContext.getBean(LicenseHandler.class);
+            ZenLicenseReadService licenseHandler = SpringContext.getBean(ZenLicenseReadService.class);
             if (null != licenseHandler) {
                 return true;
             }
