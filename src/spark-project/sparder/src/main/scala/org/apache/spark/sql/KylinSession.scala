@@ -248,7 +248,7 @@ object KylinSession extends Logging {
       // the length of the `podNamePrefix` needs to be less than or equal to 47
       sparkConf.get("spark.master") match {
         case v if v.startsWith("k8s") =>
-          val appName = sparkConf.get("spark.app.name", "")
+          val appName = sparkConf.get("spark.app.name", System.getenv("HOSTNAME"))
           val podNamePrefix = generateExecutorPodNamePrefixForK8s(appName)
           logInfo(s"Sparder run on k8s, generated executorPodNamePrefix is $podNamePrefix")
           sparkConf.setIfMissing("spark.kubernetes.executor.podNamePrefix", podNamePrefix)

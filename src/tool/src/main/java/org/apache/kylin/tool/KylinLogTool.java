@@ -714,7 +714,7 @@ public class KylinLogTool {
             }
         } catch (Exception e) {
             String msg = String.format(Locale.ROOT, "Error occurred when extracting kylin log from loki server:\n%s", Throwables.getStackTraceAsString(e));
-            DiagnosticFilesChecker.writeMsgToFile(msg, new File(destLogDir, "kylin.error.log"));
+            DiagnosticFilesChecker.writeMsgToFile(msg, new File(destLogDir, "kylin.diag.error.log"));
             logger.error("Failed to extract kylin.log from Loki server.", e);
         }
     }
