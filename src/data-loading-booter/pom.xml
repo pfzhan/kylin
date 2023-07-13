@@ -148,6 +148,12 @@
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-hdfs</artifactId>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.squareup.okio</groupId>
+                            <artifactId>okio</artifactId>
+                        </exclusion>
+                    </exclusions>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
