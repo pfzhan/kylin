@@ -20,6 +20,8 @@ package org.apache.kylin.common;
 
 import static java.lang.Math.toIntExact;
 import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_ARM64;
+import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64;
+import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_MUSL_X64;
 import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_X64;
 import static org.apache.kylin.common.constant.Constants.KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY;
 import static org.apache.kylin.common.constant.Constants.KYLIN_SOURCE_JDBC_DRIVER_KEY;
@@ -2776,7 +2778,10 @@ public abstract class KylinConfigBase implements Serializable {
         String kylinHome = getKylinHomeWithoutWarn();
         File libX64 = new File(kylinHome + "/lib/" + ASYNC_PROFILER_LIB_LINUX_X64);
         File libArm64 = new File(kylinHome + "/lib/" + ASYNC_PROFILER_LIB_LINUX_ARM64);
-        return libX64.getCanonicalPath() + "," + libArm64.getCanonicalPath();
+        File libX64Musl = new File(kylinHome + "/lib/" + ASYNC_PROFILER_LIB_LINUX_MUSL_X64);
+        File libArm64Musl = new File(kylinHome + "/lib/" + ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64);
+        return libX64.getCanonicalPath() + "," + libArm64.getCanonicalPath()
+                + "," + libX64Musl.getCanonicalPath() + "," + libArm64Musl.getCanonicalPath();
     }
 
     private String getLogPropertyFile(String filename) {
