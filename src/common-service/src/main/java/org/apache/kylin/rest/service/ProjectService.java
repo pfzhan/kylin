@@ -618,6 +618,8 @@ public class ProjectService extends BasicService {
         response.setJdbcSourceEnable(config.getJdbcEnable());
         response.setJdbcSourceDriver(config.getJdbcDriver());
 
+        response.setOverrideKylinProps(projectInstance.getOverrideKylinProps());
+
         if (SecondStorageUtil.isGlobalEnable()) {
             response.setSecondStorageEnabled(SecondStorageUtil.isProjectEnable(project));
             response.setSecondStorageNodes(SecondStorageUtil.listProjectNodes(project));
