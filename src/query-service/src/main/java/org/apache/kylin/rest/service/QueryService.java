@@ -132,6 +132,8 @@ import org.apache.kylin.query.exception.NotSupportedSQLException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.ContextUtil;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.EscapeDialect;
+import org.apache.kylin.query.util.PrepareSQLUtils;
 import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.query.util.QueryModelPriorities;
 import org.apache.kylin.query.util.QueryParams;
@@ -140,6 +142,7 @@ import org.apache.kylin.query.util.RawSql;
 import org.apache.kylin.query.util.RawSqlParser;
 import org.apache.kylin.query.util.SlowQueryDetector;
 import org.apache.kylin.query.util.TokenMgrError;
+import org.apache.kylin.query.util.WhiteSpaceParser;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.AppConfig;
 import org.apache.kylin.rest.model.Query;
@@ -152,7 +155,6 @@ import org.apache.kylin.rest.response.TableMetaCacheResultV2;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
-import org.apache.kylin.query.util.PrepareSQLUtils;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.QueryRequestLimits;
 import org.apache.kylin.rest.util.QueryUtils;
@@ -602,6 +604,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
             // Parsing user sql by RawSqlParser
             RawSql rawSql = new RawSqlParser(sqlRequest.getSql()).parse();
             rawSql.autoAppendLimit(kylinConfig, sqlRequest.getLimit(), sqlRequest.getOffset());
+
+            WhiteSpaceParser whiteSpaceParser = new WhiteSpaceParser(EscapeDialect.DEFAULT, rawSql.getStatementString().trim());
+
+            sqlRequest.setNormalizedSql(whiteSpaceParser.parse());
 
             // Reset request sql for code compatibility
             sqlRequest.setSql(rawSql.getStatementString());
