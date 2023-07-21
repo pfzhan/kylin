@@ -2058,6 +2058,10 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     }
 
     public void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
+        saveNewModelsAndIndexes(project, null, newModels);
+    }
+
+    public void saveNewModelsAndIndexes(String project, String saveIndexesStrategy, List<ModelRequest> newModels) {
         if (CollectionUtils.isEmpty(newModels)) {
             return;
         }
@@ -2094,6 +2098,9 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             emptyIndex.setUuid(expanded.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
             indexPlanService.expandIndexPlanRequest(indexPlan, expanded);
+            if (SAVE_INDEXES_STRATEGY.equalsIgnoreCase(saveIndexesStrategy)) {
+                indexPlan.setBaseAggIndexReduceHighCardinalityDim(true);
+            }
             addBaseIndex(modelRequest, expanded, indexPlan);
 
             // create DataFlow
@@ -2107,7 +2114,7 @@ public class ModelService extends AbstractModelService implements TableModelSupp
             }
 
             createStreamingJob(project, expanded, modelRequest);
-            updateIndexPlan(project, indexPlan);
+            updateIndexPlan(project, indexPlan, expanded, saveIndexesStrategy);
             UnitOfWorkContext context = UnitOfWork.get();
             context.doAfterUnit(() -> EventBusFactory.getInstance()
                     .postSync(new ModelAddEvent(project, expanded.getId(), expanded.getAlias())));
@@ -2360,9 +2367,13 @@ public class ModelService extends AbstractModelService implements TableModelSupp
         copy.getPartitionDesc().changeTableAlias(oldAliasName, tableName);
     }
 
-    void updateIndexPlan(String project, IndexPlan indexPlan) {
+    void updateIndexPlan(String project, IndexPlan indexPlan, NDataModel model, String saveIndexesStrategy) {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         indexPlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
+            if (SAVE_INDEXES_STRATEGY.equalsIgnoreCase(saveIndexesStrategy)) {
+                copyForWrite.setBaseAggIndexReduceHighCardinalityDim(true);
+                splitIndexesIntoSingleDimIndexes(model, indexPlan);
+            }
             if (indexPlan.getAggShardByColumns() != null) {
                 copyForWrite.setAggShardByColumns(indexPlan.getAggShardByColumns());
             }

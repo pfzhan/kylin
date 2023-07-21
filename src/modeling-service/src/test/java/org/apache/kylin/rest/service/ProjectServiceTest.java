@@ -1036,7 +1036,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testCleanupGarbage() throws Exception {
         QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler = QueryHistoryMetaUpdateScheduler.getInstance(PROJECT);
         qhMetaUpdateScheduler.init();
-        projectService.cleanupGarbage(PROJECT);
+        projectService.cleanupGarbage(PROJECT, false);
     }
 
     @Test
