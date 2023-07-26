@@ -299,7 +299,7 @@
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>
 
         <external.version>4.5.9</external.version>
-        <iam-user-manager.version>1.2.4</iam-user-manager.version>
+        <iam-user-manager.version>2.1.0-SNAPSHOT</iam-user-manager.version>
 
         <json-smart.version>2.4.9</json-smart.version>
         <xmlsec.version>2.1.7</xmlsec.version>
