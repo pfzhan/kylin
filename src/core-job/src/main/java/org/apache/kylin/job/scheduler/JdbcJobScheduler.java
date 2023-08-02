@@ -93,17 +93,6 @@ public class JdbcJobScheduler implements JobScheduler {
 
     @Override
     public void publishJob() {
-        // init master lock
-        try {
-            if (jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER) == null) {
-                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER));
-            }
-        } catch (Exception e) {
-            JobLock masterLock = jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER);
-            if (masterLock == null) {
-                logger.error("Master lock init failed!");
-            }
-        }
         // master lock
         masterLock = new JdbcJobLock(JobScheduler.MASTER_SCHEDULER, jobContext.getServerNode(),
                 jobContext.getKylinConfig().getJobSchedulerMasterRenewalSec(),
@@ -177,6 +166,18 @@ public class JdbcJobScheduler implements JobScheduler {
     }
 
     private void standby() {
+        // init master lock
+        try {
+            if (jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER) == null) {
+                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER));
+            }
+        } catch (Exception e) {
+            JobLock masterLock = jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER);
+            if (masterLock == null) {
+                logger.error("Master lock init failed!");
+            }
+        }
+
         try {
             masterLock.tryAcquire();
         } catch (LockException e) {
@@ -496,6 +497,8 @@ public class JdbcJobScheduler implements JobScheduler {
         public void onSucceed() {
             if (isMaster.compareAndSet(false, true)) {
                 logger.info("Job scheduler become master.");
+            } else {
+                logger.debug("Job scheduler keep on master");
             }
         }
 
@@ -503,6 +506,8 @@ public class JdbcJobScheduler implements JobScheduler {
         public void onFailed() {
             if (isMaster.compareAndSet(true, false)) {
                 logger.info("Job scheduler fallback standby.");
+            } else {
+                logger.debug("Job scheduler keep on standby");
             }
             // standby
             master.schedule(JdbcJobScheduler.this::standby, masterLock.getRenewalSec(), TimeUnit.SECONDS);
