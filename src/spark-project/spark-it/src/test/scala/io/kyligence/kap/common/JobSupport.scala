@@ -40,6 +40,8 @@ import org.apache.kylin.engine.spark.ExecutableUtils
 import org.apache.kylin.engine.spark.utils.{FileNames, HDFSUtils}
 import org.apache.kylin.job.execution._
 import org.apache.kylin.job.util.JobContextUtil
+import org.apache.kylin.guava30.shaded.common.collect.{Lists, Maps, Sets}
+import org.apache.kylin.job.engine.JobEngineConfig
 import org.apache.kylin.metadata.cube.model._
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
@@ -53,6 +55,8 @@ import org.junit.Assert
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import scala.collection.JavaConverters._
+
+import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
 
 trait JobSupport
   extends BeforeAndAfterAll
