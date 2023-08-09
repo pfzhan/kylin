@@ -285,8 +285,8 @@ public class SparkApplicationTest extends NLocalWithSparkSessionTestBase {
         paramsMap.put(ParamsConstants.TIME_OUT, String.valueOf(config.getUpdateJobInfoTimeout()));
         paramsMap.put(ParamsConstants.JOB_TMP_DIR, config.getJobTmpDir(project, true));
 
-        val json = "{\"project\":\"test_project\",\"failed_segment_id\":\"segment_id\",\"failed_stack\":\"test stack "
-                + "trace\",\"job_id\":\"job_id\",\"failed_reason\":\"test job failed\",\"failed_step_id\":\"stage_id\"}";
+        val json = "{\"job_last_running_start_time\":null,\"job_id\":\"job_id\",\"project\":\"test_project\",\"failed_segment_id\":\"segment_id\",\"failed_stack\":\"test stack "
+                + "trace\",\"failed_reason\":\"test job failed\",\"failed_step_id\":\"stage_id\"}";
 
         Mockito.verify(application.getReport(), Mockito.times(1)).updateSparkJobInfo(paramsMap, "/kylin/api/jobs/error",
                 json);
