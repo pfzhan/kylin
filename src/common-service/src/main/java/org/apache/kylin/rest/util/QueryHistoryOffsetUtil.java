@@ -18,21 +18,24 @@
 
 package org.apache.kylin.rest.util;
 
-import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
-import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
+
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 
 public class QueryHistoryOffsetUtil {
 
     private static RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
 
     public static void resetOffsetId(String project) {
+        resetOffsetId(project, queryHistoryDAO);
+    }
+
+    public static void resetOffsetId(String project, RDBMSQueryHistoryDAO queryHistoryDAO) {
         QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager.getInstance(project);
         JdbcUtil.withTxAndRetry(qhIdOffsetManager.getTransactionManager(), () -> {
             long maxId = queryHistoryDAO.getQueryHistoryMaxId(project);
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
             QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
             QueryHistoryIdOffset queryHistoryAccIdOffset = manager.get(QueryHistoryIdOffset.OffsetType.ACCELERATE);
             QueryHistoryIdOffset queryHistoryStatIdOffset = manager.get(QueryHistoryIdOffset.OffsetType.META);

@@ -19,7 +19,6 @@
 package org.apache.kylin.rest.config;
 
 import org.apache.kylin.junit.annotation.MetadataInfo;
-import org.apache.kylin.junit.annotation.OverwriteProp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 
-@OverwriteProp(key = "kylin.metadata.url", value = "ke_metadata@jdbc,driverClassName=org.postgresql.Driver,url=jdbc:postgresql://sandbox:5432/kylin")
 @MetadataInfo(onlyProps = true)
 class KylinPropertySourceConfigurationTest {
     private SpringApplication application;
