@@ -978,6 +978,7 @@ public class ExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         DefaultExecutable job = new DefaultExecutable();
         job.setProject("default");
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
         val executable = new SucceedTestExecutable();
         job.addTask(executable);
         manager.addJob(job);
