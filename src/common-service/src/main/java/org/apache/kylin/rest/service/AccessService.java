@@ -810,7 +810,7 @@ public class AccessService extends BasicService {
             return AclConstants.ADMINISTRATION;
         }
         Map<Sid, Integer> projectPermissions = getProjectPermission(project);
-        int mask = projectPermissions.get(getSid(groupName, false));
+        int mask = projectPermissions.getOrDefault(getSid(groupName, false), 0);
         return ExternalAclProvider.convertToExternalPermission(mask);
     }
 
@@ -883,7 +883,9 @@ public class AccessService extends BasicService {
             SidPermissionWithAclResponse permissionWithAclResponse = principal
                     ? getUserPermissionWithAclResponse(project, userOrGroupName)
                     : getGroupPermissionWithAclResponse(project, userOrGroupName);
-            sidPermissionWithAclResponse.add(permissionWithAclResponse);
+            if (!AclConstants.EMPTY.equals(permissionWithAclResponse.getProjectPermission())) {
+                sidPermissionWithAclResponse.add(permissionWithAclResponse);
+            }
         }
         return sidPermissionWithAclResponse;
     }
