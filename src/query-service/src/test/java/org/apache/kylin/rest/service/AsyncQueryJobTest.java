@@ -77,7 +77,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.val;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class, KylinInfoExtension.class })
 @PowerMockIgnore({ "javax.management.*", "javax.script.*" })
 public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
 
@@ -360,27 +360,27 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         properties.setProperty("kylin.second-storage.class",
                 "org.apache.kylin.common.extension.KylinInfoExtension$Factory");
         properties.setProperty("kylin.streaming.enabled", "true");
-        try (val mockedStatic = Mockito.mockStatic(KylinInfoExtension.class)) {
-            val kylinInfoExtensionFactory = Mockito.mock(KylinInfoExtension.Factory.class);
-            mockedStatic.when(KylinInfoExtension::getFactory).thenReturn(kylinInfoExtensionFactory);
 
-            Mockito.when(kylinInfoExtensionFactory.checkKylinInfo()).thenReturn(false);
-            val properties1 = new Properties();
-            properties1.putAll(properties);
-            asyncQueryJob.modifyDump(properties1);
-            Assert.assertNull(properties1.get("kylin.extension.info.factory"));
-            Assert.assertNull(properties1.get("kylin.second-storage.class"));
-            Assert.assertEquals("false", properties1.get("kylin.streaming.enabled"));
+        val kylinInfoExtensionFactory = Mockito.mock(KylinInfoExtension.Factory.class);
+        PowerMockito.mockStatic(KylinInfoExtension.class);
+        PowerMockito.when(KylinInfoExtension.getFactory()).thenReturn(kylinInfoExtensionFactory);
 
-            Mockito.when(kylinInfoExtensionFactory.checkKylinInfo()).thenReturn(true);
-            val properties2 = new Properties();
-            properties2.putAll(properties);
-            asyncQueryJob.modifyDump(properties2);
-            Assert.assertNull(properties2.get("kylin.extension.info.factory"));
-            Assert.assertEquals(properties.getProperty("kylin.second-storage.class"),
-                    properties2.get("kylin.second-storage.class"));
-            Assert.assertEquals(properties.getProperty("kylin.streaming.enabled"),
-                    properties2.get("kylin.streaming.enabled"));
-        }
+        Mockito.when(kylinInfoExtensionFactory.checkKylinInfo()).thenReturn(false);
+        val properties1 = new Properties();
+        properties1.putAll(properties);
+        asyncQueryJob.modifyDump(properties1);
+        Assert.assertNull(properties1.get("kylin.extension.info.factory"));
+        Assert.assertNull(properties1.get("kylin.second-storage.class"));
+        Assert.assertEquals("false", properties1.get("kylin.streaming.enabled"));
+
+        Mockito.when(kylinInfoExtensionFactory.checkKylinInfo()).thenReturn(true);
+        val properties2 = new Properties();
+        properties2.putAll(properties);
+        asyncQueryJob.modifyDump(properties2);
+        Assert.assertNull(properties2.get("kylin.extension.info.factory"));
+        Assert.assertEquals(properties.getProperty("kylin.second-storage.class"),
+                properties2.get("kylin.second-storage.class"));
+        Assert.assertEquals(properties.getProperty("kylin.streaming.enabled"),
+                properties2.get("kylin.streaming.enabled"));
     }
 }
