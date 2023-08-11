@@ -4145,4 +4145,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getBloomBuildColumnNvd() {
         return Integer.parseInt(getOptional("kylin.bloom.build.column.nvd", "200000"));
     }
+
+    public boolean isRoundDecimalZero() {
+        return Boolean.parseBoolean(getOptional("kylin.query.round-decimal-zero", FALSE));
+    }
 }
