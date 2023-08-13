@@ -56,6 +56,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -241,6 +242,16 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> destoryArthas() {
         arthasService.destoryArthas();
+        return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
+    }
+
+    /**
+     * RPC Call
+     */
+    @DeleteMapping(value = "clean_sparder_event_log")
+    @ResponseBody
+    public EnvelopeResponse<String> queryNodeCleanSparderEventsLogs() {
+        systemService.cleanSparderEventLog();
         return new EnvelopeResponse<>(CODE_SUCCESS, "", "");
     }
 }

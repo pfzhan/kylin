@@ -239,4 +239,17 @@ public class JobInfoDao {
             return null;
         });
     }
+
+    public Long getEarliestJobCreateTime() {
+        return getEarliestJobCreateTime(null);
+
+    }
+
+    public Long getEarliestJobCreateTime(String project) {
+        Date result = jobInfoMapper.getEarliestCreateTime(project);
+        if (null == result) {
+            return null;
+        }
+        return result.getTime();
+    }
 }

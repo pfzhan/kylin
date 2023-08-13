@@ -109,7 +109,7 @@ public class IndexCleanerTest extends NLocalFileMetadataTestCase {
         IndexCleaner indexCleaner = new IndexCleaner(DEFAULT_PROJECT, false);
         indexCleaner.prepare();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            indexCleaner.cleanup();
+            indexCleaner.execute();
             return 0;
         }, DEFAULT_PROJECT);
     }

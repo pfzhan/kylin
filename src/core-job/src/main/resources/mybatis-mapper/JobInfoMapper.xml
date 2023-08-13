@@ -241,6 +241,16 @@
     </if>
   </select>
 
+  <select id="getEarliestCreateTime" parameterType="java.lang.String" resultType="java.util.Date">
+    select min(create_time)
+    from ${jobInfoTable}
+    <where>
+      <if test="project != null">
+        project = #{project,jdbcType=VARCHAR}
+      </if>
+    </where>
+  </select>
+
   <select id="countByJobFilter" parameterType="org.apache.kylin.job.rest.JobMapperFilter" resultType="long">
     select
     count(1)

@@ -54,7 +54,10 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.StringHelper;
+import org.apache.kylin.guava30.shaded.common.cache.Cache;
+import org.apache.kylin.guava30.shaded.common.cache.CacheBuilder;
 import org.apache.kylin.helper.MetadataToolHelper;
+import org.apache.kylin.helper.RoutineToolHelper;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.NDataModel;
@@ -79,9 +82,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-
-import org.apache.kylin.guava30.shaded.common.cache.Cache;
-import org.apache.kylin.guava30.shaded.common.cache.CacheBuilder;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -390,5 +390,13 @@ public class SystemService extends BasicService {
             }
         }
         return result;
+    }
+
+    public void cleanSparderEventLog() {
+        val config = KylinConfig.getInstanceFromEnv();
+        if (config.isQueryNodeOnly()) {
+            logger.info("Clean current sparder event log for RPC");
+            RoutineToolHelper.cleanEventLog(true, true, false);
+        }
     }
 }
