@@ -4151,4 +4151,5 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isRoundDecimalZero() {
         return Boolean.parseBoolean(getOptional("kylin.query.round-decimal-zero", FALSE));
     }
+
 }
