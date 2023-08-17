@@ -106,7 +106,7 @@ public class IndexCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     private void cleanIndex() {
-        IndexCleaner indexCleaner = new IndexCleaner(DEFAULT_PROJECT);
+        IndexCleaner indexCleaner = new IndexCleaner(DEFAULT_PROJECT, false);
         indexCleaner.prepare();
         UnitOfWork.doInTransactionWithRetry(() -> {
             indexCleaner.cleanup();
