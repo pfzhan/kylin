@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
@@ -59,10 +61,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-
 
 public class BaseIndexTest extends SourceTestCase {
 
@@ -95,6 +93,7 @@ public class BaseIndexTest extends SourceTestCase {
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
 
