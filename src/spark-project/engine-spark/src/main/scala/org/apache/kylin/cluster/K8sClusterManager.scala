@@ -57,8 +57,16 @@ class K8sClusterManager extends IClusterManager with Logging {
   override def fetchQueueAvailableResource(queueName: String): AvailableResource = {
     withKubernetesClient(config, kubernetesClient => {
       val volcanoClient = new DefaultVolcanoClient(kubernetesClient)
-      val queue = volcanoClient.queues().list().getItems.stream().filter(_.getMetadata.getName.equals(queueName)).findFirst()
-      if (queue.isPresent && queue.get().getSpec.getCapability != null) {
+      val queue = try {
+        volcanoClient.queues().list().getItems.stream().filter(_.getMetadata.getName.equals(queueName)).findFirst()
+      } catch {
+        case e: Throwable =>
+          logWarning(s"Failed to get volcano queue with error '${e.getMessage}'.", e)
+          null
+      } finally {
+        volcanoClient.close()
+      }
+      if (queue != null && queue.isPresent && queue.get().getSpec.getCapability != null) {
         return getAvailableResourceByVolcano(queue.get())
       } else {
         val quotas = kubernetesClient.resourceQuotas().list().getItems
