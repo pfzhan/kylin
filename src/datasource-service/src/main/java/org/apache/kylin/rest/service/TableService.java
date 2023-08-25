@@ -216,7 +216,7 @@ public class TableService extends BasicService {
     @Autowired
     private AccessService accessService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("kafkaService")
     private KafkaService kafkaService;
 
