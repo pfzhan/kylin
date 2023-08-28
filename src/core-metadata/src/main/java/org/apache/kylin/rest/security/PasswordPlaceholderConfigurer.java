@@ -32,13 +32,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.common.util.Unsafe;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.rest.exception.PasswordDecryptionException;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 /**
  * @author xduo
@@ -63,6 +62,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
 
         ByteArrayResource byteArrayResource = new ByteArrayResource(propString.getBytes(Charset.defaultCharset()));
         resources[0] = byteArrayResource;
+        this.setFileEncoding(Charset.defaultCharset().toString());
         this.setLocations(resources);
     }
 
