@@ -31,7 +31,7 @@ case class CachePartitionedFile(
                                  filePath: String,
                                  start: Long,
                                  length: Long,
-                                 locations: Array[(String, String)] = Array.empty) {
+                                 locations: Array[String] = Array.empty) {
   override def toString: String = {
     s"path: $filePath, range: $start-${start + length}, partition values: $partitionValues," +
       s" on executor locations ${locations.mkString}"
@@ -46,8 +46,9 @@ class CacheFileScanRDD(
                         override val metadataColumns: Seq[AttributeReference] = Seq.empty)
   extends FileScanRDD(sparkSession, readFunction, Nil, readDataSchema, metadataColumns) {
 
-  def checkCached(cacheLocations: Array[(String, String)]): Boolean = {
-    cacheLocations.map(_._1).contains(SparkEnv.get.executorId)
+  def checkCached(cacheLocations: Array[String]): Boolean = {
+    val underscoreExecId = "_" + SparkEnv.get.executorId;
+    cacheLocations.exists(_.contains(underscoreExecId))
   }
 
   override def compute(split: RDDPartition, context: TaskContext): Iterator[InternalRow] = {
@@ -55,7 +56,7 @@ class CacheFileScanRDD(
     val start = System.currentTimeMillis()
     val cacheFilePartition = split.asInstanceOf[CacheFilePartition]
     val cacheSplit = FilePartition(cacheFilePartition.index, cacheFilePartition.files.map { f =>
-      PartitionedFile(f.partitionValues, f.filePath, f.start, f.length, f.locations.map(_._2))
+      PartitionedFile(f.partitionValues, f.filePath, f.start, f.length, f.locations)
     })
     var currFilePath = "empty"
     val isCache = if (!cacheFilePartition.files.isEmpty) {

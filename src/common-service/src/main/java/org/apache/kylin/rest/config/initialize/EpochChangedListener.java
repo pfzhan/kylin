@@ -137,11 +137,13 @@ public class EpochChangedListener {
                 initSchedule(kylinConfig, project);
             }
 
-            QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
-            qhMetaUpdateScheduler.init();
-            if (!qhMetaUpdateScheduler.hasStarted()) {
-                throw new RuntimeException(
-                        "Query history accelerate scheduler for " + project + " has not been started");
+            if (kylinConfig.getQueryHistoryAccelerateInterval() > 0) {
+                QueryHistoryMetaUpdateScheduler qhMetaUpdateScheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
+                qhMetaUpdateScheduler.init();
+                if (!qhMetaUpdateScheduler.hasStarted()) {
+                    throw new RuntimeException(
+                            "Query history accelerate scheduler for " + project + " has not been started");
+                }
             }
             return 0;
         }, project, 1);

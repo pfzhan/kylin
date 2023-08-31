@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -78,7 +77,6 @@ import org.apache.kylin.engine.spark.utils.HDFSUtils;
 import org.apache.kylin.engine.spark.utils.JobMetricsUtils;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
 import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NSparkExecutable;
@@ -105,6 +103,7 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
+import org.apache.spark.sql.hive.HiveStorageRule;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
@@ -120,7 +119,7 @@ import scala.runtime.BoxedUnit;
 
 public abstract class SparkApplication implements Application {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
-    private Map<String, String> params = Maps.newHashMap();
+    private Map<String, String> params = new HashMap<>();
     public static final String JOB_NAME_PREFIX = "job_step_";
     private static final String JOB_ERROR_API = "/kylin/api/jobs/error";
     protected IJobProgressReport report;
@@ -223,7 +222,6 @@ public abstract class SparkApplication implements Application {
      * get tracking url by application id
      *
      * @param sparkSession build sparkSession
-     * @return
      */
     public String getTrackingUrl(IClusterManager clusterManager, SparkSession sparkSession) {
         return clusterManager.getBuildTrackingUrl(sparkSession);
@@ -305,7 +303,7 @@ public abstract class SparkApplication implements Application {
 
             monitorSparkMaster();
 
-            HadoopUtil.setCurrentConfiguration(new Configuration());
+            HadoopUtil.setCurrentConfiguration(HadoopUtil.getHadoopConfFromSparkEngine());
             ////////
             exchangeSparkConf(buildEnv.sparkConf());
 
@@ -399,6 +397,14 @@ public abstract class SparkApplication implements Application {
                             @Override
                             public Rule<LogicalPlan> apply(SparkSession session) {
                                 return new AlignmentTableStats(session);
+                            }
+                        });
+                        v1.injectPostHocResolutionRule(new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
+                            @Override
+                            public Rule<LogicalPlan> apply(SparkSession session) {
+                                HiveStorageRule rule = new HiveStorageRule(session);
+                                rule.setForceDisableSoftAffinity(true);
+                                return rule;
                             }
                         });
                         return BoxedUnit.UNIT;

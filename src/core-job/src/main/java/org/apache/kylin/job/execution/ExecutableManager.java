@@ -778,6 +778,9 @@ public class ExecutableManager {
                 ExecutablePO stage = stageMapFromSegment.getOrDefault(segmentId, Lists.newArrayList()).stream()
                         .filter(po -> po.getId().equals(taskOrJobId))//
                         .findFirst().orElse(null);
+                if (stage == null) {
+                    return false; // local spark job?
+                }
 
                 ExecutableOutputPO stageOutput = stage.getOutput();
                 assertOutputNotNull(stageOutput, taskOrJobId, segmentId);
