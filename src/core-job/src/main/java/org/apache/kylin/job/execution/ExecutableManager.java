@@ -919,22 +919,27 @@ public class ExecutableManager {
             job.cancelJob();
             return null;
         }, project);
-        if (job instanceof DefaultExecutable) {
-            List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
-            tasks.forEach(task -> {
-                if (task instanceof ChainedStageExecutable) {
-                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
-                    if (MapUtils.isNotEmpty(tasksMap)) {
-                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
-                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
-                                    .forEach(stage -> //
-                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
+        JobContextUtil.withTxAndRetry(() -> {
+            if (job instanceof DefaultExecutable) {
+                List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
+                tasks.forEach(task -> {
+                    if (task instanceof ChainedStageExecutable) {
+                        final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                        if (MapUtils.isNotEmpty(tasksMap)) {
+                            for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                                Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                        .forEach(stage -> //
+                                updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null,
+                                        null));
+                            }
                         }
                     }
-                }
-            });
-        }
-        updateJobOutput(jobId, ExecutableState.DISCARDED);
+                });
+            }
+            updateJobOutput(jobId, ExecutableState.DISCARDED);
+
+            return true;
+        });
     }
 
     public void pauseJob(String jobId) {
@@ -1072,10 +1077,7 @@ public class ExecutableManager {
     }
 
     public void discardJob(String jobId) {
-        JobContextUtil.withTxAndRetry(() -> {
-            discardJob(jobId, getJob(jobId));
-            return true;
-        });
+        discardJob(jobId, getJob(jobId));
     }
 
     public void deleteAllJobsOfProject() {
