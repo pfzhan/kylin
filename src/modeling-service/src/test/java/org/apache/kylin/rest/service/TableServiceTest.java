@@ -59,6 +59,9 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.JobContext;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.acl.AclTCR;
@@ -112,9 +115,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -666,9 +666,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
-        ProjectInstance projectInstance = npr.getProject("default");
-        projectInstance.setDefaultDatabase(removeDB);
-        npr.updateProject(projectInstance);
+        npr.updateProject("default", copyForWrite -> copyForWrite.setDefaultDatabase(removeDB));
         Assert.assertEquals(removeDB, npr.getDefaultDatabase("default"));
 
         for (TableDesc table : tableManager.listAllTables()) {

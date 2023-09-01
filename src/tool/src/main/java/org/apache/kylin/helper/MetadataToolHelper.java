@@ -317,8 +317,11 @@ public class MetadataToolHelper extends CancelableTask {
                 val projectName = Paths.get(projectPath).getName(0).toString();
                 val destResources = currentResourceStore.listResourcesRecursively(projectPath);
                 val srcResources = restoreResourceStore.listResourcesRecursively(projectPath);
-                UnitOfWork.doInTransactionWithRetry(() -> doRestore(currentResourceStore, restoreResourceStore,
-                        destResources, srcResources, delete), projectName, 1);
+                UnitOfWorkParams<Object> params = UnitOfWorkParams.builder().unitName(projectName).maxRetry(1)
+                        .useProjectLock(true).processor(() -> doRestore(currentResourceStore, restoreResourceStore,
+                                destResources, srcResources, delete))
+                        .build();
+                UnitOfWork.doInTransactionWithRetry(params);
             }
 
         } else {
@@ -338,16 +341,20 @@ public class MetadataToolHelper extends CancelableTask {
 
             Set<String> finalGlobalDestResources = globalDestResources;
 
-            UnitOfWork.doInTransactionWithRetry(() -> doRestore(currentResourceStore, restoreResourceStore,
-                    finalGlobalDestResources, globalSrcResources, delete), UnitOfWork.GLOBAL_UNIT, 1);
+            UnitOfWorkParams<Object> params = UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT).maxRetry(1)
+                    .useProjectLock(true).processor(() -> doRestore(currentResourceStore, restoreResourceStore,
+                            finalGlobalDestResources, globalSrcResources, delete))
+                    .build();
+            UnitOfWork.doInTransactionWithRetry(params);
 
             val projectPath = FileSystems.getDefault().getSeparator() + project;
             val destResources = currentResourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreResourceStore.listResourcesRecursively(projectPath);
 
-            UnitOfWork.doInTransactionWithRetry(
-                    () -> doRestore(currentResourceStore, restoreResourceStore, destResources, srcResources, delete),
-                    project, 1);
+            params = UnitOfWorkParams.builder().unitName(project).maxRetry(1).useProjectLock(true).processor(
+                    () -> doRestore(currentResourceStore, restoreResourceStore, destResources, srcResources, delete))
+                    .build();
+            UnitOfWork.doInTransactionWithRetry(params);
         }
 
         logger.info("restore successfully");

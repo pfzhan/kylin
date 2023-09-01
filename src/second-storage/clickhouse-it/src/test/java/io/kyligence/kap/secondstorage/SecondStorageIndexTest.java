@@ -39,6 +39,11 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableSet;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.service.JobInfoService;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -100,15 +105,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import com.amazonaws.util.EC2MetadataUtils;
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
 import io.kyligence.kap.clickhouse.job.ClickHouseRefreshSecondaryIndexJob;
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableSet;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import io.kyligence.kap.newten.clickhouse.EmbeddedHttpServer;
 import io.kyligence.kap.secondstorage.ddl.InsertInto;
@@ -131,6 +131,8 @@ import io.kyligence.kap.secondstorage.test.EnableScheduler;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.secondstorage.test.utils.MockedModelService;
+import io.kyligence.kap.secondstorage.test.utils.MockedSecondStorageService;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
@@ -163,10 +165,10 @@ public class SecondStorageIndexTest implements JobWaiter {
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
     @InjectMocks
-    private final SecondStorageService secondStorageService = Mockito.spy(new SecondStorageService());
+    private final SecondStorageService secondStorageService = Mockito.spy(new MockedSecondStorageService());
 
     @InjectMocks
-    private final ModelService modelService = Mockito.spy(new ModelService());
+    private final ModelService modelService = Mockito.spy(new MockedModelService());
 
     @Mock
     private final SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();

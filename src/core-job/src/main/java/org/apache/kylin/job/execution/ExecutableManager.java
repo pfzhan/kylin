@@ -190,6 +190,12 @@ public class ExecutableManager {
         }
         return result;
     }
+    
+    private ExecutablePO copyForWrite(ExecutablePO po) {
+        // No need to copy, just return the origin object
+        // This will be rewrite after metadata is refactored
+        return po;
+    }
 
     // only for test
     public void addJob(AbstractExecutable executable) {
@@ -198,10 +204,11 @@ public class ExecutableManager {
     }
 
     public void addJob(ExecutablePO executablePO) {
-        addJobOutput(executablePO);
-        jobInfoDao.addJob(executablePO);
+        ExecutablePO copy = copyForWrite(executablePO);
+        addJobOutput(copy);
+        jobInfoDao.addJob(copy);
 
-        String jobType = executablePO.getJobType() == null ? "" : executablePO.getJobType().name();
+        String jobType = copy.getJobType() == null ? "" : copy.getJobType().name();
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));

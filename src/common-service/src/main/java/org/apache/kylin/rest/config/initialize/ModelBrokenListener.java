@@ -93,9 +93,10 @@ public class ModelBrokenListener {
                 dfUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
             }
             dataflowManager.updateDataflow(dfUpdate);
-            model.setHandledAfterBroken(true);
-            model.setRecommendationsCount(0);
-            modelManager.updateDataBrokenModelDesc(model);
+            NDataModel copy = modelManager.copyForWrite(model);
+            copy.setHandledAfterBroken(true);
+            copy.setRecommendationsCount(0);
+            modelManager.updateDataBrokenModelDesc(copy);
 
             OptRecManagerV2 optRecManagerV2 = OptRecManagerV2.getInstance(project);
             optRecManagerV2.discardAll(model.getId());

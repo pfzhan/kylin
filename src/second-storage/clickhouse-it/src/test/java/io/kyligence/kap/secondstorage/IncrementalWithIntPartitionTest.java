@@ -39,6 +39,8 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.job.JobContext;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -66,9 +68,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
@@ -80,6 +79,7 @@ import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
+import io.kyligence.kap.secondstorage.test.utils.MockedSecondStorageService;
 import lombok.val;
 
 public class IncrementalWithIntPartitionTest implements JobWaiter {
@@ -102,7 +102,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
             Collections.singletonList(modelId), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
-    private SecondStorageService secondStorageService = new SecondStorageService();
+    private SecondStorageService secondStorageService = new MockedSecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
     private IndexDataConstructor indexDataConstructor;
 

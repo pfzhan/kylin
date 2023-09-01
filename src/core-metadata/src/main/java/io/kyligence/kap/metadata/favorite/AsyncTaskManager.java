@@ -90,6 +90,12 @@ public class AsyncTaskManager {
             asyncTaskStore.update(asyncTask);
         }
     }
+    
+    public <T extends AbstractAsyncTask> T copyForWrite(T task) {
+        // No need to copy, just return the origin object
+        // This will be rewrite after metadata is refactored
+        return task;
+    }
 
     public AbstractAsyncTask get(String taskType) {
        return get(taskType, project);
@@ -126,8 +132,9 @@ public class AsyncTaskManager {
         AsyncTaskManager manager = getInstance(project);
         JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) manager.get(ASYNC_ACCELERATION_TASK);
-            asyncAcceleration.setAlreadyRunning(false);
-            asyncAcceleration.setUserRefreshedTagMap(Maps.newHashMap());
+            AsyncAccelerationTask copied = manager.copyForWrite(asyncAcceleration);
+            copied.setAlreadyRunning(false);
+            copied.setUserRefreshedTagMap(Maps.newHashMap());
             manager.save(asyncAcceleration);
             return null;
         });
@@ -146,7 +153,8 @@ public class AsyncTaskManager {
         AsyncTaskManager manager = getInstance(project);
         JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) manager.get(ASYNC_ACCELERATION_TASK);
-            asyncAcceleration.getUserRefreshedTagMap().put(userName, false);
+            AsyncAccelerationTask copied = manager.copyForWrite(asyncAcceleration);
+            copied.getUserRefreshedTagMap().put(userName, false);
             manager.save(asyncAcceleration);
             return null;
         });

@@ -59,7 +59,6 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
-import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import lombok.Data;
 import lombok.Getter;
@@ -207,9 +206,7 @@ public class QueryHistoryMetaUpdateScheduler {
                     QueryHistoryIdOffsetManager offsetManager = QueryHistoryIdOffsetManager.getInstance(project);
                     // update id offset
                     JdbcUtil.withTxAndRetry(offsetManager.getTransactionManager(), () -> {
-                        QueryHistoryIdOffset queryHistoryIdOffset = offsetManager.get(META);
-                        queryHistoryIdOffset.setOffset(maxId);
-                        offsetManager.saveOrUpdate(queryHistoryIdOffset);
+                        offsetManager.updateOffset(META, copyForWrite -> copyForWrite.setOffset(maxId));
                         return null;
                     });
                 });

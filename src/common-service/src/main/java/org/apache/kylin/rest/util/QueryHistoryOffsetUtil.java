@@ -24,6 +24,9 @@ import org.apache.kylin.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 
+import static io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType.ACCELERATE;
+import static io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset.OffsetType.META;
+
 public class QueryHistoryOffsetUtil {
 
     private static RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
@@ -37,13 +40,15 @@ public class QueryHistoryOffsetUtil {
         JdbcUtil.withTxAndRetry(qhIdOffsetManager.getTransactionManager(), () -> {
             long maxId = queryHistoryDAO.getQueryHistoryMaxId(project);
             QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
-            QueryHistoryIdOffset queryHistoryAccIdOffset = manager.get(QueryHistoryIdOffset.OffsetType.ACCELERATE);
-            QueryHistoryIdOffset queryHistoryStatIdOffset = manager.get(QueryHistoryIdOffset.OffsetType.META);
+            QueryHistoryIdOffset queryHistoryAccIdOffset = manager.get(ACCELERATE);
+            QueryHistoryIdOffset queryHistoryStatIdOffset = manager.get(META);
             if (queryHistoryAccIdOffset.getOffset() > maxId || queryHistoryStatIdOffset.getOffset() > maxId) {
-                queryHistoryAccIdOffset.setOffset(maxId);
-                queryHistoryStatIdOffset.setOffset(maxId);
-                manager.saveOrUpdate(queryHistoryAccIdOffset);
-                manager.saveOrUpdate(queryHistoryStatIdOffset);
+                manager.updateOffset(ACCELERATE, copyForWrite -> {
+                    copyForWrite.setOffset(maxId);
+                });
+                manager.updateOffset(META, copyForWrite -> {
+                    copyForWrite.setOffset(maxId);
+                });
             }
             return null;
         });

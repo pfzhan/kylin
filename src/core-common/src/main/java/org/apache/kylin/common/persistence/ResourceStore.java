@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.lock.MemoryLockUtils;
 import org.apache.kylin.common.persistence.metadata.AuditLogStore;
 import org.apache.kylin.common.persistence.metadata.EpochStore;
 import org.apache.kylin.common.persistence.metadata.MetadataStore;
@@ -54,7 +55,6 @@ import org.apache.kylin.guava30.shaded.common.cache.Cache;
 import org.apache.kylin.guava30.shaded.common.cache.CacheBuilder;
 import org.apache.kylin.guava30.shaded.common.cache.CacheLoader;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
-
 import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.Setter;
@@ -223,6 +223,11 @@ public abstract class ResourceStore implements AutoCloseable {
      * Read a resource, return null in case of not found or is a folder.
      */
     public final <T extends RootPersistentEntity> T getResource(String resPath, Serializer<T> serializer) {
+        return MemoryLockUtils.doWithLock(null, resPath, true, this,
+                () -> getResourceWithoutLock(resPath, serializer));
+    }
+
+    public final <T extends RootPersistentEntity> T getResourceWithoutLock(String resPath, Serializer<T> serializer) {
         resPath = norm(resPath);
         RawResource res = getResourceImpl(resPath);
         if (res == null)
@@ -244,7 +249,7 @@ public abstract class ResourceStore implements AutoCloseable {
     }
 
     public final RawResource getResource(String resPath) {
-        return getResourceImpl(norm(resPath));
+        return MemoryLockUtils.doWithLock(resPath, true, this, () -> getResourceImpl(norm(resPath)));
     }
 
     public final List<RawResource> getAllResources(String folderPath) {
@@ -469,8 +474,9 @@ public abstract class ResourceStore implements AutoCloseable {
             try {
                 File f = Paths.get(metaDir.getAbsolutePath(), res.getResPath()).toFile();
                 f.getParentFile().mkdirs();
-                try (FileOutputStream out = new FileOutputStream(f)) {
-                    IOUtils.copy(res.getByteSource().openStream(), out);
+                try (FileOutputStream out = new FileOutputStream(f);
+                        InputStream in = res.getByteSource().openStream()) {
+                    IOUtils.copy(in, out);
                     if (!f.setLastModified(res.getTimestamp())) {
                         logger.info("{} modified time change failed", f);
                     }
@@ -552,6 +558,7 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public void createMetaStoreUuidIfNotExist() {
         if (!exists(METASTORE_UUID_TAG)) {
+            MemoryLockUtils.doWithLock(null, METASTORE_UUID_TAG, false, this, () -> null);
             checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(RandomUtil.randomUUIDStr()),
                     StringEntity.serializer);
         }

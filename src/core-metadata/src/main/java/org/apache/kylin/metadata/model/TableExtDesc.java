@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.constant.ObsConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -173,7 +174,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     }
 
     public void setCardinality(String cardinality) {
-        if (null == cardinality)
+        if (StringUtils.isEmpty(cardinality))
             return;
 
         String[] cardi = cardinality.split(",");
@@ -191,6 +192,16 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         } else {
             throw new IllegalArgumentException("The given cardinality columns don't match tables " + identity);
         }
+    }
+
+    @Override
+    public <T extends RootPersistentEntity> void copyPropertiesTo(T copy) {
+        TableExtDesc extDesc = (TableExtDesc) copy;
+        extDesc.setColumnStats(this.getAllColumnStats()); // copyProperties cannot copy ColumnStats
+        for (Map.Entry<String, String> entry : this.getDataSourceProps().entrySet()) {
+            extDesc.addDataSourceProp(entry.getKey(), entry.getValue());
+        }
+        super.copyPropertiesTo(extDesc);
     }
 
     public enum RowCountStatus {

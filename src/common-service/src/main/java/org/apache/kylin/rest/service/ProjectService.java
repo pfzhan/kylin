@@ -980,8 +980,7 @@ public class ProjectService extends BasicService {
             if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
                 return;
             }
-            projectInstance.setDefaultDatabase(uppderDB);
-            prjManager.updateProject(projectInstance);
+            prjManager.updateProject(project, copyForWrite -> copyForWrite.setDefaultDatabase(uppderDB));
         } else {
             throw new KylinException(DATABASE_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getDatabaseNotExist(), defaultDatabase));

@@ -76,6 +76,23 @@ public class QueryHistoryIdOffsetManager {
         }
     }
 
+    public QueryHistoryIdOffset copyForWrite(QueryHistoryIdOffset idOffset) {
+        // No need to copy, just return the origin object
+        // This will be rewrite after metadata is refactored
+        return idOffset;
+    }
+    
+    public void updateOffset(QueryHistoryIdOffset.OffsetType type, QueryHistoryIdOffsetUpdater updater) {
+        QueryHistoryIdOffset cached = get(type);
+        QueryHistoryIdOffset copy = copyForWrite(cached);
+        updater.modify(copy);
+        saveOrUpdate(copy);
+    }
+    
+    public interface QueryHistoryIdOffsetUpdater {
+        void modify(QueryHistoryIdOffset offset);
+    }
+
     public QueryHistoryIdOffset get(QueryHistoryIdOffset.OffsetType type) {
         QueryHistoryIdOffset offset = jdbcIdOffsetStore.queryByProject(this.project, type.getName());
         if (offset == null) {

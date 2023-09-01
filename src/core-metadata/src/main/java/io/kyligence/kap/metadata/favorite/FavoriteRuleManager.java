@@ -30,14 +30,16 @@ import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.annotation.Clarification;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.metadata.favorite.FavoriteRuleStore;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 import lombok.val;
 
 @Clarification(priority = Clarification.Priority.MAJOR, msg = "Enterprise")
@@ -83,6 +85,12 @@ public class FavoriteRuleManager {
         return FavoriteRule.getDefaultRuleIfNull(getByName(ruleName), ruleName);
     }
 
+    private FavoriteRule copyForWrite(FavoriteRule rule) {
+        // No need to copy, just return the origin object
+        // This will be rewrite after metadata is refactored
+        return rule;
+    }
+
     public void resetRule() {
         FavoriteRule.getAllDefaultRule().forEach(this::updateRule);
     }
@@ -93,14 +101,14 @@ public class FavoriteRuleManager {
 
     public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
         JdbcUtil.withTxAndRetry(getTransactionManager(), () -> {
-            FavoriteRule rule = getOrDefaultByName(ruleName);
-            rule.setEnabled(isEnabled);
+            FavoriteRule copy = copyForWrite(getOrDefaultByName(ruleName));
+            copy.setEnabled(isEnabled);
             List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
             if (!conditions.isEmpty()) {
                 newConditions.addAll(conditions);
             }
-            rule.setConds(newConditions);
-            saveOrUpdate(rule);
+            copy.setConds(newConditions);
+            saveOrUpdate(copy);
             return null;
         });
     }
@@ -123,9 +131,10 @@ public class FavoriteRuleManager {
 
     @VisibleForTesting
     public void createRule(final FavoriteRule rule) {
-        if (getByName(rule.getName()) != null)
+        FavoriteRule copy = copyForWrite(rule);
+        if (getByName(copy.getName()) != null)
             return;
-        saveOrUpdate(rule);
+        saveOrUpdate(copy);
     }
 
     @VisibleForTesting

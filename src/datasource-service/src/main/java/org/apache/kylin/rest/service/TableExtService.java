@@ -386,7 +386,7 @@ public class TableExtService extends BasicService {
                 }
             });
             return tableResponse;
-        }, project, 1);
+        }, project, 2);
     }
 
     private List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project,
