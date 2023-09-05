@@ -17,6 +17,9 @@
  */
 package org.apache.kylin.rest.request;
 
+import java.util.Set;
+
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.cube.model.NDataSegDetails;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 
@@ -32,4 +35,6 @@ public class DataFlowUpdateRequest {
     private NDataflowUpdate dataflowUpdate;
     private NDataSegDetails[] dataSegDetails;
     private Integer[] layoutCounts;
+    private Pair<Set<String>, Set<Long>> toRemoveSegmentPartitions;
+    private Pair<Set<String>, Set<Long>> resetToReadyPartitions;
 }

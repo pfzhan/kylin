@@ -20,21 +20,28 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 
+import java.util.Locale;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
 import org.apache.kylin.metadata.cube.model.NDataSegDetails;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
+import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 
+@Slf4j
 public class ModelMetadataBaseService {
 
     public String getModelNameById(String modelId, String project) {
@@ -81,7 +88,41 @@ public class ModelMetadataBaseService {
         }
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
+            NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            dfManager.updateDataflow(update);
+
+            // for canceling SUB_PARTITION_BUILD job
+            if (null != dataFlowUpdateRequest.getToRemoveSegmentPartitions()) {
+                Set<String> segments = dataFlowUpdateRequest.getToRemoveSegmentPartitions().getFirst();
+                Set<Long> partitions = dataFlowUpdateRequest.getToRemoveSegmentPartitions().getSecond();
+                // remove partition in layouts
+                dfManager.removeLayoutPartition(update.getDataflowId(), partitions, segments);
+                // remove partition in segments
+                dfManager.removeSegmentPartition(update.getDataflowId(), partitions, segments);
+                log.info(String.format(Locale.ROOT, "Remove partitions [%s] in segment [%s] cause to cancel job.",
+                        partitions, segments));
+            }
+            // for canceling SUB_PARTITION_REFRESH job
+            if (null != dataFlowUpdateRequest.getResetToReadyPartitions()) {
+                Set<String> segments = dataFlowUpdateRequest.getToRemoveSegmentPartitions().getFirst();
+                Set<Long> partitions = dataFlowUpdateRequest.getToRemoveSegmentPartitions().getSecond();
+                NDataflow df = dfManager.getDataflow(update.getDataflowId()).copy();
+                for (String id : segments) {
+                    NDataSegment segment = df.getSegment(id);
+                    segment.getMultiPartitions().forEach(partition -> {
+                        if (partitions.contains(partition.getPartitionId())
+                                && PartitionStatusEnum.REFRESH == partition.getStatus()) {
+                            partition.setStatus(PartitionStatusEnum.READY);
+                        }
+                    });
+                    val dfUpdate = new NDataflowUpdate(df.getId());
+                    dfUpdate.setToUpdateSegs(segment);
+                    dfManager.updateDataflow(dfUpdate);
+                    log.info(String.format(Locale.ROOT,
+                            "Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
+                }
+            }
+
             return null;
         }, project);
     }

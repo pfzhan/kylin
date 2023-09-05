@@ -49,7 +49,7 @@ import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -220,7 +220,9 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
         }
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(toRemovedSegments.toArray(new NDataSegment[0]));
-        ModelMetadataBaseInvoker.getInstance()
-                .updateDataflow(new DataFlowUpdateRequest(project, nDataflowUpdate, null, null));
+        DataFlowUpdateRequest dataFlowUpdateRequest = new DataFlowUpdateRequest();
+        dataFlowUpdateRequest.setProject(project);
+        dataFlowUpdateRequest.setDataflowUpdate(nDataflowUpdate);
+        MetadataInvoker.getInstance().updateDataflow(dataFlowUpdateRequest);
     }
 }
