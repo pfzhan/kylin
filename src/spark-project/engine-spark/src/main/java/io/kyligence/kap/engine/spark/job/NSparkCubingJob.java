@@ -336,11 +336,12 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
         DataFlowUpdateRequest dataFlowUpdateRequest = new DataFlowUpdateRequest();
         dataFlowUpdateRequest.setProject(project);
         dataFlowUpdateRequest.setDataflowUpdate(nDataflowUpdate);
-        updatePartitionOnCancelJob(dataFlowUpdateRequest);
+        // init update request for sub partition job
+        initSubPartitionJobUpdateRequest(dataFlowUpdateRequest);
         MetadataInvoker.getInstance().updateDataflow(dataFlowUpdateRequest);
     }
 
-    public void updatePartitionOnCancelJob(DataFlowUpdateRequest dataFlowUpdateRequest) {
+    public void initSubPartitionJobUpdateRequest(DataFlowUpdateRequest dataFlowUpdateRequest) {
         if (!isBucketJob()) {
             return;
         }
