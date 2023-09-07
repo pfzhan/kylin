@@ -1947,33 +1947,37 @@ public class ModelService extends AbstractModelService implements TableModelSupp
 
             List<NDataLayout[]> mergedLayouts = new ArrayList<>();
             mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
-            
-            AbstractExecutable executable = ExecutableManager.getInstance(getConfig(), project)
-                    .getJob(mergerInfo.getJobId());
-            if (!(executable instanceof NSparkCubingJob)) {
-                return mergedLayouts;
-            }
-            NSparkCubingJob job = (NSparkCubingJob) executable;
-            if (job.getSparkCubingStep().getStatus() != ExecutableState.SUCCEED) {
-                return mergedLayouts;
-            }
 
             if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
-                String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
-                if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
-                    logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
-                            mergerInfo.getJobId());
-                    Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
-                    for (String id : toBeDeletedLayoutIdsStr.split(",")) {
-                        toBeDeletedLayoutIds.add(Long.parseLong(id));
-                    }
-                    updateIndex(project, -1, mergerInfo.getModelId(), toBeDeletedLayoutIds, true, true);
-                }
+                tryRemoveToBeDeletedLayouts(project, mergerInfo);
             }
             markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(),
                     mergerInfo.getErrorOrPausedJobCount());
             return mergedLayouts;
         }, project);
+    }
+
+    private void tryRemoveToBeDeletedLayouts(String project, MergerInfo mergerInfo) {
+        AbstractExecutable executable = ExecutableManager.getInstance(getConfig(), project)
+                .getJob(mergerInfo.getJobId());
+        if (!(executable instanceof NSparkCubingJob)) {
+            return;
+        }
+        NSparkCubingJob job = (NSparkCubingJob) executable;
+        if (job.getSparkCubingStep().getStatus() != ExecutableState.SUCCEED) {
+            return;
+        }
+
+        String toBeDeletedLayoutIdsStr = mergerInfo.getToBeDeleteLayoutIdsStr();
+        if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
+            logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
+                    mergerInfo.getJobId());
+            Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
+            for (String id : toBeDeletedLayoutIdsStr.split(",")) {
+                toBeDeletedLayoutIds.add(Long.parseLong(id));
+            }
+            updateIndex(project, -1, mergerInfo.getModelId(), toBeDeletedLayoutIds, true, true);
+        }
     }
 
     @Transaction(project = 0)
