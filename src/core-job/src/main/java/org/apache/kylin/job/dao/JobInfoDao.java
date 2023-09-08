@@ -44,6 +44,8 @@ import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,13 +182,18 @@ public class JobInfoDao {
         } else if (JobTypeEnum.SECOND_STORAGE_NODE_CLEAN == executablePO.getJobType()) {
             subject = jobInfo.getProject();
         } else if (null != executablePO.getTargetModel() && null != executablePO.getProject()) {
-            try {
-                // ignore if model is delete
-                subject = modelMetadataInvoker.getModelNameById(executablePO.getTargetModel(),
+            if (executablePO.getParams().containsKey(NBatchConstants.P_MODEL_NAME)) {
+                subject = executablePO.getParams().get(NBatchConstants.P_MODEL_NAME);
+            } else {
+                NDataModelManager nDataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                         executablePO.getProject());
-            } catch (Exception e) {
-                logger.warn("can not get modelName for modelId {}, project {}", executablePO.getTargetModel(),
-                        executablePO.getProject());
+                NDataModel nDataModel = nDataModelManager.getDataModelDesc(executablePO.getTargetModel());
+                if (null == nDataModel) {
+                    logger.warn("Can not get modelName by modelId {}, project {}", executablePO.getTargetModel(),
+                            executablePO.getProject());
+                } else {
+                    subject = nDataModel.getAlias();
+                }
             }
         }
 

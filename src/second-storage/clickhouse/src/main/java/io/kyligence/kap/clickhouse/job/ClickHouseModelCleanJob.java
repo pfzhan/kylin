@@ -33,6 +33,8 @@ import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.NDataModelManager;
 
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -82,6 +84,9 @@ public class ClickHouseModelCleanJob extends DefaultExecutable {
         setParam(NBatchConstants.P_PROJECT_NAME, builder.project);
         setParam(NBatchConstants.P_TARGET_MODEL, getTargetSubject());
         setParam(NBatchConstants.P_DATAFLOW_ID, builder.df.getId());
+        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project)
+                .getDataModelDesc(builder.getModelId());
+        setParam(NBatchConstants.P_MODEL_NAME, dataModelDesc.getAlias());
 
         AbstractClickHouseClean step = new ClickHouseTableClean();
         step.setProject(getProject());

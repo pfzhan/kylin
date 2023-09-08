@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_status varchar(50) NOT NULL,
   project varchar(50) NOT NULL,
   subject varchar(50) NOT NULL,
-  model_id varchar(100) NOT NULL,
+  model_id varchar(100),
   priority integer DEFAULT 3,
   job_content longblob NOT NULL,
   mvcc bigint(10),
