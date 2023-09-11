@@ -303,7 +303,7 @@ public abstract class SparkApplication implements Application {
 
             monitorSparkMaster();
 
-            HadoopUtil.setCurrentConfiguration(HadoopUtil.getHadoopConfFromSparkEngine());
+            HadoopUtil.setCurrentConfiguration(HadoopUtil.getCurrentConfiguration());
             ////////
             exchangeSparkConf(buildEnv.sparkConf());
 
