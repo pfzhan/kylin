@@ -53,7 +53,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.logging.LogOutputStream;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.JobContext;
@@ -317,9 +316,6 @@ public class JobContextUtil {
 
     @SneakyThrows
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer, int retryLimit) {
-        if (UnitOfWork.isAlreadyInTransaction()) {
-            return consumer.handle();
-        }
         return JdbcUtil.withTxAndRetry(transactionManager, consumer, retryLimit);
     }
 }

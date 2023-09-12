@@ -55,6 +55,8 @@ import org.apache.kylin.common.SegmentOnlineMode;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.JobContext;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
@@ -76,9 +78,6 @@ import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
 
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
@@ -596,14 +595,11 @@ public class ClickHouseLoad extends AbstractExecutable {
         Map<String, String> info = new HashMap<>();
         // if save empty，will clean the
         info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, saveEmpty ? LoadContext.emptyState() : loadContext.serializeToString());
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val manager = this.getManager();
-            JobContextUtil.withTxAndRetry(() -> {
-                manager.updateJobOutput(getParentId(), null, info, null, null);
-                return true;
-            });
-            return null;
-        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        val manager = this.getManager();
+        JobContextUtil.withTxAndRetry(() -> {
+            manager.updateJobOutput(getParentId(), null, info, null, null);
+            return true;
+        });
     }
 
 
