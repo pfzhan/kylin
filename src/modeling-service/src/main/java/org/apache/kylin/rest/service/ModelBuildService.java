@@ -533,7 +533,7 @@ public class ModelBuildService extends AbstractModelService implements ModelBuil
         if (segments.isEmpty()) {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
-        JobParam jobParam = new JobParam(modelId, getUsername())
+        JobParam jobParam = new JobParam(modelId, userName)
                 .withPriority(priority).withYarnQueue(yarnQueue).withTag(tag);
         jobParam.setProject(project);
         String jobId = getManager(SourceUsageManager.class).licenseCheckWrap(project,
