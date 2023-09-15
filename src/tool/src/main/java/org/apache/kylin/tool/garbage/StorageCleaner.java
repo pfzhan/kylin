@@ -65,7 +65,6 @@ import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.guava30.shaded.common.util.concurrent.RateLimiter;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.util.JobContextUtil;
@@ -881,15 +880,10 @@ public class StorageCleaner implements GarbageCleaner {
                     eventLogCleanStartTime, KYLIN_CONFIG.getQueryHistorySurvivalThreshold(), minQueryHistoryTime,
                     queryExpirationTime);
 
-            long earliest = Long.MAX_VALUE;
-            NProjectManager projectManager = NProjectManager.getInstance(KYLIN_CONFIG);
-            for (ProjectInstance prj : projectManager.listAllProjects()) {
-                ExecutableManager executableManager = ExecutableManager.getInstance(KYLIN_CONFIG, prj.getName());
-                for (AbstractExecutable executable : executableManager.getAllExecutables()) {
-                    if (executable.getCreateTime() < earliest) {
-                        earliest = executable.getCreateTime();
-                    }
-                }
+            JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(KYLIN_CONFIG);
+            Long earliest = jobInfoDao.getEarliestJobCreateTime();
+            if (null == earliest) {
+                earliest = Long.MAX_VALUE;
             }
 
             buildExpirationTime = Math.min(eventLogCleanStartTime - KYLIN_CONFIG.getExecutableSurvivalTimeThreshold(),
