@@ -20,6 +20,7 @@ package org.apache.kylin.job.service;
 
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_RESTART_CHECK_SEGMENT_STATUS;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
@@ -81,6 +82,7 @@ import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobSchedulerModeEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.Output;
@@ -97,6 +99,8 @@ import org.apache.kylin.metadata.model.FusionModel;
 import org.apache.kylin.metadata.model.FusionModelManager;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
+import org.apache.kylin.metadata.model.SegmentSecondStorageStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -106,6 +110,7 @@ import org.apache.kylin.rest.request.JobUpdateRequest;
 import org.apache.kylin.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.ExecutableStepResponse;
+import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobSupporter;
 import org.apache.kylin.rest.service.ModelService;
@@ -268,10 +273,25 @@ public class JobInfoService extends BasicService implements JobSupporter {
                 .map(executablePO -> {
                     AbstractExecutable executable = getManager(ExecutableManager.class, executablePO.getProject())
                             .fromPO(executablePO);
-                    return this.convert(executable, executablePO);
+                    val convert = this.convert(executable, executablePO);
+                    val segments = getSegments(executable);
+                    convert.setSegments(segments);
+                    return convert;
                 }).collect(Collectors.toList());
         sortByDurationIfNeed(result, jobFilter.getSortBy(), jobMapperFilter.getOrderType());
         return result;
+    }
+
+    public List<ExecutableResponse.SegmentResponse> getSegments(AbstractExecutable executable) {
+        if (SecondStorageUtil.isModelEnable(executable.getProject(), executable.getTargetModelId())) {
+            return modelService
+                    .getSegmentsResponseByJob(executable.getTargetModelId(), executable.getProject(), executable)
+                    .stream()
+                    .map(dataSegmentResponse -> new ExecutableResponse.SegmentResponse(dataSegmentResponse.getId(),
+                            dataSegmentResponse.getStatusToDisplay()))
+                    .collect(Collectors.toList());
+        }
+        return Lists.newArrayList();
     }
 
     public void sortByDurationIfNeed(List<ExecutableResponse> list, final String orderByField, final String orderType) {
@@ -349,9 +369,14 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
                 setExceptionResolveAndCodeAndReason(output, executableStepResponse);
             }
+            if (executable.getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)
+                    && task.getStatus() == ExecutableState.ERROR
+                    && !org.apache.commons.lang3.StringUtils.startsWith(output.getFailedStepId(), task.getId())) {
+                executableStepResponse.setStatus(JobStatusEnum.STOPPED);
+            }
             if (task instanceof ChainedStageExecutable) {
-                Map<String, List<StageBase>> stagesMap = Optional.ofNullable(((NSparkExecutable) task).getStagesMap())
-                        .orElse(Maps.newHashMap());
+                Map<String, List<StageBase>> stagesMap = Optional
+                        .ofNullable(((ChainedStageExecutable) task).getStagesMap()).orElse(Maps.newHashMap());
 
                 Map<String, ExecutableStepResponse.SubStages> stringSubStageMap = Maps.newHashMap();
                 List<ExecutableStepResponse> subStages = Lists.newArrayList();
@@ -364,7 +389,12 @@ public class JobInfoService extends BasicService implements JobSupporter {
                     List<ExecutableStepResponse> stageResponses = Lists.newArrayList();
                     for (StageBase stage : stageBases) {
                         val stageResponse = parseStageToExecutableStep(task, stage,
-                                executableManager.getOutput(stage.getId(), executablePO, segmentId));
+                                executableManager.getOutput(stage.getId(), segmentId));
+                        if (executable.getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)
+                                && stage.getStatus(segmentId) == ExecutableState.ERROR
+                                && !org.apache.commons.lang3.StringUtils.startsWith(output.getFailedStepId(), stage.getId())) {
+                            stageResponse.setStatus(JobStatusEnum.STOPPED);
+                        }
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
 
@@ -476,6 +506,51 @@ public class JobInfoService extends BasicService implements JobSupporter {
         return getJobInstance(job.getId());
     }
 
+    private void jobActionValidate(String jobId, String project, String action) {
+        JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
+
+        AbstractExecutable job = getManager(ExecutableManager.class, project).getJob(jobId);
+        if (SecondStorageUtil.isModelEnable(project, job.getTargetModelId())
+                && job.getJobSchedulerMode().equals(JobSchedulerModeEnum.DAG)) {
+            checkSegmentState(project, action, job);
+        }
+    }
+
+    @VisibleForTesting
+    public void jobActionValidateToTest(String jobId, String project, String action) {
+        jobActionValidate(jobId, project, action);
+    }
+
+    public void checkSegmentState(String project, String action, AbstractExecutable job) {
+        if (!JobActionEnum.RESTART.equals(JobActionEnum.valueOf(action))) {
+            return;
+        }
+
+        val buildJobTypes = Sets.newHashSet(JobTypeEnum.INC_BUILD, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH,
+                JobTypeEnum.SUB_PARTITION_BUILD, JobTypeEnum.SUB_PARTITION_REFRESH, JobTypeEnum.INDEX_MERGE);
+        val segmentHalfOnlineStatuses = Sets.newHashSet(SegmentStatusEnumToDisplay.ONLINE_HDFS,
+                SegmentStatusEnumToDisplay.ONLINE_OBJECT_STORAGE, SegmentStatusEnumToDisplay.ONLINE_TIERED_STORAGE);
+        val segmentMayHalfOnlineStatuses = Sets.newHashSet(SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.WARNING);
+        if (buildJobTypes.contains(job.getJobType()) && CollectionUtils.isNotEmpty(job.getSegmentIds())) {
+            List<NDataSegmentResponse> segmentsResponseByJob = modelService.getSegmentsResponse(job.getTargetModelId(),
+                    project, "0", "" + (Long.MAX_VALUE - 1), "", null, null, false, "sortBy", false, null, null);
+
+            val onlineSegmentCount = segmentsResponseByJob.stream()
+                    .filter(segmentResponse -> job.getSegmentIds().contains(segmentResponse.getId()))
+                    .filter(segmentResponse -> {
+                        val statusSecondStorageToDisplay = segmentResponse.getStatusSecondStorageToDisplay();
+                        val statusToDisplay = segmentResponse.getStatusToDisplay();
+                        return segmentHalfOnlineStatuses.contains(statusToDisplay)
+                                || (segmentMayHalfOnlineStatuses.contains(statusToDisplay)
+                                && SegmentSecondStorageStatusEnum.LOADED == statusSecondStorageToDisplay);
+                    }).count();
+            if (onlineSegmentCount != 0) {
+                throw new KylinException(JOB_RESTART_CHECK_SEGMENT_STATUS);
+            }
+        }
+    }
+
     @VisibleForTesting
     public void updateJobStatus(String jobId, ExecutablePO executablePO, String project, String action)
             throws IOException {
@@ -483,7 +558,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         AbstractExecutable executable = executableManager.fromPO(executablePO);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
-        JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
+        jobActionValidate(jobId, project, action);
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
             SecondStorageUtil.checkJobResume(executableManager.fromPO(executablePO));
@@ -691,6 +766,8 @@ public class JobInfoService extends BasicService implements JobSupporter {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }
         result.setShortErrMsg(stepOutput.getShortErrMsg());
+        result.setPreviousStep(task.getPreviousStep());
+        result.setNextSteps(task.getNextSteps());
         return result;
     }
 
@@ -770,7 +847,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
         result.setExecEndTime(AbstractExecutable.getEndTime(stageOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stageOutput));
 
-        result.setDuration(AbstractExecutable.getDuration(stageOutput));
+        result.setDuration(AbstractExecutable.getStageDuration(stageOutput, task.getParent()));
 
         String indexCount = Optional.ofNullable(task.getParam(NBatchConstants.P_INDEX_COUNT)).orElse("0");
         result.setIndexCount(Long.parseLong(indexCount));
@@ -901,7 +978,7 @@ public class JobInfoService extends BasicService implements JobSupporter {
          *   step = numberOfCompletedIndexes / totalNumberOfIndexesToBeConstructed,
          * the progress of other steps will not be refined
          */
-        val stepCount = stageResponses.size() == 0 ? 1 : stageResponses.size();
+        val stepCount = stageResponses.isEmpty() ? 1 : stageResponses.size();
         val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId, stageBases, true,
                 executablePO) / stepCount;
         segmentSubStages.setStepRatio(stepRatio);

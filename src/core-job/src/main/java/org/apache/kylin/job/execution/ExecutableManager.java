@@ -78,6 +78,11 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -92,12 +97,6 @@ import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -641,6 +640,15 @@ public class ExecutableManager {
 
         jobInfoDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput = job.getOutput();
+            val subTasks = job.getTasks();
+            if (null != subTasks) {
+                val errorTaskAndNotFailedStepIdTaskCount = subTasks.stream()
+                        .filter(task -> ExecutableState.valueOf(task.getOutput().getStatus()).equals(ExecutableState.ERROR))
+                        .filter(task -> !StringUtils.startsWith(failedStepId, task.getId())).count();
+                if (errorTaskAndNotFailedStepIdTaskCount != 0) {
+                    return false;
+                }
+            }
             if (jobOutput.getFailedReason() == null || failedReason == null) {
                 jobOutput.setFailedStepId(failedStepId);
                 jobOutput.setFailedSegmentId(failedSegmentId);
