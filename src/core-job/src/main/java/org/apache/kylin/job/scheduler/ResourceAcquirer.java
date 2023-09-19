@@ -54,6 +54,10 @@ public class ResourceAcquirer {
     }
 
     public boolean tryAcquire(AbstractJobExecutable jobExecutable) {
+        if (kylinConfig.getDeployMode().equals("cluster")) {
+            logger.debug("Submit job with 'cluster' mode, skip acquire driver resource.");
+            return true;
+        }
         NodeResource resource = new NodeResource(jobExecutable);
         boolean acquired = memorySemaphore.tryAcquire(resource.getMemory());
         if (acquired) {
@@ -66,6 +70,9 @@ public class ResourceAcquirer {
     }
 
     public void release(AbstractJobExecutable jobExecutable) {
+        if (kylinConfig.getDeployMode().equals("cluster")) {
+            return;
+        }
         String jobId = jobExecutable.getJobId();
         NodeResource resource = registers.get(jobId);
         if (Objects.isNull(resource)) {
