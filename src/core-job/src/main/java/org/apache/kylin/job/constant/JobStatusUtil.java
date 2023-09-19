@@ -60,6 +60,9 @@ public class JobStatusUtil {
             case STOPPED:
                 scheduleStateList.add(ExecutableState.PAUSED);
                 break;
+            case SUICIDAL:
+                scheduleStateList.add(ExecutableState.SUICIDAL);
+                break;
             case DISCARDED:
                 scheduleStateList.add(ExecutableState.SUICIDAL);
                 scheduleStateList.add(ExecutableState.DISCARDED);
