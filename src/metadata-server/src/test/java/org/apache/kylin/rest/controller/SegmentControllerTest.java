@@ -59,10 +59,15 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -76,6 +81,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({SecondStorageUtil.class})
+@PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "org.apache.hadoop.*", "javax.security.*", "javax.crypto.*", "javax.script.*"})
 public class SegmentControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
@@ -284,8 +292,8 @@ public class SegmentControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setStart("100");
         request.setEnd("200");
-        Mockito.mockStatic(SecondStorageUtil.class);
-        Mockito.when(SecondStorageUtil.isModelEnable(project, modelId)).thenReturn(true);
+        PowerMockito.mockStatic(SecondStorageUtil.class);
+        PowerMockito.when(SecondStorageUtil.isModelEnable(project, modelId)).thenReturn(true);
         request.setPartitionDesc(makePartition("TEST_KYLIN_FACT.ORDER_ID"));
         IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, request.getStart(),
                 request.getEnd(), request.getPartitionDesc(), null, request.getSegmentHoles(), true, null);
