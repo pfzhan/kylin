@@ -150,7 +150,9 @@ import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.AppConfig;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
+import org.apache.kylin.rest.request.QueryDetectRequest;
 import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.response.QueryDetectResponse;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.response.SQLResponseTrace;
 import org.apache.kylin.rest.response.TableMetaCacheResult;
@@ -756,6 +758,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
     }
 
     private void addToQueryHistory(SQLRequest sqlRequest, SQLResponse sqlResponse, String originalSql) {
+        if (QueryContext.current().getQueryTagInfo().isQueryDetect()) {
+            return;
+        }
+
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
                 && NProjectManager.getProjectConfig(sqlRequest.getProject()).isUniqueAsyncQueryYarnQueue())) {
             try {
@@ -938,8 +944,10 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
     }
 
     private boolean isQueryCacheEnabled(KylinConfig kylinConfig) {
+        boolean isNotQueryDetect = !QueryContext.current().getQueryTagInfo().isQueryDetect();
         return checkCondition(kylinConfig.isQueryCacheEnabled(), "query cache disabled in KylinConfig") //
-                && checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
+                && checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles")
+                && checkCondition(isNotQueryDetect, "query cache disabled because it is query detect");
     }
 
     private boolean isQueryExceptionCacheEnabled(KylinConfig kylinConfig) {
@@ -1168,6 +1176,28 @@ public class QueryService extends BasicService implements CacheSignatureQuerySup
                 return pair;
             }
         }).sorted(Comparator.comparingInt(Pair::getFirst)).map(Pair::getSecond).collect(Collectors.toList());
+    }
+
+    public QueryDetectResponse queryDetect(QueryDetectRequest queryDetectRequest) {
+        try (QueryContext queryContext = QueryContext.current()) {
+            // call query method to collect realizations, etc
+            queryContext.getQueryTagInfo().setQueryDetect(true);
+            String project = queryDetectRequest.getProject();
+            SQLRequest sqlRequest = new SQLRequest();
+            sqlRequest.setSql(queryDetectRequest.getSql());
+            sqlRequest.setProject(project);
+            sqlRequest.setLimit(queryDetectRequest.getLimit());
+            sqlRequest.setOffset(queryDetectRequest.getOffset());
+            SQLResponse sqlResponse = queryWithCache(sqlRequest);
+
+            // build exception response
+            if (sqlResponse.isException()) {
+                return new QueryDetectResponse().buildExceptionResponse(sqlResponse);
+            }
+
+            // build normal response
+            return new QueryDetectResponse().buildResponse(project, sqlResponse, queryContext);
+        }
     }
 
     @SuppressWarnings("checkstyle:methodlength")
