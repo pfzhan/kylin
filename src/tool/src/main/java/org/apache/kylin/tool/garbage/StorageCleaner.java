@@ -203,13 +203,10 @@ public class StorageCleaner implements GarbageCleaner {
             }
             log.debug("folder {} is collected，detailed -> {}", allFileSystem.getPath(), allFileSystems);
         }
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            collectDeletedProject();
-            for (ProjectInstance project : projects) {
-                collect(project.getName());
-            }
-            return null;
-        }, UnitOfWork.GLOBAL_UNIT);
+        collectDeletedProject();
+        for (ProjectInstance project : projects) {
+            collect(project.getName());
+        }
 
         long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
                 : config.getCuboidLayoutSurvivalTimeThreshold();
@@ -833,15 +830,16 @@ public class StorageCleaner implements GarbageCleaner {
             String result = "";
             try {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
-                Set<String> jobTempTables = jobTemps.stream()
-                        .map(node -> tableCleanerHelper.getJobTransactionalTable(project, node.getName()))
+                FileSystem fs = HadoopUtil.getWorkingFileSystem();
+                Set<String> jobTempTables = jobTemps.stream().filter(node -> !node.getName().endsWith(".zip"))
+                        .map(node -> tableCleanerHelper.getJobTransactionalTable(project, node.getName(), fs))
                         .flatMap(Collection::stream).collect(Collectors.toSet());
                 List<ExecutablePO> discardedExecutablePOs = ExecutableManager.getInstance(config, project)
                         .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.DISCARDED));
                 ExecutableManager executableManager = ExecutableManager.getInstance(config, project);
                 Set<String> discardTempTables = discardedExecutablePOs.stream()
                         .map(executablePO -> executableManager.fromPO(executablePO))
-                        .map(e -> tableCleanerHelper.getJobTransactionalTable(project, e.getId()))
+                        .map(e -> tableCleanerHelper.getJobTransactionalTable(project, e.getId(), fs))
                         .flatMap(Collection::stream).collect(Collectors.toSet());
                 jobTempTables.addAll(discardTempTables);
 
