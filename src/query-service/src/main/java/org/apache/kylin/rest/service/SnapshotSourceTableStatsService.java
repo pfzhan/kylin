@@ -92,7 +92,7 @@ public class SnapshotSourceTableStatsService extends BasicService {
                         val split = StringUtils.split(sourceTable, ".");
                         String source = split.length < 2 ? "default." + sourceTable
                                 : sourceTable;
-                        sourceTables.add(source.toLowerCase(Locale.ROOT));
+                        sourceTables.add(source);
                     }
                     viewMapping.put(tableDesc.getIdentity(), sourceTables);
                 }
@@ -117,7 +117,7 @@ public class SnapshotSourceTableStatsService extends BasicService {
             viewSourceTables = SparkSqlUtil
                     .getViewOrignalTables(tableMetadata.qualifiedName(), SparderEnv.getSparkSession()) //
                     .stream().filter(StringUtils::isNotBlank)
-                    .map(tableIdentity -> tableIdentity.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
+                    .collect(Collectors.toSet());
             log.info("snapshot[{}] view original tables: [{}]", tableMetadata.qualifiedName(), viewSourceTables);
         } catch (Exception e) {
             log.error("snapshot[{}] get view original tables error", tableMetadata.qualifiedName(), e);
@@ -282,7 +282,7 @@ public class SnapshotSourceTableStatsService extends BasicService {
     public boolean checkLocation(String location, List<FileStatus> filesStatus,
             Map<String, SnapshotSourceTableStats> snapshotSourceTableStatsJson, KylinConfig config) throws IOException {
         log.info("check table/partition location: {}", location);
-        filesStatus.addAll(getLocationFileStatus(location, config));
+        filesStatus.addAll(getLocationFileStatus(location));
         // check file count
         val sourceTableStats = snapshotSourceTableStatsJson.get(location);
         if (sourceTableStats == null) {
@@ -388,7 +388,7 @@ public class SnapshotSourceTableStatsService extends BasicService {
         val needCheckPartitions = partitions.stream()
                 .sorted((ctp1, ctp2) -> Long.compare(ctp2.createTime(), ctp1.createTime()))
                 .limit(config.getSnapshotAutoRefreshFetchPartitionsCount()).collect(Collectors.toList());
-        putNeedSavePartitionsFilesStatus(needCheckPartitions, needSavePartitionsFilesStatus, config);
+        putNeedSavePartitionsFilesStatus(needCheckPartitions, needSavePartitionsFilesStatus);
 
         // check partition count
         if (partitions.size() != snapshotSourceTableStatsJson.size()) {
@@ -423,18 +423,16 @@ public class SnapshotSourceTableStatsService extends BasicService {
     }
 
     public void putNeedSavePartitionsFilesStatus(List<CatalogTablePartition> partitions,
-            Map<String, List<FileStatus>> locationsFileStatusMap, KylinConfig config) throws IOException {
+            Map<String, List<FileStatus>> locationsFileStatusMap) throws IOException {
         for (CatalogTablePartition partition : partitions) {
-            val filesStatus = getLocationFileStatus(partition.location().getPath(), config);
+            val filesStatus = getLocationFileStatus(partition.location().getPath());
             locationsFileStatusMap.put(partition.location().getPath(), filesStatus);
         }
     }
 
-    public List<FileStatus> getLocationFileStatus(String location, KylinConfig config) throws IOException {
-        val fileSystem = StringUtils.isBlank(config.getWriteClusterWorkingDir()) ? HadoopUtil.getWorkingFileSystem()
-                : HadoopUtil.getWriteClusterFileSystem();
-
+    public List<FileStatus> getLocationFileStatus(String location) throws IOException {
         val sourceTableStatsPath = new Path(location);
+        val fileSystem = sourceTableStatsPath.getFileSystem(SparderEnv.getHadoopConfiguration());
         if (!fileSystem.exists(sourceTableStatsPath)) {
             return Collections.emptyList();
         }
