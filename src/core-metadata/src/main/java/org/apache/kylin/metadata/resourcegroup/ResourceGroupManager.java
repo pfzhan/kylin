@@ -92,7 +92,7 @@ public class ResourceGroupManager {
 
     public void initResourceGroup() {
         if (!resourceGroupInitialized()) {
-            save(new ResourceGroup());
+            save(copyForWrite(new ResourceGroup()));
         }
     }
 
