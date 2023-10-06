@@ -38,6 +38,8 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.acl.SensitiveDataMask;
@@ -84,9 +86,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
@@ -311,7 +310,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private SensitiveDataMask.MaskType getColumnDataMask(AclTCRRequest acl, String database, String table,
-                                                         String column) {
+            String column) {
         if (acl.getDatabaseName().equals(database)) {
             for (val tb : acl.getTables()) {
                 if (tb.getTableName().equals(table)) {
