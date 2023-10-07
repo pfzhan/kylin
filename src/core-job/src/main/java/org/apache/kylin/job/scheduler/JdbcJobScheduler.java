@@ -173,10 +173,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER));
             }
         } catch (Exception e) {
-            JobLock masterLock = jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER);
-            if (masterLock == null) {
-                logger.error("Master lock init failed!");
-            }
+            logger.error("Try insert 'master_scheduler' failed.", e);
         }
 
         try {
