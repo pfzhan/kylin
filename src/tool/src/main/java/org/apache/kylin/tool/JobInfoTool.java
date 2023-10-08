@@ -21,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -33,6 +35,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -163,6 +167,70 @@ public class JobInfoTool extends CancelableTask {
                 }
             }
         }
+    }
+
+    public void backupToLocal(String dir, String project) throws IOException {
+        String extractDir = prepareLocalBackupDir(dir, project);
+        JobMapperFilter filter = JobMapperFilter.builder().project(project).build();
+        List<JobInfo> jobs = JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv())
+                .getJobInfoListByFilter(filter);
+
+        for (JobInfo job : jobs) {
+            try (FileWriter fw = new FileWriter(extractDir + job.getJobId() + ".json")) {
+                String value = JsonUtil.writeValueAsString(new JobInfoHelper(job));
+                fw.write(value);
+            }
+        }
+    }
+
+    private String prepareLocalBackupDir(String dir, String project) throws IOException {
+        File rootDir = new File(dir);
+        if (!rootDir.exists()) {
+            FileUtils.forceMkdir(rootDir);
+        }
+        String jobInfoDirPath = StringUtils.appendIfMissing(dir, "/") + JOB_INFO_DIR;
+        File jobInfoDir = new File(jobInfoDirPath);
+        if (!jobInfoDir.exists()) {
+            FileUtils.forceMkdir(jobInfoDir);
+        }
+        String extractDirPath = jobInfoDirPath + "/" + project + "/";
+        File extractDir = new File(extractDirPath);
+        if (!extractDir.exists()) {
+            FileUtils.forceMkdir(extractDir);
+        }
+        return extractDirPath;
+    }
+
+    public void restoreFromLocal(String dir, boolean afterTruncate) throws IOException {
+        String restorePath = dir + "/" + JOB_INFO_DIR;
+        File restoreDir = new File(restorePath);
+        if (!restoreDir.exists()) {
+            return;
+        }
+        File[] projectDirs = restoreDir.listFiles();
+        for (File projectDir : projectDirs) {
+            String project = projectDir.getName();
+            restoreProjectFromLocal(dir, project, afterTruncate);
+        }
+    }
+
+    public void restoreProjectFromLocal(String dir, String project, boolean afterTruncate) throws IOException {
+        String restoreProjectPath = dir + "/" + JOB_INFO_DIR + "/" + project;
+        File restoreProjectDir = new File(restoreProjectPath);
+        if (!restoreProjectDir.exists()) {
+            return;
+        }
+        File[] jsonFiles = restoreProjectDir.listFiles();
+        List<JobInfo> jobInfos = Lists.newArrayList();
+        for (File jsonFile : jsonFiles) {
+            try (BufferedReader br = new BufferedReader(new FileReader(jsonFile))) {
+                String value = br.readLine();
+                JobInfoHelper jobInfo = JsonUtil.readValue(value, JobInfoHelper.class);
+                jobInfo.setJobContent();
+                jobInfos.add(jobInfo);
+            }
+        }
+        JobContextUtil.getJobInfoDao(KylinConfig.getInstanceFromEnv()).restoreJobInfo(jobInfos, project, afterTruncate);
     }
 
     static class JobInfoHelper extends JobInfo {

@@ -34,6 +34,7 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
+import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.util.MetadataStoreUtil;
 import org.mybatis.dynamic.sql.BasicColumn;
 import org.mybatis.dynamic.sql.SqlBuilder;
@@ -45,7 +46,6 @@ import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import lombok.Getter;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +65,7 @@ public class AsyncTaskStore {
     }
 
     private AsyncTaskStore(KylinConfig config, String tableName) throws Exception {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getCoreMetadataDBUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new AsyncTaskTable(tableName);
@@ -75,7 +75,7 @@ public class AsyncTaskStore {
     }
 
     private static String genTableName(KylinConfig config) {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getCoreMetadataDBUrl();
         String tablePrefix = config.isUTEnv() ? "test_opt" : url.getIdentifier();
         return tablePrefix + ASYNC_TASK;
     }

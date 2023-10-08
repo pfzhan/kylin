@@ -33,7 +33,7 @@ public class EnableScheduler extends EnableLocalMeta {
         SparkJobFactoryUtils.initJobFactory();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @Override

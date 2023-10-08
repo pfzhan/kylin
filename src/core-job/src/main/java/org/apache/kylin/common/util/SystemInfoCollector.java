@@ -52,7 +52,7 @@ public final class SystemInfoCollector {
             return 6192;
         }
         long memAvailable = 0L;
-        if (KylinConfig.getInstanceFromEnv().getMicroServerMode() == null) {
+        if (KylinConfig.getInstanceFromEnv().getMicroServiceMode() == null) {
             memAvailable = hal.getMemory().getAvailable();
         } else {
             long containerMemoryLimit = FileUtil.getLongFromFile(CONTAINER_MEMORY_LIMIT_IN_BYTES);

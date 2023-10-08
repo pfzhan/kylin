@@ -130,4 +130,8 @@ public class JobTableInterceptor implements Interceptor {
         }
         return false;
     }
+
+    public void setJobMybatisConfig(JobMybatisConfig jobMybatisConfig) {
+        this.jobMybatisConfig = jobMybatisConfig;
+    }
 }

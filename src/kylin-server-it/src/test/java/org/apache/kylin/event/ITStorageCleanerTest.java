@@ -70,7 +70,7 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
         }
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");

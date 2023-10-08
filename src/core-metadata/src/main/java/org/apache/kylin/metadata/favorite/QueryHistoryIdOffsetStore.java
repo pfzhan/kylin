@@ -63,7 +63,7 @@ public class QueryHistoryIdOffsetStore {
     }
 
     private QueryHistoryIdOffsetStore(KylinConfig config, String tableName) throws Exception {
-        StorageURL url = config.getMetadataUrl();
+        StorageURL url = config.getCoreMetadataDBUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new QueryHistoryIdOffsetTable(tableName);
@@ -73,7 +73,7 @@ public class QueryHistoryIdOffsetStore {
     }
 
     private static String genQueryHistoryIdOffsetTableName(KylinConfig config) {
-        StorageURL url = config.getMetadataUrl();
+        StorageURL url = config.getCoreMetadataDBUrl();
         String tablePrefix = config.isUTEnv() ? "test_opt" : url.getIdentifier();
         return tablePrefix + QUERY_HISTORY_OFFSET;
     }

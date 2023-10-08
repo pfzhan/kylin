@@ -43,7 +43,7 @@ public class NTopNResultTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/multiple_topn");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

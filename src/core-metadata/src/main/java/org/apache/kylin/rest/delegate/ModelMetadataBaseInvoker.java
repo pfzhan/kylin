@@ -53,10 +53,6 @@ public class ModelMetadataBaseInvoker {
         modelMetadataBaseService.updateDataflow(dataFlowUpdateRequest);
     }
 
-    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketId) {
-        modelMetadataBaseService.updateDataflow(project, dfId, segmentId, maxBucketId);
-    }
-
     public void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status) {
         modelMetadataBaseService.updateDataflowStatus(project, uuid, status);
     }

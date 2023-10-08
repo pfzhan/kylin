@@ -400,7 +400,7 @@ public class UnitOfWork {
     }
 
     public static boolean isAlreadyInTransaction() {
-        return threadLocals.get() != null;
+        return threadLocals.get() != null && !threadLocals.get().isTransparent();
     }
 
     public static void doAfterUpdate(UnitOfWorkContext.UnitTask task) {

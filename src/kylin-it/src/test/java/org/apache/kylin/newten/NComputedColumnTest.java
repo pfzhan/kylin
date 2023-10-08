@@ -46,7 +46,7 @@ public class NComputedColumnTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/comput_column");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

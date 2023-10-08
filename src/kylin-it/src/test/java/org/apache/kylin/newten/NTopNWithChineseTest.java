@@ -43,7 +43,7 @@ public class NTopNWithChineseTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/topn_with_chinese");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

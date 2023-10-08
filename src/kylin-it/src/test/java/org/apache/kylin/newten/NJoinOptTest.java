@@ -80,7 +80,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/join_opt");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

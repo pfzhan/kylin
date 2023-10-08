@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.rest;
+package io.kyligence.kap.rest;
 
-import org.apache.kylin.rest.delegate.JobStatisticsContract;
 import org.apache.kylin.rest.delegate.JobStatisticsInvoker;
+import org.apache.kylin.rest.service.JobStatisticsService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -27,13 +27,13 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ContractConfig implements InitializingBean, ApplicationContextAware {
+public class OpsContractConfig implements InitializingBean, ApplicationContextAware {
 
     ApplicationContext applicationContext = null;
 
     @Override
     public void afterPropertiesSet() {
-        JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsContract.class));
+        JobStatisticsInvoker.setDelegate(applicationContext.getBean(JobStatisticsService.class));
     }
 
     @Override

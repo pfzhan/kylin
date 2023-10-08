@@ -34,16 +34,18 @@ import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.stereotype.Component;
 
-import com.alibaba.cloud.nacos.ConditionalOnNacosDiscoveryEnabled;
-
 import lombok.extern.slf4j.Slf4j;
 
-@ConditionalOnNacosDiscoveryEnabled
+@ConditionalOnProperty(
+        value = {"spring.cloud.nacos.discovery.enabled"},
+        matchIfMissing = true
+)
 @Component
 @Slf4j
 public class NacosClusterManager implements ClusterManager {

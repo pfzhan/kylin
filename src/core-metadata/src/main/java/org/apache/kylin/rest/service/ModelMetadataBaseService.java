@@ -119,7 +119,8 @@ public class ModelMetadataBaseService {
                     dfUpdate.setToUpdateSegs(segment);
                     dfManager.updateDataflow(dfUpdate);
                     log.info(String.format(Locale.ROOT,
-                            "Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
+                            "Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions,
+                            id));
                 }
             }
 

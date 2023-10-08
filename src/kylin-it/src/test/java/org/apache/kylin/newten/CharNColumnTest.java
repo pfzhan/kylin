@@ -39,7 +39,7 @@ public class CharNColumnTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/test_char_n_column");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

@@ -533,6 +533,14 @@ public abstract class KylinConfigBase implements Serializable {
         return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@jdbc"));
     }
 
+    public void setCoreMetadataDBUrl() {
+        setProperty("kylin.core.metadata.url", getMetadataUrl().toString());
+    }
+
+    public StorageURL getCoreMetadataDBUrl() {
+        return StorageURL.valueOf(getOptional("kylin.core.metadata.url", getMetadataUrl().toString()));
+    }
+
     public boolean isMetadataCompressEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.compress.enabled", TRUE));
     }
@@ -2285,11 +2293,18 @@ public abstract class KylinConfigBase implements Serializable {
     // SERVER
     // ============================================================================
 
+    private boolean isMicroService() {
+        return Boolean.parseBoolean(this.getOptional("kylin.micro.service", TRUE));
+    }
+
     public String getServerMode() {
         return this.getOptional("kylin.server.mode", "all");
     }
 
-    public String getMicroServerMode() {
+    public String getMicroServiceMode() {
+        if (!isMicroService()) {
+            return null;
+        }
         String serverName = getApplicationConfig(SERVER_NAME_STRING);
         ClusterConstant.ServerModeEnum[] allModes = ClusterConstant.ServerModeEnum.values();
         for (ClusterConstant.ServerModeEnum mode : allModes) {
@@ -2345,46 +2360,46 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isJobNode() {
         return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
-                && getMicroServerMode() == null;
+                && getMicroServiceMode() == null;
     }
 
     public boolean isQueryNode() {
         return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
-                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
+                && getMicroServiceMode() == null || ClusterConstant.QUERY.equals(getMicroServiceMode());
     }
 
     public boolean isJobNodeOnly() {
         return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode())
-                && getMicroServerMode() == null;
+                && getMicroServiceMode() == null;
     }
 
     public boolean isQueryNodeOnly() {
         return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode())
-                && getMicroServerMode() == null || ClusterConstant.QUERY.equals(getMicroServerMode());
+                && getMicroServiceMode() == null || ClusterConstant.QUERY.equals(getMicroServiceMode());
     }
 
     public boolean isSmartNode() {
-        return ClusterConstant.SMART.equals(getMicroServerMode());
+        return ClusterConstant.SMART.equals(getMicroServiceMode());
     }
 
     public boolean isOpsNode() {
-        return ClusterConstant.OPS.equals(getMicroServerMode());
+        return ClusterConstant.OPS.equals(getMicroServiceMode());
     }
 
     public boolean isDataLoadingNode() {
-        return ClusterConstant.DATA_LOADING.equals(getMicroServerMode());
+        return ClusterConstant.DATA_LOADING.equals(getMicroServiceMode());
     }
 
     public boolean isMetadataNode() {
-        return ClusterConstant.COMMON.equals(getMicroServerMode());
+        return ClusterConstant.COMMON.equals(getMicroServiceMode());
     }
 
     public boolean isResource() {
-        return ClusterConstant.RESOURCE.equals(getMicroServerMode());
+        return ClusterConstant.RESOURCE.equals(getMicroServiceMode());
     }
 
     public boolean isAllNode() {
-        return ClusterConstant.ALL.equals(getServerMode()) && getMicroServerMode() == null;
+        return ClusterConstant.ALL.equals(getServerMode()) && getMicroServiceMode() == null;
     }
 
     public boolean isCommonOnlyMode() {

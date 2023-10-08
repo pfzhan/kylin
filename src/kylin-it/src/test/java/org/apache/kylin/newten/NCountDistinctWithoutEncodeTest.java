@@ -43,7 +43,7 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
         this.createTestMetadata("src/test/resources/ut_meta/count_distinct_no_encode");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

@@ -118,11 +118,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         config = getTestConfig();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(config);
+        JobContextUtil.getJobContext(config);
     }
 
     @After
     public void after() throws Exception {
+        await().untilAsserted(() -> Assert
+                .assertFalse(JobContextUtil.getJobContext(getTestConfig()).getJobScheduler().hasRunningJob()));
         JobContextUtil.cleanUp();
         cleanupTestMetadata();
     }

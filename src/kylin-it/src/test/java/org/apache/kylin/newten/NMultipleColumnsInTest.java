@@ -43,7 +43,7 @@ public class NMultipleColumnsInTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/multiple_columns_in");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

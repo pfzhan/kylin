@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
@@ -218,8 +219,20 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
                 toRemovedSegments.add(segment);
             }
         }
+        if (toRemovedSegments.isEmpty()) {
+            logger.warn("Segment related to job {} can not be found, maybe job has been canceled.", getJobId());
+            return;
+        }
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(toRemovedSegments.toArray(new NDataSegment[0]));
+        updateDataflow(nDataflowUpdate);
+    }
+
+    private void updateDataflow(NDataflowUpdate nDataflowUpdate) {
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            NDataflowManager.getInstance(getConfig(), getProject()).updateDataflow(nDataflowUpdate);
+            return;
+        }
         DataFlowUpdateRequest dataFlowUpdateRequest = new DataFlowUpdateRequest();
         dataFlowUpdateRequest.setProject(project);
         dataFlowUpdateRequest.setDataflowUpdate(nDataflowUpdate);

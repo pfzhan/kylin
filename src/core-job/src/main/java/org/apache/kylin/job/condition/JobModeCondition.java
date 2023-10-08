@@ -18,13 +18,14 @@
 
 package org.apache.kylin.job.condition;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.MethodMetadata;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JobModeCondition implements Condition {
@@ -48,7 +49,7 @@ public class JobModeCondition implements Condition {
             return true;
         }
 
-        if (kylinConfig.isJobNode()) {
+        if (null == kylinConfig.getMicroServiceMode()) {
             log.info("load bean = {} on all/job mode", beanName);
             return true;
         }

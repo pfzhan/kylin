@@ -134,6 +134,10 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
                     "-excludeTableExd" };
             dumpMetadata(metaToolArgs, recordTime);
+            exportJobInfo(startTime, endTime, recordTime);
+            exportFavoriteRule(null, recordTime);
+            exportAsyncTask(null, recordTime);
+            exportQueryHistoryOffset(null, recordTime);
         }
 
         if (includeAuditLog) {

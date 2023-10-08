@@ -21,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -31,6 +33,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -137,4 +141,75 @@ public class QueryHistoryOffsetTool extends CancelableTask {
             }
         }
     }
+
+    public void backupToLocal(String dir, String project) throws IOException {
+        String extractDir = prepareLocalBackupDir(dir, project);
+        QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
+        for (QueryHistoryIdOffset.OffsetType type : QueryHistoryIdOffsetManager.ALL_OFFSET_TYPE) {
+            QueryHistoryIdOffset offset = manager.get(type);
+            try (FileWriter fw = new FileWriter(extractDir + offset.getId() + "_" + type.getName() + ".json")) {
+                fw.write(JsonUtil.writeValueAsString(offset));
+            }
+        }
+    }
+
+    private String prepareLocalBackupDir(String dir, String project) throws IOException {
+        File rootDir = new File(dir);
+        if (!rootDir.exists()) {
+            FileUtils.forceMkdir(rootDir);
+        }
+        String queryHistoryOffsetDirPath = StringUtils.appendIfMissing(dir, "/") + QUERY_HISTORY_DIR;
+        File queryHistoryOffsetDir = new File(queryHistoryOffsetDirPath);
+        if (!queryHistoryOffsetDir.exists()) {
+            FileUtils.forceMkdir(queryHistoryOffsetDir);
+        }
+        String extractDirPath = queryHistoryOffsetDirPath + "/" + project + "/";
+        File extractDir = new File(extractDirPath);
+        if (!extractDir.exists()) {
+            FileUtils.forceMkdir(extractDir);
+        }
+        return extractDirPath;
+    }
+
+    public void restoreFromLocal(String dir, boolean isTruncate) throws IOException {
+        String restorePath = dir + "/" + QUERY_HISTORY_DIR;
+        File restoreDir = new File(restorePath);
+        if (!restoreDir.exists()) {
+            return;
+        }
+        File[] projectDirs = restoreDir.listFiles();
+        for (File projectDir : projectDirs) {
+            String project = projectDir.getName();
+            restoreProjectFromLocal(dir, project, isTruncate);
+        }
+    }
+
+    public void restoreProjectFromLocal(String dir, String project, boolean isTruncate) throws IOException {
+        String restoreProjectPath = dir + "/" + QUERY_HISTORY_DIR + "/" + project;
+        File restoreProjectDir = new File(restoreProjectPath);
+        if (!restoreProjectDir.exists()) {
+            return;
+        }
+        File[] jsonFiles = restoreProjectDir.listFiles();
+        List<QueryHistoryIdOffset> offsets = Lists.newArrayList();
+        QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(project);
+        for (File jsonFile : jsonFiles) {
+            try (BufferedReader br = new BufferedReader(new FileReader(jsonFile))) {
+                String value = br.readLine();
+                QueryHistoryIdOffset offset = JsonUtil.readValue(value, QueryHistoryIdOffset.class);
+                offset.setProject(project);
+                offsets.add(offset);
+            }
+        }
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            if (isTruncate) {
+                manager.delete();
+            }
+            for (QueryHistoryIdOffset offset : offsets) {
+                manager.updateWithoutMvccCheck(offset);
+            }
+            return null;
+        });
+    }
+
 }

@@ -85,7 +85,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implem
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

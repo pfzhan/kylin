@@ -302,13 +302,13 @@ public class KylinConfigTest {
                 config.isQueryNodeOnly(), config.isMetadataNode(), config.isDataLoadingNode(), config.isSmartNode() };
     }
 
-    void mockMode(KylinConfig config, String serverMode, String microServerMode) {
+    void mockMode(KylinConfig config, String serverMode, String microServiceMode) {
         Mockito.when(config.getServerMode()).thenReturn(serverMode);
-        Mockito.when(config.getMicroServerMode()).thenReturn(microServerMode);
+        Mockito.when(config.getMicroServiceMode()).thenReturn(microServiceMode);
     }
 
     @Test
-    public void testLoadMicroServerMode() throws IOException {
+    public void testLoadMicroServiceMode() throws IOException {
         ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             ClassLoader cl = Mockito.mock(ClassLoader.class);
@@ -321,36 +321,36 @@ public class KylinConfigTest {
             final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
             createYamlFile("common", file);
-            Assert.assertEquals(ClusterConstant.COMMON, kylinConfig.getMicroServerMode());
-            Assert.assertEquals(ClusterConstant.COMMON, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.COMMON, kylinConfig.getMicroServiceMode());
+            Assert.assertEquals(ClusterConstant.COMMON, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("data-loading", file);
-            Assert.assertEquals(ClusterConstant.DATA_LOADING, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.DATA_LOADING, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("query", file);
-            Assert.assertEquals(ClusterConstant.QUERY, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.QUERY, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("smart", file);
-            Assert.assertEquals(ClusterConstant.SMART, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.SMART, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("ops", file);
-            Assert.assertEquals(ClusterConstant.OPS, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.OPS, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("resource", file);
-            Assert.assertEquals(ClusterConstant.RESOURCE, kylinConfig.getMicroServerMode());
+            Assert.assertEquals(ClusterConstant.RESOURCE, kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             createYamlFile("illegal", file);
-            Assert.assertNull(kylinConfig.getMicroServerMode());
+            Assert.assertNull(kylinConfig.getMicroServiceMode());
             kylinConfig.properties.clear();
 
             Mockito.when(cl.getResource(fileName)).thenReturn(null);
-            Assert.assertNull(kylinConfig.getMicroServerMode());
+            Assert.assertNull(kylinConfig.getMicroServiceMode());
 
             Assert.assertTrue(file.delete());
         } catch (Exception e) {

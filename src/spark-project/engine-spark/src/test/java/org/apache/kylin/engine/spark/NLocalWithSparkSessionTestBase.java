@@ -161,7 +161,7 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
 
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     public static void populateSSWithCSVData(KylinConfig kylinConfig, String project, SparkSession sparkSession) {

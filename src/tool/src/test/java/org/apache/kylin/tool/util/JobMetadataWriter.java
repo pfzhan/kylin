@@ -43,7 +43,6 @@ public class JobMetadataWriter {
         ModelMetadataBaseInvoker modelMetadataBaseInvoker = Mockito.mock(ModelMetadataBaseInvoker.class);
         Mockito.when(modelMetadataBaseInvoker.getModelNameById(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn("test");
-        jobInfoDao.setModelMetadataInvoker(modelMetadataBaseInvoker);
 
         metadata.forEach(rawResource -> {
             String path = rawResource.getResPath();
@@ -61,7 +60,6 @@ public class JobMetadataWriter {
         JobInfoDao jobInfoDao = JobContextUtil.getJobInfoDao(config);
         ModelMetadataBaseInvoker modelMetadataBaseInvoker = Mockito.mock(ModelMetadataBaseInvoker.class);
         Mockito.when(modelMetadataBaseInvoker.getModelNameById(Mockito.anyString(), Mockito.anyString())).thenReturn("test");
-        jobInfoDao.setModelMetadataInvoker(modelMetadataBaseInvoker);
 
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
         List<String> allMetadataKey = resourceStore.collectResourceRecursively("/", "");

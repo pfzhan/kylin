@@ -47,7 +47,7 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/agg_push_down");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

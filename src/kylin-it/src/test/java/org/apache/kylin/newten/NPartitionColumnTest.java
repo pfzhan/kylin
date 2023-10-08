@@ -42,7 +42,7 @@ public class NPartitionColumnTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/partition_col");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

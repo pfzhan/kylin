@@ -21,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -31,6 +33,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -124,7 +128,7 @@ public class FavoriteRuleTool extends CancelableTask {
     public void extractToHDFS(String dir, String project) throws IOException {
         FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        String filePathStr = dir + "/" + project + ZIP_SUFFIX;
+        String filePathStr = StringUtils.appendIfMissing(dir, "/") + project + ZIP_SUFFIX;
         try (FSDataOutputStream fos = fs.create(new Path(filePathStr));
                         ZipOutputStream zos = new ZipOutputStream(fos);
                         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, Charset.defaultCharset()))) {
@@ -134,5 +138,78 @@ public class FavoriteRuleTool extends CancelableTask {
                 bw.flush();
             }
         }
+    }
+
+    public void backupToLocal(String dir, String project) throws IOException {
+        String extractDir = prepareLocalBackupDir(dir, project);
+        FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
+        List<FavoriteRule> ruleList = manager.getAll();
+        for (FavoriteRule rule : ruleList) {
+            try (FileWriter fw = new FileWriter(extractDir + rule.getId() + ".json")) {
+                String value = JsonUtil.writeValueAsString(rule);
+                fw.write(value);
+            }
+        }
+    }
+
+    private String prepareLocalBackupDir(String dir, String project) throws IOException {
+        File rootDir = new File(dir);
+        if (!rootDir.exists()) {
+            FileUtils.forceMkdir(rootDir);
+        }
+        String favoriteRuleDirPath = StringUtils.appendIfMissing(dir, "/") + FAVORITE_RULE_DIR;
+        File favoriteRuleDir = new File(favoriteRuleDirPath);
+        if (!favoriteRuleDir.exists()) {
+            FileUtils.forceMkdir(favoriteRuleDir);
+        }
+        String extractDirPath = favoriteRuleDirPath + "/" + project + "/";
+        File extractDir = new File(extractDirPath);
+        if (!extractDir.exists()) {
+            FileUtils.forceMkdir(extractDir);
+        }
+        return extractDirPath;
+    }
+
+    public void restoreFromLocal(String dir, boolean afterTruncate) throws IOException {
+        String restorePath = dir + "/" + FAVORITE_RULE_DIR;
+        File restoreDir = new File(restorePath);
+        if (!restoreDir.exists()) {
+            return;
+        }
+        File[] projectDirs = restoreDir.listFiles();
+        for (File projectDir : projectDirs) {
+            String project = projectDir.getName();
+            restoreProjectFromLocal(dir, project, afterTruncate);
+        }
+    }
+
+    public void restoreProjectFromLocal(String dir, String project, boolean afterTruncate) throws IOException {
+        String restoreProjectPath = dir + "/" + FAVORITE_RULE_DIR + "/" + project;
+        File restoreProjectDir = new File(restoreProjectPath);
+        if (!restoreProjectDir.exists()) {
+            return;
+        }
+        File[] jsonFiles = restoreProjectDir.listFiles();
+        FavoriteRuleManager manager = FavoriteRuleManager.getInstance(project);
+        List<FavoriteRule> rules = Lists.newArrayList();
+        for (File jsonFile : jsonFiles) {
+            try (BufferedReader br = new BufferedReader(new FileReader(jsonFile))) {
+                String value = br.readLine();
+                FavoriteRule rule = JsonUtil.readValue(value, FavoriteRule.class);
+                rules.add(rule);
+            }
+        }
+
+        JdbcUtil.withTxAndRetry(manager.getTransactionManager(), () -> {
+            if (afterTruncate) {
+                for (FavoriteRule favoriteRule : manager.listAll()) {
+                    manager.delete(favoriteRule);
+                }
+            }
+            for (FavoriteRule rule : rules) {
+                manager.updateRule(rule);
+            }
+            return null;
+        });
     }
 }

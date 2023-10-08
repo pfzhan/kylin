@@ -34,12 +34,12 @@ kylin:
         - target: org.apache.kylin.common.KylinConfig
           type: nacos
           properties:
-            app: "${APP_NAME:smart}"
-            zhName: "${APP_DISPLAY_NAME:推荐服务}"
-            dataIds: "${APP_NAME:smart}-kylin-config"
+            app: "${APP_NAME:ops}"
+            zhName: "${APP_DISPLAY_NAME:运维服务}"
+            dataIds: "${APP_NAME:ops}-kylin-config"
             group: "${TENANT_ID}"
             autoRefresh: true
             needInit: true
-            initConfigContent: "${KYLIN_HOME}/conf/init.properties"
+            initConfigContent: "${KYLIN_HOME}/conf/init${CONFIG_INIT_SPEC:}.properties"
             configPropertyFileType: "PROPERTIES"
             configLibrary: "${KYLIN_HOME}/conf/config_library.csv"

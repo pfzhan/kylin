@@ -45,7 +45,6 @@ import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
-import org.apache.ibatis.session.SqlSessionManager;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.KylinConfig;
@@ -56,15 +55,16 @@ import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.JobContext;
+import org.apache.kylin.job.config.JobMybatisConfig;
 import org.apache.kylin.job.config.JobTableInterceptor;
 import org.apache.kylin.job.dao.JobInfoDao;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.mapper.JobInfoMapper;
 import org.apache.kylin.job.mapper.JobLockMapper;
-import org.apache.kylin.metadata.transaction.SpringManagedTransactionFactory;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.tool.restclient.RestClient;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -74,6 +74,9 @@ import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * static fields are used by UT OR shell tool which does not have SpringContext
+ */
 @Slf4j
 public class JobContextUtil {
 
@@ -91,40 +94,31 @@ public class JobContextUtil {
 
     private static JobContext jobContext;
 
-    private static SqlSessionManager sqlSessionManager;
+    private static SqlSessionTemplate sqlSessionTemplate;
 
     private static DataSourceTransactionManager transactionManager;
 
     private static JobTableInterceptor jobTableInterceptor = new JobTableInterceptor();
-    
-    static {
-        val config = KylinConfig.getInstanceFromEnv();
-        if (!config.isUTEnv()) {
-            val props = JdbcUtil.datasourceParameters(config.getMetadataUrl());
-            try {
-                transactionManager = JdbcDataSource.getTransactionManager(props);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to set 'transactionManager' for JobContextUtil.");
-            }
-        }
-    }
 
-    synchronized public static JobInfoDao getJobInfoDaoForTest(KylinConfig config) {
+    private static JobMybatisConfig jobMybatisConfig = new JobMybatisConfig();
+
+    synchronized private static JobInfoDao getJobInfoDaoForTestOrTool(KylinConfig config) {
         initMappers(config);
         if (null == jobInfoDao) {
             jobInfoDao = new JobInfoDao();
             jobInfoDao.setJobInfoMapper(jobInfoMapper);
             jobInfoDao.setJobLockMapper(jobLockMapper);
-            jobInfoDao.setModelMetadataInvoker(ModelMetadataBaseInvoker.getInstance());
         }
         return jobInfoDao;
     }
 
-    synchronized public static JobContext getJobContextForTest(KylinConfig config) {
+    synchronized private static JobContext getJobContextForTestOrTool(KylinConfig config) {
         initMappers(config);
-        if (null == jobContext) {
+        if (config.isUTEnv()) {
             config.setProperty("kylin.job.master-poll-interval-second", "1");
             config.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        }
+        if (null == jobContext) {
             jobContext = new JobContext();
             jobContext.setKylinConfig(config);
             jobContext.setJobInfoMapper(jobInfoMapper);
@@ -139,29 +133,41 @@ public class JobContextUtil {
         if (null != jobInfoMapper && null != jobLockMapper) {
             return;
         }
+        boolean isUTEnv = config.isUTEnv();
+
         StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = null;
         try {
             dataSource = JdbcDataSource.getDataSource(props);
-            transactionManager = new DataSourceTransactionManager(dataSource);
+            if (!isUTEnv) {
+                // setup job table names
+                jobMybatisConfig.setDataSource(dataSource);
+                jobMybatisConfig.setupJobTables();
+                jobTableInterceptor.setJobMybatisConfig(jobMybatisConfig);
+            }
+            transactionManager = JdbcDataSource.getTransactionManager(dataSource);
             SqlSessionFactory sqlSessionFactory = getSqlSessionFactory(dataSource);
-            sqlSessionManager = SqlSessionManager.newInstance(sqlSessionFactory);
-            addPluginForSqlSessionManager(sqlSessionManager);
-            jobInfoMapper = sqlSessionManager.getMapper(JobInfoMapper.class);
-            jobInfoMapper.deleteAllJob();
-            jobLockMapper = sqlSessionManager.getMapper(JobLockMapper.class);
-            jobLockMapper.deleteAllJobLock();
+            addPluginForSqlSessionManager(sqlSessionFactory);
+            sqlSessionTemplate = new SqlSessionTemplate(sqlSessionFactory);
+            jobInfoMapper = sqlSessionTemplate.getMapper(JobInfoMapper.class);
+            jobLockMapper = sqlSessionTemplate.getMapper(JobLockMapper.class);
+            if (isUTEnv) {
+                createTableIfNotExist((BasicDataSource) dataSource, "job_info");
+                createTableIfNotExist((BasicDataSource) dataSource, "job_lock");
+                jobInfoMapper.deleteAllJob();
+                jobLockMapper.deleteAllJobLock();
+            }
         } catch (Exception e) {
             throw new RuntimeException("initialize mybatis mappers failed", e);
         }
     }
 
-    private static void addPluginForSqlSessionManager(SqlSessionManager sqlSessionManager) {
-        List<Interceptor> interceptors = sqlSessionManager.getConfiguration().getInterceptors();
+    private static void addPluginForSqlSessionManager(SqlSessionFactory sqlSessionFactory) {
+        List<Interceptor> interceptors = sqlSessionFactory.getConfiguration().getInterceptors();
 
         if (!interceptors.contains(jobTableInterceptor)) {
-            sqlSessionManager.getConfiguration().addInterceptor(jobTableInterceptor);
+            sqlSessionFactory.getConfiguration().addInterceptor(jobTableInterceptor);
         }
 
     }
@@ -178,8 +184,6 @@ public class JobContextUtil {
         // configuration.setLogImpl(StdOutImpl.class);
         configuration.setCacheEnabled(false);
         setMapperXML(configuration);
-        createTableIfNotExist((BasicDataSource) dataSource, "job_info");
-        createTableIfNotExist((BasicDataSource) dataSource, "job_lock");
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 
@@ -227,23 +231,23 @@ public class JobContextUtil {
     }
 
     public static JobInfoDao getJobInfoDao(KylinConfig config) {
-        if (config.isUTEnv()) {
-            return getJobInfoDaoForTest(config);
+        if (config.isUTEnv() || isNoSpringContext()) {
+            return getJobInfoDaoForTestOrTool(config);
         } else {
             return SpringContext.getBean(JobInfoDao.class);
         }
     }
 
     public static JobContext getJobContext(KylinConfig config) {
-        if (config.isUTEnv()) {
-            return getJobContextForTest(config);
+        if (config.isUTEnv() || isNoSpringContext()) {
+            return getJobContextForTestOrTool(config);
         } else {
             return SpringContext.getBean(JobContext.class);
         }
     }
 
     public static DataSourceTransactionManager getTransactionManager(KylinConfig config) {
-        if (config.isUTEnv()) {
+        if (config.isUTEnv() || isNoSpringContext()) {
             synchronized (JobContextUtil.class) {
                 initMappers(config);
                 return transactionManager;
@@ -251,6 +255,10 @@ public class JobContextUtil {
         } else {
             return SpringContext.getBean(DataSourceTransactionManager.class);
         }
+    }
+
+    private static boolean isNoSpringContext() {
+        return null == SpringContext.getApplicationContext();
     }
 
     // for test only
@@ -263,7 +271,7 @@ public class JobContextUtil {
             jobLockMapper = null;
             jobInfoDao = null;
             jobContext = null;
-            sqlSessionManager = null;
+            sqlSessionTemplate = null;
             transactionManager = null;
         } catch (Exception e) {
             log.error("JobContextUtil clean up failed.");
@@ -316,6 +324,6 @@ public class JobContextUtil {
 
     @SneakyThrows
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer, int retryLimit) {
-        return JdbcUtil.withTxAndRetry(transactionManager, consumer, retryLimit);
+        return JdbcUtil.withTxAndRetry(getTransactionManager(KylinConfig.getInstanceFromEnv()), consumer, retryLimit);
     }
 }

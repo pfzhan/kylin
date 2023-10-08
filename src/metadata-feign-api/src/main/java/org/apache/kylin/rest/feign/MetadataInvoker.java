@@ -86,11 +86,6 @@ public class MetadataInvoker extends ModelMetadataBaseInvoker {
     }
 
     @Override
-    public void updateDataflow(String project, String dfId, String segmentId, long maxBucketIt) {
-        getDelegate().updateDataflow(project, dfId, segmentId, maxBucketIt);
-    }
-
-    @Override
     public void updateDataflowStatus(String project, String uuid, RealizationStatusEnum status) {
         getDelegate().updateDataflowStatus(project, uuid, status);
     }

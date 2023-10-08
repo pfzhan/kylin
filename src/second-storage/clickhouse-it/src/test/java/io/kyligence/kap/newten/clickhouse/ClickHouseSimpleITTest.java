@@ -216,7 +216,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest implement
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         populateSSWithCSVData(getTestConfig(), getProject(), ss);

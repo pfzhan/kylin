@@ -18,9 +18,11 @@
 
 package org.apache.kylin.common.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.rest.util.SerializeUtil;
 
+@Slf4j
 public class FeignRpcException extends RuntimeException {
 
     private String exceptionSerialized;
@@ -30,6 +32,7 @@ public class FeignRpcException extends RuntimeException {
     }
 
     public FeignRpcException(KylinException e) {
+        log.error("FeignRpcException wrap KylinException: ", e);
         serializeException(e);
     }
 

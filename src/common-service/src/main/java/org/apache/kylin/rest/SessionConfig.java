@@ -51,7 +51,7 @@ public class SessionConfig extends AbstractHttpSessionApplicationInitializer {
     private static final String CREATE_SCHEMA_SESSION_ATTRIBUTES_TABLE = "create.schema-session-attributes.table";
 
     @Autowired
-    @Qualifier("defaultDataSource")
+    @Qualifier
     DataSource dataSource;
 
     @Autowired

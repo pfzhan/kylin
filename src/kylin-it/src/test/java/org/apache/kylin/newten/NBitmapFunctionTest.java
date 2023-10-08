@@ -41,7 +41,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }

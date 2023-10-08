@@ -98,7 +98,7 @@ public class AsyncTaskManager {
     }
 
     public AbstractAsyncTask get(String taskType) {
-       return get(taskType, project);
+        return get(taskType, project);
     }
 
     public AbstractAsyncTask get(String taskType, String taskKey) {

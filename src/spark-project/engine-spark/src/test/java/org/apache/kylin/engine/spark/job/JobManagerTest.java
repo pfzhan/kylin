@@ -94,7 +94,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
 
         config.setProperty("kylin.job.check-quota-storage-enabled", "false");
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(config);
+        JobContextUtil.getJobContext(config);
 
         jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
         SparkJobFactoryUtils.initJobFactory();

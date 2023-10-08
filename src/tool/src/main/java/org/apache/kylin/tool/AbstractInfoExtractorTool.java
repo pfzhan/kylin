@@ -380,7 +380,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     public void tryRollUpEventLog(QueryHistory queryHistory) {
         int retry = 3;
         List<RestClient> restClients = Lists.newArrayList();
-        if (KylinConfig.getInstanceFromEnv().getMicroServerMode() != null && queryHistory == null) {
+        if (KylinConfig.getInstanceFromEnv().getMicroServiceMode() != null && queryHistory == null) {
             ClusterManager clusterManager = SpringContext.getApplicationContext().getBean(ClusterManager.class);
             for (ServerInfoResponse queryServer : clusterManager.getQueryServers()) {
                 RestClient restClient = new RestClient(queryServer.getHost());
@@ -449,6 +449,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private boolean isZenLicense() {
         try {
             if(KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                return false;
+            }
+            if (null == SpringContext.getApplicationContext()) {
                 return false;
             }
             ZenLicenseReadService licenseHandler = SpringContext.getBean(ZenLicenseReadService.class);

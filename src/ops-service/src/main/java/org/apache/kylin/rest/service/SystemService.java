@@ -178,7 +178,7 @@ public class SystemService extends BasicService {
                 if (!Arrays.stream(arguments).allMatch(StringHelper::validateShellArgument)) {
                     throw new IllegalArgumentException("Shell args have illegal char: " + Arrays.toString(arguments));
                 }
-                if (KylinConfig.getInstanceFromEnv().getMicroServerMode() == null) {
+                if (KylinConfig.getInstanceFromEnv().getMicroServiceMode() == null) {
                     CliCommandExecutor commandExecutor = new CliCommandExecutor();
                     val patternedLogger = new BufferedLogger(logger);
                     String finalCommand = String.format(Locale.ROOT, "%s/bin/diag.sh %s", KylinConfig.getKylinHome(),

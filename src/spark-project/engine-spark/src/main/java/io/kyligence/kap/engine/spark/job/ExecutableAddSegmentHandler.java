@@ -47,7 +47,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
 
         val errorOrPausedJobCount = getErrorOrPausedJobCount();
-        boolean isCubingJob = executable instanceof NSparkCubingJob;
         MergerInfo mergerInfo = new MergerInfo(project, modelId, jobId, errorOrPausedJobCount, HandlerType.ADD_SEGMENT);
         ExecutableHandleUtils.getNeedMergeTasks(executable)
                 .forEach(task -> mergerInfo.addTaskMergeInfo(task, SparkJobFactoryUtils.needBuildSnapshots(task)));

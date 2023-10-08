@@ -23,6 +23,7 @@ import static org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil.isTable
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -66,6 +67,10 @@ public class JobMybatisConfig implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        setupJobTables();
+    }
+
+    public void setupJobTables() throws Exception {
         val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
         val props = JdbcUtil.datasourceParameters(url);
         dataSource = JdbcDataSource.getDataSource(props);
@@ -109,15 +114,17 @@ public class JobMybatisConfig implements InitializingBean {
                 throw new RuntimeException(errorMsg);
             }
         }
+        try {
+            if (!isTableExists(dataSource.getConnection(), JOB_INFO_TABLE)) {
+                createTableIfNotExist(keIdentified, jobInfoFile);
+            }
 
-        if (!isTableExists(dataSource.getConnection(), JOB_INFO_TABLE)) {
-            createTableIfNotExist(keIdentified, jobInfoFile);
+            if (!isTableExists(dataSource.getConnection(), JOB_LOCK_TABLE)) {
+                createTableIfNotExist(keIdentified, jobLockFile);
+            }
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
         }
-
-        if (!isTableExists(dataSource.getConnection(), JOB_LOCK_TABLE)) {
-            createTableIfNotExist(keIdentified, jobLockFile);
-        }
-
     }
 
     private void createTableIfNotExist(String keIdentified, String sql) throws IOException {
@@ -129,6 +136,10 @@ public class JobMybatisConfig implements InitializingBean {
         populator.addScript(new InMemoryResource(sessionScript));
         populator.setContinueOnError(false);
         DatabasePopulatorUtils.execute(populator, dataSource);
+    }
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     enum Database {

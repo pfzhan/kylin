@@ -46,7 +46,6 @@ import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
-import org.apache.kylin.rest.delegate.ModelMetadataBaseInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,10 +67,6 @@ public class JobInfoDao {
     @Autowired(required = false)
     @Setter
     private JobLockMapper jobLockMapper;
-
-    @Autowired(required = false)
-    @Setter
-    private ModelMetadataBaseInvoker modelMetadataInvoker;
 
     public List<JobInfo> getJobInfoListByFilter(final JobMapperFilter jobMapperFilter) {
         List<JobInfo> jobInfoList = jobInfoMapper.selectByJobFilter(jobMapperFilter);

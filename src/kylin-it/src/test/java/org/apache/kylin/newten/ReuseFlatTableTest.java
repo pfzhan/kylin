@@ -45,7 +45,7 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/reuse_flattable");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }

@@ -99,17 +99,35 @@ public class MetadataToolHelper extends CancelableTask {
         new MetadataToolHelper().backup(kylinConfig, null, dir, folder, true, false);
     }
 
+    public void backupToDirectPath(KylinConfig kylinConfig, String backupPath) throws Exception {
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        new MetadataToolHelper().backup(kylinConfig, null, backupPath, true, false);
+    }
+
     public void backup(KylinConfig kylinConfig, String dir, String folder, String project) throws Exception {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         new MetadataToolHelper().backup(kylinConfig, project, dir, folder, true, false);
     }
 
+    public void backupToDirectPath(KylinConfig kylinConfig, String backupPath, String project) throws Exception {
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        new MetadataToolHelper().backup(kylinConfig, project, backupPath, true, false);
+    }
+
     public Pair<String, String> backup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
+                                       boolean excludeTableExd) throws Exception {
+        Pair<String, String> pair = getBackupPath(path, folder);
+        String coreMetadataBackupPath = StringUtils.appendIfMissing(pair.getFirst(), "/") + "core_meta";
+        backup(kylinConfig, project, coreMetadataBackupPath, compress, excludeTableExd);
+        return pair;
+    }
+
+    public void backup(KylinConfig kylinConfig, String project, String backupPath, boolean compress,
             boolean excludeTableExd) throws Exception {
         boolean isGlobal = null == project;
         long startAt = System.currentTimeMillis();
         try {
-            return doBackup(kylinConfig, project, path, folder, compress, excludeTableExd);
+            doBackup(kylinConfig, project, backupPath, compress, excludeTableExd);
         } catch (Exception be) {
             if (isGlobal) {
                 MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.GLOBAL, GLOBAL);
@@ -130,11 +148,7 @@ public class MetadataToolHelper extends CancelableTask {
         }
     }
 
-    Pair<String, String> doBackup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
-            boolean excludeTableExd) throws Exception {
-        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        boolean isUTEnv = kylinConfig.isUTEnv();
-
+    private Pair<String, String> getBackupPath(String path, String folder) {
         if (StringUtils.isBlank(path)) {
             path = KylinConfigBase.getKylinHome() + File.separator + "meta_backups";
         }
@@ -143,6 +157,13 @@ public class MetadataToolHelper extends CancelableTask {
                     + "_backup";
         }
         String backupPath = StringUtils.appendIfMissing(path, "/") + folder;
+        return Pair.newPair(backupPath, folder);
+    }
+
+    void doBackup(KylinConfig kylinConfig, String project, String backupPath, boolean compress, boolean excludeTableExd)
+            throws Exception {
+        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        boolean isUTEnv = kylinConfig.isUTEnv();
         //FIXME should replace printf with Logger while Logger MUST print this message to console, because test depends on it
         System.out.printf(Locale.ROOT, "The metadata backup path is %s.%n", backupPath);
         val backupMetadataUrl = getMetadataUrl(backupPath, compress, kylinConfig);
@@ -160,7 +181,7 @@ public class MetadataToolHelper extends CancelableTask {
                         System.currentTimeMillis(), -1);
                 var projectFolders = resourceStore.listResources("/");
                 if (projectFolders == null) {
-                    return Pair.newPair(backupPath, folder);
+                    return;
                 }
                 UnitOfWork.doInTransactionWithRetry(() -> {
                     backupProjects(projectFolders, resourceStore, backupResourceStore, excludeTableExd);
@@ -193,7 +214,6 @@ public class MetadataToolHelper extends CancelableTask {
             backupMetadataStore.dump(backupResourceStore);
             logger.info("backup successfully at {}", backupPath);
         }
-        return Pair.newPair(backupPath, folder);
     }
 
     public String getMetadataUrl(String rootPath, boolean compressed, KylinConfig kylinConfig) {
@@ -294,7 +314,11 @@ public class MetadataToolHelper extends CancelableTask {
                 verifyResult.getResultMessage() + "\n the metadata dir is not qualified");
         restore(resourceStore, restoreResourceStore, project, delete);
         if (backup) {
-            backup(kylinConfig);
+            if (UnitOfWork.isAlreadyInTransaction()) {
+                UnitOfWork.get().doAfterUnit(() -> backup(kylinConfig));
+            } else {
+                backup(kylinConfig);
+            }
         }
     }
 

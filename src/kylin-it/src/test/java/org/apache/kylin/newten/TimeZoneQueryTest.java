@@ -94,7 +94,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/timezone");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

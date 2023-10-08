@@ -27,7 +27,7 @@ object ExtractFactory {
   def create: ILogExtractor = {
     if (KapConfig.wrap(KylinConfig.getInstanceFromEnv).isCloud) {
       CloudLogExtractor
-    } else if (KylinConfig.getInstanceFromEnv.getMicroServerMode != null) {
+    } else if (KylinConfig.getInstanceFromEnv.getMicroServiceMode != null) {
       K8sLogExtractor
     } else {
       HadoopLogExtractor

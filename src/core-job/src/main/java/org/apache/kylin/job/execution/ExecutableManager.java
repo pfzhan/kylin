@@ -94,7 +94,6 @@ import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -933,10 +932,6 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            job.cancelJob();
-            return null;
-        }, project);
         JobContextUtil.withTxAndRetry(() -> {
             if (job instanceof DefaultExecutable) {
                 List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
@@ -956,6 +951,7 @@ public class ExecutableManager {
             }
             updateJobOutput(jobId, ExecutableState.DISCARDED);
 
+            job.cancelJob();
             return true;
         });
     }
@@ -1674,7 +1670,6 @@ public class ExecutableManager {
         if (job == null) {
             return;
         }
-        job.cancelJob();
 
         if (job instanceof DefaultExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultExecutable) job).getTasks();
@@ -1697,8 +1692,9 @@ public class ExecutableManager {
                 }
             });
         }
-
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
+
+        job.cancelJob();
     }
 
     public void checkSuicideJobOfModel(String project, String modelId) {

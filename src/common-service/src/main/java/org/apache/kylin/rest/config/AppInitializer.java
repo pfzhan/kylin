@@ -162,6 +162,8 @@ public class AppInitializer {
             kylinConfig.setStreamingStatsUrl(kylinConfig.getStreamingStatsUrl().toString());
             kylinConfig.setJdbcShareStateUrl(kylinConfig.getJdbcShareStateUrl().toString());
             if (kylinConfig.getMetadataStoreType().equals("hdfs")) {
+                // cache db metadata url before switch to hdfs
+                kylinConfig.setCoreMetadataDBUrl();
                 kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
             }
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);

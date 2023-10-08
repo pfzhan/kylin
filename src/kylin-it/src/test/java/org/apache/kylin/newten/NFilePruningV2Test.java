@@ -88,7 +88,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         NDataModelManager instance = NDataModelManager.getInstance(getTestConfig(), getProject());
         instance.updateDataModel("8c670664-8d05-466a-802f-83c023b56c77", write -> write.setStorageType(2));

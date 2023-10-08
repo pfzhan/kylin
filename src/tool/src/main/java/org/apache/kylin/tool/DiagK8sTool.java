@@ -70,7 +70,7 @@ public class DiagK8sTool extends AbstractInfoExtractorTool{
 
         final File recordTime = new File(exportDir, "time_used_info");
 
-        if(queryId != null) {
+        if (queryId != null) {
             extractQueryDiag(exportDir, recordTime, queryId, project);
         } else if(jobId != null) {
             extractJobDiag(exportDir, recordTime, jobId);

@@ -34,6 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
@@ -58,6 +59,7 @@ import org.apache.kylin.metadata.job.JobBucket;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.apache.kylin.rest.request.DataFlowUpdateRequest;
+import org.apache.kylin.rest.service.ModelMetadataBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -329,6 +331,10 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
                 toRemovedSegments.add(segment);
             }
         }
+        if (toRemovedSegments.isEmpty()) {
+            logger.warn("Segment related to job {} can not be found, maybe job has been canceled.", getJobId());
+            return;
+        }
         NDataSegment[] nDataSegments = toRemovedSegments.toArray(new NDataSegment[0]);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
@@ -338,6 +344,14 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
         dataFlowUpdateRequest.setDataflowUpdate(nDataflowUpdate);
         // init update request for sub partition job
         initSubPartitionJobUpdateRequest(dataFlowUpdateRequest);
+        updateDataflow(dataFlowUpdateRequest);
+    }
+
+    private void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest) {
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            new ModelMetadataBaseService().updateDataflow(dataFlowUpdateRequest);
+            return;
+        }
         MetadataInvoker.getInstance().updateDataflow(dataFlowUpdateRequest);
     }
 

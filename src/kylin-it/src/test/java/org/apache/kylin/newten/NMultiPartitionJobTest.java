@@ -49,7 +49,7 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

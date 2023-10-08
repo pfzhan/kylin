@@ -67,7 +67,7 @@ public class NSparkMergingJobTest extends NLocalWithSparkSessionTest {
         config = getTestConfig();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(config);
+        JobContextUtil.getJobContext(config);
     }
 
     @After

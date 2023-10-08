@@ -96,7 +96,6 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         ModelMetadataBaseInvoker modelMetadataBaseInvoker = Mockito.mock(ModelMetadataBaseInvoker.class);
         Mockito.when(modelMetadataBaseInvoker.getModelNameById(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn("test");
-        jobInfoDao.setModelMetadataInvoker(modelMetadataBaseInvoker);
 
         MockCleanableExecutable executable = new MockCleanableExecutable();
         executable.setParam("test1", "test1");

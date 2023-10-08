@@ -53,7 +53,7 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

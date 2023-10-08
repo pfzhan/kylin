@@ -21,7 +21,7 @@ package org.apache.kylin.job.rest;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.curator.shaded.com.google.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.job.execution.ExecutableState;
 
 import lombok.AllArgsConstructor;

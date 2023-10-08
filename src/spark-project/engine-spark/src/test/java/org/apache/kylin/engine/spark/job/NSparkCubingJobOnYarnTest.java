@@ -51,7 +51,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

@@ -113,7 +113,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "org.apache.kylin.engine.spark.job.MockedDFBuildJob");
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         var df = dfManager.getDataflow(MODEL_ID);

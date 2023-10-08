@@ -160,10 +160,10 @@ public class JobInfoService extends BasicService implements JobSupporter {
 
     private AclEvaluate aclEvaluate;
 
-    @Autowired(required = false)
+    @Autowired
     private ModelService modelService;
 
-    @Autowired(required = false)
+    @Autowired
     private TableExtService tableExtService;
 
     @Autowired

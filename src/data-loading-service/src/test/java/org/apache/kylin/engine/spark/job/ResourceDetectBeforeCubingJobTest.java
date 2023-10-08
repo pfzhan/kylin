@@ -53,7 +53,7 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         config = getTestConfig();
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(config);
+        JobContextUtil.getJobContext(config);
     }
 
     @After

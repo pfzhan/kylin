@@ -99,7 +99,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

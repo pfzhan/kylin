@@ -25,20 +25,16 @@ import javax.sql.DataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.persistence.metadata.JdbcDataSource;
-import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.HostInfoFetcher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.session.jdbc.config.annotation.SpringSessionDataSource;
 
 import lombok.val;
 
 @Configuration
-@ConditionalOnProperty(name = "spring.session.store-type", havingValue = "JDBC")
 public class InitConfiguration {
     @Autowired
     private HostInfoFetcher hostInfoFetcher;
@@ -51,23 +47,16 @@ public class InitConfiguration {
         }
     }
 
-    @Bean("defaultDataSource")
+    @Bean
     @SpringSessionDataSource
     @Primary
     public DataSource dataSource() throws Exception {
-        val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val url = config.getMetadataUrl();
         val props = datasourceParameters(url);
-        if (!url.getScheme().equals("jdbc")) {
+        if (!url.getScheme().equals("jdbc") && !config.isUTEnv()) {
             throw new RuntimeException("Failed to init jdbc data source!");
         }
         return JdbcDataSource.getDataSource(props);
-    }
-
-    @Bean("transactionManager")
-    public DataSourceTransactionManager getTransactionManager() throws Exception {
-        val url = KylinConfig.getInstanceFromEnv().getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
-        DataSourceTransactionManager transactionManager = JdbcDataSource.getTransactionManager(props);
-        return transactionManager;
     }
 }

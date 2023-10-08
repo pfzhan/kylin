@@ -52,7 +52,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata("src/test/resources/ut_meta/opt_intersect_count");
 
         JobContextUtil.cleanUp();
-        JobContextUtil.getJobContextForTest(getTestConfig());
+        JobContextUtil.getJobContext(getTestConfig());
     }
 
     @After

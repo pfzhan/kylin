@@ -120,7 +120,7 @@ class DiagK8sToolTest {
             KylinConfig config = getTestConfig();
 
             JobContextUtil.cleanUp();
-            JobContextUtil.getJobContextForTest(config);
+            JobContextUtil.getJobContext(config);
 
             NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, DEFAULT_PROJECT);
             NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.listAllTables().get(0), "ADMIN",
