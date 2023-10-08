@@ -352,9 +352,6 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     @Delegate
     private ModelMetadataBaseService modelMetadataBaseService = new ModelMetadataBaseService();
 
-    @Autowired(required = false)
-    private ModelSmartSupporter modelSmartService;
-
     public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getManager(NDataModelManager.class, project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
@@ -1945,19 +1942,20 @@ public class ModelService extends AbstractModelService implements TableModelSupp
     }
 
     public List<NDataLayout[]> mergeMetadata(String project, MergerInfo mergerInfo) {
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            MetadataMerger merger = MetadataMerger.createMetadataMerger(project, mergerInfo.getHandlerType());
+        return EnhancedUnitOfWork
+                .doInTransactionWithCheckAndRetry(UnitOfWorkParams.<List<NDataLayout[]>> builder().processor(() -> {
+                    MetadataMerger merger = MetadataMerger.createMetadataMerger(project, mergerInfo.getHandlerType());
 
-            List<NDataLayout[]> mergedLayouts = new ArrayList<>();
-            mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
+                    List<NDataLayout[]> mergedLayouts = new ArrayList<>();
+                    mergerInfo.getTaskMergeInfoList().forEach(info -> mergedLayouts.add(merger.merge(info)));
 
-            if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
-                tryRemoveToBeDeletedLayouts(project, mergerInfo);
-            }
-            markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(),
-                    mergerInfo.getErrorOrPausedJobCount());
-            return mergedLayouts;
-        }, project);
+                    if (mergerInfo.getHandlerType() == HandlerType.ADD_CUBOID) {
+                        tryRemoveToBeDeletedLayouts(project, mergerInfo);
+                    }
+                    markDFStatus(project, mergerInfo.getModelId(), mergerInfo.getHandlerType(),
+                            mergerInfo.getErrorOrPausedJobCount());
+                    return mergedLayouts;
+                }).retryMoreTimeForDeadLockException(true).unitName(project).build());
     }
 
     private void tryRemoveToBeDeletedLayouts(String project, MergerInfo mergerInfo) {
