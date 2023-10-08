@@ -351,6 +351,7 @@
         <license.version>5.0.7</license.version>
         <okhttp.version>3.12.12</okhttp.version>
         <snappy-java.version>1.1.10.4</snappy-java.version>
+        <avro.version>1.11.3</avro.version>
     </properties>
 
     <modules>
@@ -3036,6 +3037,12 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>${netty3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
