@@ -1388,8 +1388,11 @@ public class ModelService extends AbstractModelService
 
     public String getModelSql(String modelId, String project) {
         aclEvaluate.checkProjectReadPermission(project);
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
-        return PushDownUtil.generateFlatTableSql(model, false);
+        try (QueryContext queryContext = QueryContext.current()) {
+            queryContext.setAclInfo(AclPermissionUtil.createAclInfo(project, getCurrentUserGroups()));
+            NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
+            return PushDownUtil.generateFlatTableSql(model, false);
+        }
     }
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
@@ -1831,9 +1834,10 @@ public class ModelService extends AbstractModelService
             return;
         }
 
-        try {
+        try (QueryContext queryContext = QueryContext.current()) {
             String project = model.getProject();
             ProjectInstance prjInstance = getManager(NProjectManager.class).getProject(project);
+            queryContext.setAclInfo(AclPermissionUtil.createAclInfo(project, getCurrentUserGroups()));
             if (prjInstance.getSourceType() == ISourceAware.ID_SPARK
                     && model.getModelType() == NDataModel.ModelType.BATCH) {
                 SparkSession ss = SparderEnv.getSparkSession();
