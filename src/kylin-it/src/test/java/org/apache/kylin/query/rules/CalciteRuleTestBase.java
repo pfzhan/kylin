@@ -42,6 +42,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.guava30.shaded.common.base.Strings;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.query.engine.QueryExec;
 import org.apache.kylin.query.engine.QueryOptimizer;
 import org.apache.kylin.query.util.HepUtils;
@@ -52,8 +53,6 @@ import org.apache.kylin.util.ExecAndComp;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.clearspring.analytics.util.Lists;
 
 public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CalciteRuleTestBase.class);
