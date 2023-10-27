@@ -117,4 +117,8 @@ public class AddressUtil {
     public static String concatInstanceName() {
         return AddressUtil.getLocalHostExactAddress() + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
     }
+
+    public static void clearLocalIpAddressCache() {
+        localIpAddressCache = null;
+    }
 }
