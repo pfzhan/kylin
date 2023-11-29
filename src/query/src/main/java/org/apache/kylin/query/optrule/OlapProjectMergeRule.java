@@ -19,6 +19,7 @@
 package org.apache.kylin.query.optrule;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -28,9 +29,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
@@ -83,6 +84,13 @@ public class OlapProjectMergeRule extends RelOptRule {
 
     //~ Methods ----------------------------------------------------------------
 
+    @Override
+    public boolean matches(RelOptRuleCall call) {
+        final Project topProject = call.rel(0);
+        final Project bottomProject = call.rel(1);
+        return topProject.getConvention() == bottomProject.getConvention();
+    }
+
     public void onMatch(RelOptRuleCall call) {
         final Project topProject = call.rel(0);
         final Project bottomProject = call.rel(1);
@@ -121,18 +129,18 @@ public class OlapProjectMergeRule extends RelOptRule {
             return;
         }
 
-        final List<RexNode> pushedProjects;
+        List<RexNode> newProjects;
         if (KylinConfig.getInstanceFromEnv().isProjectMergeWithBloatEnabled()) {
-            pushedProjects = RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(), bottomProject,
+            newProjects = RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(), bottomProject,
                     KylinConfig.getInstanceFromEnv().getProjectMergeRuleBloatThreshold());
-            if (pushedProjects == null) {
+            if (newProjects == null) {
                 // Merged projects are significantly more complex. Do not merge.
                 return;
             }
         } else {
-            pushedProjects = RelOptUtil.pushPastProject(topProject.getProjects(), bottomProject);
+            newProjects = RelOptUtil.pushPastProject(topProject.getProjects(), bottomProject);
         }
-        final List<RexNode> newProjects = simplify(pushedProjects);
+        newProjects = simplifyCast(newProjects, topProject.getCluster().getRexBuilder());
         final RelNode input = bottomProject.getInput();
         if (RexUtil.isIdentity(newProjects, input.getRowType())
                 && (force || input.getRowType().getFieldNames().equals(topProject.getRowType().getFieldNames()))) {
@@ -146,37 +154,35 @@ public class OlapProjectMergeRule extends RelOptRule {
         call.transformTo(relBuilder.build());
     }
 
-    private static List<RexNode> simplify(List<RexNode> projectExprs) {
-
+    public static List<RexNode> simplifyCast(List<RexNode> projects, RexBuilder rexBuilder) {
         final List<RexNode> list = new ArrayList<>();
-        simplifyRecursiveCase().visitList(projectExprs, list);
+        for (RexNode rex : projects) {
+            if (rex.getKind() == SqlKind.CAST) {
+                RexNode inner = ((RexCall) rex).getOperands().get(0);
+                RexNode simplified = simplify(inner);
+                if (simplified.getType() == rex.getType()) {
+                    list.add(simplified);
+                } else {
+                    List<RexNode> newNodes = Collections.singletonList(simplified);
+                    RexNode rexNode = rexBuilder.makeCall(rex.getType(), ((RexCall) rex).getOperator(), newNodes);
+                    list.add(rexNode);
+                }
+            } else {
+                list.add(rex);
+            }
+        }
         return list;
     }
 
-    private static RexShuttle simplifyRecursiveCase() {
-        return new RexShuttle() {
-            @Override
-            public RexNode visitCall(RexCall call) {
-                if (call.getKind() == SqlKind.CASE && call.getOperands().size() == 3) {
-                    RexNode op0 = call.getOperands().get(0);
-                    RexNode op1 = call.getOperands().get(1);
-                    RexNode op2 = call.getOperands().get(2);
-                    if (op1 instanceof RexCall && ((RexCall) op1).getKind() == SqlKind.CASE
-                            && ((RexCall) op1).getOperands().size() == 3
-                            && RexUtil.eq(op0, ((RexCall) op1).getOperands().get(0))
-                            && RexUtil.eq(op2, ((RexCall) op1).getOperands().get(2))) {
-                        return visitCall((RexCall) op1);
-                    }
-                    if (op2 instanceof RexCall && ((RexCall) op2).getKind() == SqlKind.CASE
-                            && ((RexCall) op2).getOperands().size() == 3
-                            && RexUtil.eq(op0, ((RexCall) op2).getOperands().get(0))
-                            && RexUtil.eq(op1, ((RexCall) op2).getOperands().get(1))) {
-                        return visitCall((RexCall) op2);
-                    }
-                }
-                return super.visitCall(call);
+    private static RexNode simplify(RexNode node) {
+        RexNode current = node;
+        if (current.isA(SqlKind.CAST)) {
+            RexNode operand = ((RexCall) current).getOperands().get(0);
+            if (operand.getType().equals(current.getType())) {
+                current = simplify(operand);
             }
-        };
+        }
+        return current;
     }
 
     private boolean containsNonMergeableExprs(Project project) {
