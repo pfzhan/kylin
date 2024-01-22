@@ -328,6 +328,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         return originIdentity.toUpperCase(Locale.ROOT);
     }
 
+    public String getLowerCaseIdentity() {
+        String originIdentity = getCaseSensitiveIdentity();
+        return originIdentity.toLowerCase(Locale.ROOT);
+    }
+
     public String getBackTickIdentity() {
         return getBackTickCaseSensitiveIdentity("");
     }
@@ -338,6 +343,15 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getBackTickTransactionalTableIdentity(String suffix) {
         return getBackTickCaseSensitiveIdentity(TRANSACTIONAL_TABLE_NAME_SUFFIX.toUpperCase(Locale.ROOT) + suffix);
+    }
+
+    public String getBackTickTransactionalTableIdentity(String temporaryWritableDB, String suffix) {
+        String fullSuffix = TRANSACTIONAL_TABLE_NAME_SUFFIX.toUpperCase(Locale.ROOT) + suffix;
+        if (StringUtils.isNotBlank(temporaryWritableDB)) {
+            return String.format(Locale.ROOT, "`%s`.`%s`", temporaryWritableDB.toUpperCase(Locale.ROOT),
+                    getCaseSensitiveName() + fullSuffix);
+        }
+        return getBackTickTransactionalTableIdentity(suffix);
     }
 
     public String getCaseSensitiveIdentity() {
@@ -493,6 +507,14 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getTransactionalTableIdentity() {
         return (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
+    }
+
+    public String getTransactionalTableIdentity(String temporaryWritableDB) {
+        if (StringUtils.isNotBlank(temporaryWritableDB)) {
+            return (String.format(Locale.ROOT, "%s.%s", temporaryWritableDB, getCaseSensitiveName())
+                    + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
+        }
+        return getTransactionalTableIdentity();
     }
 
     public String getTransactionalTableName() {

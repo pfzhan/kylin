@@ -53,6 +53,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -87,6 +88,7 @@ import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.yaml.snakeyaml.Yaml;
 
 import io.kyligence.config.core.loader.IExternalConfigLoader;
@@ -1160,7 +1162,7 @@ public abstract class KylinConfigBase implements Serializable {
     public int getMaxTransactionRetry() {
         return Integer.parseInt(getOptional("kylin.job.max-transaction-retry", "3"));
     }
-    
+
     public int getMaxConcurrentJobLimit() {
         return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "20"));
     }
@@ -1332,6 +1334,14 @@ public abstract class KylinConfigBase implements Serializable {
 
         r.putAll(convertKeyToInteger(getPropertiesByPrefix("kylin.source.provider.")));
         return r;
+    }
+
+    public List<Integer> getSourceProviderFamily(int sourceType) {
+        String family = getOptional("kylin.source.provider-family." + sourceType, "");
+        if (StringUtils.isBlank(family)) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(family.split(",")).map(Integer::parseInt).collect(Collectors.toList());
     }
 
     /**
@@ -3961,6 +3971,7 @@ public abstract class KylinConfigBase implements Serializable {
     public int getJobSchedulerSlavePollBatchSize() {
         return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "20"));
     }
+
     public int getJobLockClientRenewalMaxThreads() {
         return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
     }
@@ -4307,5 +4318,21 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isQueryUseIterableCollectApi() {
         return Boolean.parseBoolean(getOptional("kylin.query.use-iterable-collect", FALSE));
+    }
+
+    public String getBuildResourceTemporaryWritableDB() {
+        return getOptional("kylin.build.resource.temporary-writable-db", null);
+    }
+
+    public String getQueryEnginePeriodicGCCrontab() {
+        return getOptional("kylin.query.engine.periodicGC.crontab", Scheduled.CRON_DISABLED);
+    }
+
+    public String sparkPeriodicGCEnabled() {
+        String queryEnginePeriodicGCCrontab = getQueryEnginePeriodicGCCrontab();
+        // The special value "-" indicates a disabled cron trigger
+        boolean notUseCrontabPeriodicGC = StringUtils.isBlank(queryEnginePeriodicGCCrontab)
+                || StringUtils.equals(Scheduled.CRON_DISABLED, queryEnginePeriodicGCCrontab);
+        return String.valueOf(notUseCrontabPeriodicGC);
     }
 }

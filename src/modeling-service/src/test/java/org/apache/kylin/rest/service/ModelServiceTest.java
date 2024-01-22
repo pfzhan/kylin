@@ -38,6 +38,7 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_I
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_ID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_NAME;
+import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS_ILLEGAL;
 import static org.apache.kylin.rest.request.MultiPartitionMappingRequest.MappingRequest;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -413,7 +414,6 @@ public class ModelServiceTest extends SourceTestCase {
 
     @Test
     public void testSortModels() {
-
         List<NDataModelResponse> models = modelService.getModels("", "default", false, "", null, "usage", true);
         Assert.assertEquals(8, models.size());
         Assert.assertEquals("test_sum_expr_with_cross_join", models.get(0).getAlias());
@@ -423,9 +423,19 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", null, "storage", false);
         Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
-
         models = modelService.getModels("", "default", false, "", null, "expansionrate", true);
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        for (int i = 0; i < models.size(); i++) {
+            int finalI = i;
+            modelManager.updateDataModel(models.get(i).getId(),
+                    copyForWrite -> copyForWrite.setRecommendationsCount(finalI));
+        }
+
+        models = modelService.getModels("", "default", false, "", null, "recommendations_count", true);
+        Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
+        Assert.assertEquals("nmodel_basic_inner", models.get(models.size() - 1).getAlias());
     }
 
     @Test
@@ -5281,10 +5291,8 @@ public class ModelServiceTest extends SourceTestCase {
         }
         {
             ArrayList<String> exceptionStatuses = Lists.newArrayList("ONLINE_EXCEPTION");
-            Assert.assertThrows(
-                    PARAMETER_INVALID_SUPPORT_LIST.getMsg("statuses",
-                            StringUtils.join(SegmentStatusEnumToDisplay.getNames(), ", ")),
-                    KylinException.class, () -> modelService.checkSegmentStatus(exceptionStatuses));
+            Assert.assertThrows(SEGMENT_STATUS_ILLEGAL.getMsg(), KylinException.class,
+                    () -> modelService.checkSegmentStatus(exceptionStatuses));
         }
     }
 
@@ -5715,18 +5723,17 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertThrows(KylinException.class, () -> modelService.checkBeforeModelSave(request));
     }
 
-
     @Test
     public void testCheckModelWithSegmentOverlap() {
         val project = "segment_overlap_test";
         val modelId = "d0bbfa51-9c16-b6e5-1d33-76b47d8853eb";
         val modelName = "time_range_overlap";
-        val models = modelService.getModels(modelName, project,
-                false, null, Lists.newArrayList(), null, false, null, null, null, true);
+        val models = modelService.getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null,
+                null, null, true);
         NDataModelResponse model = models.get(0);
         Assert.assertSame(NDataModel.BrokenReason.NULL, model.getBrokenReason());
 
-        modelService.addOldParams(project, (List)models);
+        modelService.addOldParams(project, (List) models);
         Assert.assertSame(NDataModel.BrokenReason.SEGMENT_OVERLAP, model.getBrokenReason());
 
         model = modelService.getCubes0(modelName, project).get(0);
