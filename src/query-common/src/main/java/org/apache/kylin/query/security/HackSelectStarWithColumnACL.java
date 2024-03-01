@@ -148,7 +148,6 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
                 SqlSelect select = (SqlSelect) call;
                 select.getSelectList().accept(this);
                 markCall(select.getFrom());
-                select.getSelectList().accept(this);
             }
             if (call instanceof SqlBasicCall) {
                 SqlBasicCall basicCall = (SqlBasicCall) call;
