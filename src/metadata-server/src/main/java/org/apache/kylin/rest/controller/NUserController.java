@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -91,6 +92,7 @@ import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -142,6 +144,9 @@ public class NUserController extends NBasicController implements ApplicationList
 
     @Autowired
     SessionRegistry sessionRegistry;
+
+    @Autowired
+    FindByIndexNameSessionRepository sessionRepository;
 
     @Autowired
     private Environment env;
@@ -489,7 +494,10 @@ public class NUserController extends NBasicController implements ApplicationList
 
         completeAuthorities(existingUser);
         userService.updateUser(existingUser);
-        sessionRegistry.getAllSessions(existingUser, false).forEach(SessionInformation::expireNow);
+        if (MapUtils.isNotEmpty(sessionRepository.findByPrincipalName(existingUser.getUsername()))) {
+            sessionRegistry.getAllSessions(existingUser, false)
+                    .forEach(SessionInformation::expireNow);
+        }
         // update authentication
         if (StringUtils.equals(getPrincipal(), user.getUsername())) {
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(existingUser,

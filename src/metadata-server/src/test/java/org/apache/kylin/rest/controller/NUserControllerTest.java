@@ -63,6 +63,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -72,6 +73,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -111,6 +113,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private SessionRegistry sessionRegistry;
 
+    @Spy
+    private FindByIndexNameSessionRepository sessionRepository;
+
     @Mock
     Environment env;
 
@@ -141,6 +146,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ReflectionTestUtils.setField(nUserController, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(nUserController, "userAclService", userAclService);
+        ReflectionTestUtils.setField(nUserController, "sessionRepository", sessionRepository);
     }
 
     @After
