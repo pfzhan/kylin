@@ -29,15 +29,15 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork
 import org.apache.kylin.common.util.{RandomUtil, Unsafe}
 import org.apache.kylin.engine.spark.ExecutableUtils
 import org.apache.kylin.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
+import org.apache.kylin.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
 import org.apache.kylin.engine.spark.utils.{FileNames, HDFSUtils}
 import org.apache.kylin.guava30.shaded.common.collect.{Lists, Maps, Sets}
-import org.apache.kylin.job.execution._
+import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableManager, ExecutableState}
 import org.apache.kylin.job.util.JobContextUtil
 import org.apache.kylin.metadata.cube.model._
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.kylin.query.runtime.plan.TableScanPlan
-import org.apache.kylin.rest.service.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.common.SparderQueryTest
@@ -46,7 +46,6 @@ import org.junit.Assert
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import scala.collection.JavaConverters._
-
 
 trait JobSupport
   extends BeforeAndAfterAll
@@ -141,53 +140,40 @@ trait JobSupport
       table =>
         val parent = FileNames.snapshotFileWithWorkingDir(table.getTableDesc, workingDirectory)
         Assert.assertTrue(s"$parent should ony one file, please check " +
-          s"org.apache.kylin.rest.service.merger.AfterBuildResourceMerger.updateSnapshotTableIfNeed ",
+          s"org.apache.kylin.engine.spark.merger.AfterBuildResourceMerger.updateSnapshotTableIfNeed ",
           HDFSUtils.listSortedFileFrom(parent).size == 1)
     })
   }
 
   @throws[Exception]
-  protected def buildSegment(dfUuid: String,
-                             segmentRange: SegmentRange[_ <: Comparable[_]],
-                             toBuildLayouts: java.util.Set[LayoutEntity],
-                             prj: String): NDataSegment = {
-    val oneSeg: NDataSegment = UnitOfWork.doInTransactionWithRetry(() => {
-      val dsMgr: NDataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, prj)
-      val df: NDataflow = dsMgr.getDataflow(dfUuid)
-      // ready dataflow, segment, cuboid layout
-      dsMgr.appendSegment(df, segmentRange)
-    }, prj)
+  def buildOneSegmentForCubePlanner(dfName: String,
+                                    prj: String = DEFAULT_PROJECT): Unit = {
+    val config = KylinConfig.getInstanceFromEnv
+    val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
+    var df = dsMgr.getDataflow(dfName)
+    Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
 
-    val config: KylinConfig = KylinConfig.getInstanceFromEnv
-    val execMgr: ExecutableManager = ExecutableManager.getInstance(config, prj)
-    // create job, and the job type is `inc_build`
-    val job: NSparkCubingJob = NSparkCubingJob.createIncBuildJob(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
-    val sparkStep: NSparkCubingStep = job.getSparkCubingStep
-    val distMetaUrl: StorageURL = StorageURL.valueOf(sparkStep.getDistMetaUrl)
-    Assert.assertEquals("hdfs", distMetaUrl.getScheme)
-    Assert.assertTrue(
-      distMetaUrl
-        .getParameter("path")
-        .startsWith(config.getHdfsWorkingDirectory))
-    // launch the job
-    execMgr.addJob(job)
-    if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-      val message = job.getTasks.asScala
-        .find(executable => Objects.equals(executable.getStatus, ExecutableState.ERROR))
-        .map(task => execMgr.getOutputFromHDFSByJobId(job.getId, task.getId, Integer.MAX_VALUE).getVerboseMsg)
-        .getOrElse("Unknown Error")
-      throw new IllegalStateException(message);
-    }
+    // cleanup all segments first
+    val update = new NDataflowUpdate(df.getUuid)
+    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
+    dsMgr.updateDataflow(update)
 
-    UnitOfWork.doInTransactionWithRetry(() => {
-      val conf: KylinConfig = KylinConfig.getInstanceFromEnv
-      val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(conf, job.getSparkCubingStep)
-      val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(conf, prj)
-      val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
-      merger.mergeAfterIncrement(dfUuid, oneSeg.getId, layoutIds, buildStore)
-      checkSnapshotTable(dfUuid, oneSeg.getId, oneSeg.getProject)
-    }, prj)
-    oneSeg
+    // build one segment for cube planner
+    val layouts = df.getIndexPlan.getAllLayouts
+    var start = SegmentRange.dateToLong("2010-01-01")
+    var end = SegmentRange.dateToLong("2023-01-01")
+    var segment = buildSegment(dfName,
+      new SegmentRange.TimePartitionedSegmentRange(start, end),
+      Sets.newLinkedHashSet(layouts),
+      prj)
+    logInfo(s"build cube planner segment: ${segment}")
+
+    // validate the first segment for build
+    val firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0)
+    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
+      SegmentRange.dateToLong("2010-01-01"),
+      SegmentRange.dateToLong("2023-01-01")),
+      firstSegment.getSegRange)
   }
 
   @throws[Exception]
@@ -269,37 +255,43 @@ trait JobSupport
   }
 
   @throws[Exception]
-  def buildOneSegementForCubePlanner(dfName: String,
-                                     prj: String = DEFAULT_PROJECT): Unit = {
-    val config = KylinConfig.getInstanceFromEnv
-    val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
-    var df = dsMgr.getDataflow(dfName)
-    Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
+  protected def buildSegment(cubeName: String,
+                             segmentRange: SegmentRange[_ <: Comparable[_]],
+                             toBuildLayouts: java.util.Set[LayoutEntity],
+                             prj: String): NDataSegment = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
+    val execMgr: ExecutableManager = ExecutableManager.getInstance(config, prj)
+    val df: NDataflow = dsMgr.getDataflow(cubeName)
+    // ready dataflow, segment, cuboid layout
+    val oneSeg: NDataSegment = dsMgr.appendSegment(df, segmentRange)
+    // create job, and the job type is `inc_build`
+    val job: NSparkCubingJob = NSparkCubingJob.createIncBuildJob(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
+    val sparkStep: NSparkCubingStep = job.getSparkCubingStep
+    val distMetaUrl: StorageURL = StorageURL.valueOf(sparkStep.getDistMetaUrl)
+    Assert.assertEquals("hdfs", distMetaUrl.getScheme)
+    Assert.assertTrue(
+      distMetaUrl
+        .getParameter("path")
+        .startsWith(config.getHdfsWorkingDirectory))
+    // launch the job
+    execMgr.addJob(job)
+    if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
+      val message = job.getTasks.asScala
+        .find(executable => Objects.equals(executable.getStatus, ExecutableState.ERROR))
+        .map(task => execMgr.getOutputFromHDFSByJobId(job.getId, task.getId, Integer.MAX_VALUE).getVerboseMsg)
+        .getOrElse("Unknown Error")
+      throw new IllegalStateException(message);
+    }
 
-    // cleanup all segments first
-    UnitOfWork.doInTransactionWithRetry(() => {
-      val update = new NDataflowUpdate(df.getUuid)
-      update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
-      NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, prj).updateDataflow(update)
-    }, prj)
-
-    // build one segment for cube planner
-    val layouts = df.getIndexPlan.getAllLayouts
-    var start = SegmentRange.dateToLong("2010-01-01")
-    var end = SegmentRange.dateToLong("2023-01-01")
-    var segment = buildSegment(dfName,
-      new SegmentRange.TimePartitionedSegmentRange(start, end),
-      Sets.newLinkedHashSet(layouts),
-      prj)
-    logInfo(s"build cube planner segment: ${segment}")
-
-    // validate the first segment for build
-    val firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0)
-    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
-      SegmentRange.dateToLong("2010-01-01"),
-      SegmentRange.dateToLong("2023-01-01")),
-      firstSegment.getSegRange)
+    val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
+    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
+    val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
+    merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
+    checkSnapshotTable(df.getId, oneSeg.getId, oneSeg.getProject)
+    oneSeg
   }
+
 
   @throws[Exception]
   def buildFourSegementAndMerge(dfName: String,
