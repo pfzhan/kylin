@@ -146,17 +146,19 @@ trait JobSupport
   }
 
   @throws[Exception]
-  protected def buildSegment(cubeName: String,
+  protected def buildSegment(dfUuid: String,
                              segmentRange: SegmentRange[_ <: Comparable[_]],
                              toBuildLayouts: java.util.Set[LayoutEntity],
                              prj: String): NDataSegment = {
+    val oneSeg: NDataSegment = UnitOfWork.doInTransactionWithRetry(() => {
+      val dsMgr: NDataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, prj)
+      val df: NDataflow = dsMgr.getDataflow(dfUuid)
+      // ready dataflow, segment, cuboid layout
+      dsMgr.appendSegment(df, segmentRange)
+    }, prj)
+
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
-    val execMgr: ExecutableManager =
-      ExecutableManager.getInstance(config, prj)
-    val df: NDataflow = dsMgr.getDataflow(cubeName)
-    // ready dataflow, segment, cuboid layout
-    val oneSeg: NDataSegment = dsMgr.appendSegment(df, segmentRange)
+    val execMgr: ExecutableManager = ExecutableManager.getInstance(config, prj)
     // create job, and the job type is `inc_build`
     val job: NSparkCubingJob = NSparkCubingJob.createIncBuildJob(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
     val sparkStep: NSparkCubingStep = job.getSparkCubingStep
@@ -176,11 +178,14 @@ trait JobSupport
       throw new IllegalStateException(message);
     }
 
-    val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
-    val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
-    val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
-    merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
-    checkSnapshotTable(df.getId, oneSeg.getId, oneSeg.getProject)
+    UnitOfWork.doInTransactionWithRetry(() => {
+      val conf: KylinConfig = KylinConfig.getInstanceFromEnv
+      val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(conf, job.getSparkCubingStep)
+      val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(conf, prj)
+      val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
+      merger.mergeAfterIncrement(dfUuid, oneSeg.getId, layoutIds, buildStore)
+      checkSnapshotTable(dfUuid, oneSeg.getId, oneSeg.getProject)
+    }, prj)
     oneSeg
   }
 
@@ -271,9 +276,11 @@ trait JobSupport
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
 
     // cleanup all segments first
-    val update = new NDataflowUpdate(df.getUuid)
-    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
-    dsMgr.updateDataflow(update)
+    UnitOfWork.doInTransactionWithRetry(() => {
+      val update = new NDataflowUpdate(df.getUuid)
+      update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
+      NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, prj).updateDataflow(update)
+    }, prj)
 
     // build one segment for cube planner
     val layouts = df.getIndexPlan.getAllLayouts

@@ -17,13 +17,10 @@
 
 package org.apache.kylin.common
 
-import java.io.{DataInputStream, File}
-import java.nio.charset.Charset
-import java.nio.file.Files
-import java.util.Locale
 import com.google.common.base.Preconditions
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang.StringUtils
+import org.apache.kylin.common.persistence.transaction.UnitOfWork
 import org.apache.kylin.common.persistence.{JsonSerializer, RootPersistentEntity}
 import org.apache.kylin.common.util.TempMetadataBuilder
 import org.apache.kylin.metadata.cube.model.{IndexPlan, NDataflowManager, NIndexPlanManager}
@@ -33,6 +30,11 @@ import org.apache.kylin.query.util.{PushDownUtil, QueryParams}
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
+
+import java.io.{DataInputStream, File}
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.util.Locale
 
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
@@ -87,16 +89,18 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
   }
 
   def addModels(resourcePath: String, modelIds: Seq[String]): Unit = {
-    val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
-    val indexPlanMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
-    val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
-    modelIds.foreach { id =>
-      val model = read(classOf[NDataModel], resourcePath, s"model_desc/$id.json")
-      model.setProject(getProject)
-      modelMgr.createDataModelDesc(model, "ADMIN")
-      dfMgr.createDataflow(indexPlanMgr.createIndexPlan(
-        read(classOf[IndexPlan], resourcePath, s"index_plan/$id.json")), "ADMIN")
-    }
+    UnitOfWork.doInTransactionWithRetry(() => {
+      val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
+      val indexPlanMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
+      val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, getProject)
+      modelIds.foreach { id =>
+        val model = read(classOf[NDataModel], resourcePath, s"model_desc/$id.json")
+        model.setProject(getProject)
+        modelMgr.createDataModelDesc(model, "ADMIN")
+        dfMgr.createDataflow(indexPlanMgr.createIndexPlan(
+          read(classOf[IndexPlan], resourcePath, s"index_plan/$id.json")), "ADMIN")
+      }
+    }, getProject)
   }
 
   private def read[T <: RootPersistentEntity](clz: Class[T], prePath: String, subPath: String): T = {
