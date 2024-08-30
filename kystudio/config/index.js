@@ -7,7 +7,7 @@ let port = argvs[1] || 8080
 console.log(port)
 if (argvs && argvs.indexOf('proxy') !== -1) {
   var proxyBase = 'http://localhost:' + port
-  var proxyHost = 'http://localhost:7070' // 测试其他环境的数据请修改该地址进行转发
+  var proxyHost = 'http://10.1.2.113:8899' // 测试其他环境的数据请修改该地址进行转发
   proxyTable = {
     '/kylin/api': {
       target: proxyHost,
