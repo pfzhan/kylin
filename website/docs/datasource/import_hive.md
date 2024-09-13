@@ -62,7 +62,7 @@ This article introduces how to load Hive data source to a Kylin [project](../ope
 
 - Question: How to load Hive transactional tables? 
 
-  Answer: Before loading, you need to add `kylin.build.resource.read-transactional-table-enabled=true` to the configuration file, and configure parameter `kylin.source.hive.beeline-params`. For more information, see [Configure basic parameters](../configuration/configuration.md). 
+  Answer: Before loading, you need to add `kylin.build.resource.read-transactional-table-enabled=true` to the configuration file, and configure parameter `kylin.source.hive.beeline-params`. For more information, see [Configure basic parameters](../configuration/config). 
 
 - Question: Besides Hive data source, what other data sources does Kylin support?
 

@@ -11,7 +11,24 @@ keywords:
     - sql query
 draft: false
 last_update:
-    date: 08/17/2022
+    date: 09/13/2024
 ---
 
-This chapter introduces how to execute SQL queries in kylin, as well as the supported SQL grammar and guidelines.
+Kylin offers an Intelligent OLAP Platform designed to simplify multidimensional analytics on big data. By leveraging precomputation and index building jobs, Kylin achieves sub-second query latency on massive datasets.
+
+Unlike traditional query execution, Kylin utilizes precalculated data to answer queries, eliminating the need for real-time calculations and significantly improving query performance.
+
+This chapter will delve into the details of Kylin query-related topics, including:
+* Language Specifications
+* Web UI
+    * Query Insight
+    * Query History
+* Execution Principles
+    * Pre-calculation
+    * Query Transformations
+    * Query answered by Model
+    * Query answered by InternalTable
+    * Query answered by Snapshot
+    * Query answered by Push-down Engine
+* Query Optimization
+* Asynchronous Query
