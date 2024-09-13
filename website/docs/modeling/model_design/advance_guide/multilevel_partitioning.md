@@ -1,17 +1,17 @@
 ---
-title: Multi-Level Partitioning (Beta)
+title: Multilevel Partitioning (Beta)
 language: en
-sidebar_label: Multi-Level Partitioning (Beta)
-pagination_label: Multi-Level Partitioning (Beta)
+sidebar_label: Multilevel Partitioning (Beta)
+pagination_label: Multilevel Partitioning (Beta)
 toc_min_heading_level: 2
 toc_max_heading_level: 6
 pagination_prev: null
 pagination_next: null
 keywords:
-    - multi-level partitioning (beta)
+    - multilevel partitioning (beta)
 draft: false
 last_update:
-    date: 09/13/2022
+    date: 09/13/2024
 ---
 
 

@@ -1,17 +1,17 @@
 ---
-title: Skip Dictionary Encoding Optimization for Integer Type 
+title: Dictionary Encoding
 language: en
-sidebar_label: Skip Dictionary Encoding Optimization for Integer Type 
-pagination_label: Skip Dictionary Encoding Optimization for Integer Type 
+sidebar_label: Dictionary Encoding 
+pagination_label: Dictionary Encoding
 toc_min_heading_level: 2
 toc_max_heading_level: 6
 pagination_prev: null
 pagination_next: null
 keywords:
-    - skip dictionary encoding optimization for integer type
+    - dictionary encoding
 draft: false
 last_update:
-    date: 09/13/2022
+    date: 09/13/2024
 ---
 
 Starting from Kylin 5, the system supports no dictionary encoding for integer types

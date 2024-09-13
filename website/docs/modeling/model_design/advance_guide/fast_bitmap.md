@@ -1,17 +1,17 @@
 ---
-title: Query Optimization for Exact Hit Index
+title: Fast Bitmap Optimization
 language: en
-sidebar_label: Query Optimization for Exact Hit Index
-pagination_label: Query Optimization for Exact Hit Index
+sidebar_label: Fast Bitmap Optimization
+pagination_label: Fast Bitmap Optimization
 toc_min_heading_level: 2
 toc_max_heading_level: 6
 pagination_prev: null
 pagination_next: null
 keywords:
-    - query optimization for exact hit index
+    - fast bitmap optimization
 draft: false
 last_update:
-    date: 09/13/2022
+    date: 09/13/2024
 ---
 
 Since Kylin 5, the system has enhanced the optimization of queries that hit the index exactly (the query contains dimensions that are exactly the same as the dimensions of the selected index), and it also improves the performance in count distinct scenario.
