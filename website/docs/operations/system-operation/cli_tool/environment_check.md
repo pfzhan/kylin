@@ -1,14 +1,14 @@
 ---
-title: Environment Dependency Check
+title: Environment Check
 language: en
-sidebar_label: Environment Dependency Check
-pagination_label: Environment Dependency Check
+sidebar_label: Environment Check
+pagination_label: Environment Check
 toc_min_heading_level: 2
 toc_max_heading_level: 6
 pagination_prev: null
 pagination_next: null
 keywords:
-    - environment dependency check
+    - environment check
 draft: false
 last_update:
     date: 08/16/2022

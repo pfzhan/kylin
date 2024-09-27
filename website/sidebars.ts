@@ -613,35 +613,21 @@ const sidebars = {
                             items: [
                                 {
                                     type: 'doc',
-                                    id: 'operations/system-operation/cli_tool/environment_dependency_check',
+                                    id: 'operations/system-operation/cli_tool/environment_check',
                                 },
                                 {
                                     type: 'doc',
                                     id: 'operations/system-operation/cli_tool/diagnosis'
                                 },
                                 {
-                                    type: 'category',
-                                    label: 'Metadata Tool',
-                                    link: {
-                                        type: 'doc',
-                                        id: 'operations/system-operation/cli_tool/metadata_tool/intro',
-                                    },
-                                    items: [
-                                        {
-                                            type: 'doc',
-                                            id: 'operations/system-operation/cli_tool/metadata_tool/metadata_backup_restore'
-                                        },
-                                    ],
+                                    type: 'doc',
+                                    id: 'operations/system-operation/cli_tool/metadata_operation'
                                 },
                                 {
                                     type: 'doc',
                                     id: 'operations/system-operation/cli_tool/rollback'
                                 },
                             ],
-                        },
-                        {
-                            type: 'doc',
-                            id: 'operations/system-operation/maintenance_mode'
                         },
                         {
                             type: 'doc',

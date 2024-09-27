@@ -163,7 +163,7 @@ In the `conf` directory under the root directory of the installation package, yo
    ![Check GSS-Negotiate dependency](images/gss_negotiate.png)
 
 2. Start Kylin with the startup script.
-   Run the following command to start Kylin. When it is first started, the system will run a series of scripts to check whether the system environment has met the requirements. For details, please refer to the [Environment Dependency Check](../operations/system-operation/cli_tool/environment_dependency_check.md) chapter.
+   Run the following command to start Kylin. When it is first started, the system will run a series of scripts to check whether the system environment has met the requirements. For details, please refer to the [Environment Dependency Check](../operations/system-operation/cli_tool/environment_check) chapter.
    
    ```shell
    ${KYLIN_HOME}/bin/kylin.sh start

@@ -1,14 +1,14 @@
 ---
-title: System Metadata Backup and Restore
+title: Metadata Operation
 language: en
-sidebar_label: System Metadata Backup and Restore
-pagination_label: System Metadata Backup and Restore
+sidebar_label: Metadata Operation
+pagination_label: Metadata Operation
 toc_min_heading_level: 2
 toc_max_heading_level: 6
 pagination_prev: null
 pagination_next: null
 keywords:
-    - system metadata backup and restore
+    - metadata operation
 draft: false
 last_update:
     date: 08/16/2022
@@ -85,4 +85,24 @@ Metadata recovery is required in Kylin with the **command line**.
    - `METADATA_BACKUP_PATH` - required, represents the metadata path that are going to be recovered, the default value is `${KYLIN_HOME}/meta_backups/`
    - `--after-truncate` - optional, if this parameter is added, the project metadata will be completely restored, otherwise only the deleted and modified metadata will be restored, and the new metadata will still be retained.
    
-**Caution** When run this command, Kylin will enter maintenance mode. If the command is interrupted by force, you may need to exit maintain mode manually. Refer [Maintenance Mode](../../maintenance_mode.md).
+
+## Metadata Migration {#metadata_migration}
+
+Since Kylin 5.0-alpha and Kylin 5.0.0 underwent a metadata refactoring, you will need to use this tool to perform a metadata migration on versions prior to 5.0.0. The steps for migration are as follows:
+
++ Backup the metadata
+  ```shell
+  $KYLIN_HOME/bin/metastore.sh backup METADATA_BACKUP_PATH
+  ```
++ Perform metadata conversion
+  ```shell
+  $KYLIN_HOME/bin/kylin.sh org.apache.kylin.common.persistence.metadata.MigrateKEMetadataTool  {inputPath} {outputPath}
+  ```
++ Restore the metadata
+  ```shell
+  $KYLIN_HOME/bin/metastore.sh restore METADATA_RESTORE_PATH
+  ```
+:::tip Tips
++ Configure the new KE and ensure it starts normally. Ensure that at least the following parameters are configured: `metadata_url`, `zookeeper`, other required parameters. If the metadata were stored in MySQL, provide the MySQL-related JAR package.
++ During metadata migration and import, a large number of intermediate values may be stored in memory. If you encounter OutOfMemory (OOM) issues, adjust the memory parameters and try again.
+:::
