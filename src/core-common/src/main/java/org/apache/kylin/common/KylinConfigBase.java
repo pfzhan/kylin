@@ -4470,4 +4470,8 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.query.v3.delta-log-cache-expire-threshold", "43200s"),
                 TimeUnit.SECONDS);
     }
+
+    public boolean isForcedToPushDown() {
+        return Boolean.parseBoolean(getOptional("kylin.query.pushdown-force", FALSE));
+    }
 }
