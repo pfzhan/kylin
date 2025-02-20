@@ -28,8 +28,7 @@ import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-
-import io.kyligence.kap.cache.utils.ReflectionUtil;
+import org.apache.kylin.cache.utils.ReflectionUtil;
 
 public class KylinSumSplitter extends SqlSplittableAggFunction.SumSplitter {
 
@@ -39,9 +38,9 @@ public class KylinSumSplitter extends SqlSplittableAggFunction.SumSplitter {
     @SuppressWarnings("unchecked")
     public static void registerRexImpTable() {
         RexImpTable rexImpTable = RexImpTable.INSTANCE;
-        Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
-                (Map<SqlAggFunction, Supplier<? extends AggImplementor>>) ReflectionUtil
-                    .getFieldValue(rexImpTable, "aggMap");
+        Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap = //
+                (Map<SqlAggFunction, Supplier<? extends AggImplementor>>) ReflectionUtil.getFieldValue(rexImpTable,
+                        "aggMap");
         Supplier<? extends AggImplementor> calciteSumImplementorSupplier = aggMap.get(SqlStdOperatorTable.SUM);
         aggMap.put(KYLIN_SUM, calciteSumImplementorSupplier);
     }
